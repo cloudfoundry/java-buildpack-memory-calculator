@@ -13,17 +13,15 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-package main_test
+package integration_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	// . "github.com/cloudfoundry/java-buildpack-memory-calculator/integration"
 
-	"testing"
+	. "github.com/onsi/ginkgo"
+	// . "github.com/onsi/gomega"
 )
 
-func TestJavaBuildpackMemoryCalculator(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "JavaBuildpackMemoryCalculator Suite")
-}
+var _ = Describe("java-buildpack-memory-calculator executable", func() {
+
+})

@@ -13,16 +13,4 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-package main_test
-
-import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-)
-
-var _ = Describe("Main", func() {
-	It("addition is accurate", func() {
-		Expect(1 + 1).Should(Equal(2))
-	})
-})
+package integration

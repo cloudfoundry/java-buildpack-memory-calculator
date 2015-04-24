@@ -13,11 +13,16 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+package integration_test
 
-package main
+import (
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
-import "fmt"
+	"testing"
+)
 
-func main() {
-	fmt.Println("Hello World!")
+func TestIntegration(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Integration Suite")
 }
