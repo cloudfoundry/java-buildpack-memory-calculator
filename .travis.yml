@@ -1,0 +1,12 @@
+---
+language: go
+go:
+- 1.4.2
+sudo: false
+notifications:
+  slack:
+    secure: gmcIi1LG+c0nokWSi+OUZZCqVCVj2c7S9WxqCslhZFtPqfQckcVKDyztB1PNsGgIVw31NerakPaqvsSSX3m0rlC3eWETROlcPpiPDEh2bqe6baN5sHWbfKsMXTtaOa7Y+KoHYuunXLj/vmOiwKDVC1ccBc0+ZO3tldtRtxDAaXc=
+  webhooks:
+    urls:
+    - http://build-monitor.cfapps.io/projects/MEMC/webhook
+    on_start: true
