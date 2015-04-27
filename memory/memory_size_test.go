@@ -22,66 +22,87 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-const (
-	bYTE = 1
-	kILO = 1024 * bYTE
-	mEGA = 1024 * kILO
-	gIGA = 1024 * mEGA
-)
-
 var _ = Describe("MemorySize", func() {
 
-	Context("basic working constructors", func() {
-		It("accepts memory sizes in bytes, kilobytes, megabytes, or gigabytes", func() {
-			testItWorks("1024b", kILO)
-			testItWorks("1024B", kILO)
-			testItWorks("2048B", 2*kILO)
-			testItWorks("1m", mEGA)
-			testItWorks("1M", mEGA)
-			testItWorks("2M", 2*mEGA)
-			testItWorks("1g", gIGA)
-			testItWorks("1G", gIGA)
-			testItWorks("2G", 2*gIGA)
+	Context("basic constructors", func() {
+
+		var (
+			testItWorks func(string, int64)
+			testItFails func(string)
+		)
+
+		BeforeEach(func() {
+			testItWorks = func(memStr string, memVal int64) {
+				ms, err := memory.NewMemSizeFromString(memStr)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(ms.Bytes()).Should(Equal(memVal))
+			}
+
+			testItFails = func(memStr string) {
+				ms, err := memory.NewMemSizeFromString(memStr)
+				Ω(ms).Should(BeNil())
+				Ω(err).Should(HaveOccurred())
+			}
 		})
 
-		It("accepts zero (0) as a valid memory size", func() {
-			testItWorks("0", 0)
+		Context("succeeds", func() {
+			It("accepts memory sizes in bytes, kilobytes, megabytes, or gigabytes", func() {
+				testItWorks("1024b", kILO)
+				testItWorks("1024B", kILO)
+				testItWorks("2048B", 2*kILO)
+				testItWorks("1m", mEGA)
+				testItWorks("1M", mEGA)
+				testItWorks("2M", 2*mEGA)
+				testItWorks("1g", gIGA)
+				testItWorks("1G", gIGA)
+				testItWorks("2G", 2*gIGA)
+			})
+
+			It("accepts zero (0) as a valid memory size", func() {
+				testItWorks("0", 0)
+			})
+
+			It("accepts a negative value as a valid memory size", func() {
+				testItWorks("-3M", -3*mEGA)
+			})
+
+			It("accepts whitespace either side of a valid memory size", func() {
+				testItWorks("  1024b\r", kILO)
+				testItWorks(" \t\r0  ", 0)
+				testItWorks("\t1M    ", mEGA)
+			})
 		})
 
-		It("accepts a negative value as a valid memory size", func() {
-			testItWorks("-3M", -3*mEGA)
-		})
+		Context("fails", func() {
+			It("does not accept 'empty' strings", func() {
+				testItFails("")
+				testItFails("  ")
+				testItFails("\t \r ")
+			})
 
-		It("accepts whitespace either side of a valid memory size", func() {
-			testItWorks("  1024b\r", kILO)
-			testItWorks(" \t\r0  ", 0)
-			testItWorks("\t1M    ", mEGA)
-		})
-	})
+			It("does not accept absent numeric value", func() {
+				testItFails("M")
+			})
 
-	Context("basic failure cases", func() {
-		It("does not accept absent numeric value", func() {
-			testItFails("M")
-		})
+			It("does not accept unqualified non-zero memory sizes", func() {
+				testItFails("512")
+			})
 
-		It("does not accept unqualified non-zero memory sizes", func() {
-			testItFails("512")
-		})
+			It("does not accept unknown units", func() {
+				testItFails("512A")
+			})
 
-		It("does not accept unknown units", func() {
-			testItFails("512A")
-		})
+			It("does not accept non-decimal integer values", func() {
+				testItFails("0x24b")
+			})
 
-		It("does not accept non-decimal integer values", func() {
-			testItFails("0x24b")
-		})
+			It("does not accept non-integral values", func() {
+				testItFails("10.24G")
+			})
 
-		It("does not accept non-integral values", func() {
-			testItFails("10.24G")
-		})
-
-		It("does not accept embedded whitespace", func() {
-			testItFails("10 24G")
+			It("does not accept embedded whitespace", func() {
+				testItFails("10 24G")
+			})
 		})
 	})
 
@@ -148,21 +169,3 @@ var _ = Describe("MemorySize", func() {
 		})
 	})
 })
-
-func getMs(msInt int64) *memory.MemSize {
-	ms, err := memory.NewMemSize(msInt)
-	Ω(err).ShouldNot(HaveOccurred())
-	return ms
-}
-
-func testItWorks(memStr string, memVal int64) {
-	ms, err := memory.NewMemSizeFromString(memStr)
-	Ω(err).ShouldNot(HaveOccurred())
-	Ω(ms.Bytes()).Should(Equal(memVal))
-}
-
-func testItFails(memStr string) {
-	ms, err := memory.NewMemSizeFromString(memStr)
-	Ω(ms).Should(BeNil())
-	Ω(err).Should(HaveOccurred())
-}

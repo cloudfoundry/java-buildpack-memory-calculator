@@ -17,6 +17,7 @@
 package memory_test
 
 import (
+	"github.com/cloudfoundry/java-buildpack-memory-calculator/memory"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -26,4 +27,15 @@ import (
 func TestMemorySuite(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Memory Suite")
+}
+
+const (
+	bYTE = 1
+	kILO = 1024 * bYTE
+	mEGA = 1024 * kILO
+	gIGA = 1024 * mEGA
+)
+
+func getMs(msInt int64) *memory.MemSize {
+	return memory.NewMemSize(msInt)
 }

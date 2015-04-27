@@ -43,12 +43,12 @@ const (
 var MS_ZERO *MemSize
 
 func init() {
-	MS_ZERO, _ = NewMemSize(0)
+	MS_ZERO = NewMemSize(0)
 }
 
 // Construct a new MemSize object from an int64
-func NewMemSize(ms int64) (*MemSize, error) {
-	return &MemSize{ms}, nil
+func NewMemSize(ms int64) *MemSize {
+	return &MemSize{ms}
 }
 
 // Construct a new MemSize object from a string description
@@ -58,30 +58,33 @@ func NewMemSize(ms int64) (*MemSize, error) {
 //	error invalid memory size string '%s'
 func NewMemSizeFromString(ms string) (*MemSize, error) {
 	ms = strings.TrimSpace(ms)
-	var bytes int64 = 0
-	if ms != "0" {
-		factor, intStr := int64(1), ms[:len(ms)-1]
-		switch ms[len(ms)-1] {
-		case 'b', 'B':
-			factor = bYTE
-		case 'k', 'K':
-			factor = kILO
-		case 'm', 'M':
-			factor = mEGA
-		case 'g', 'G':
-			factor = gIGA
-		default:
-			return nil, fmt.Errorf("invalid memory size string '%s'", ms)
-		}
-
-		num, err := strconv.ParseInt(intStr, 10, 64)
-		if err != nil {
-			return nil, err
-		}
-
-		bytes = num * factor
+	if ms == "" {
+		return nil, fmt.Errorf("memory size string cannot be empty")
 	}
-	return NewMemSize(bytes)
+	if ms == "0" {
+		return NewMemSize(0), nil
+	}
+
+	factor, intStr := int64(1), ms[:len(ms)-1]
+	switch ms[len(ms)-1] {
+	case 'b', 'B':
+		factor = bYTE
+	case 'k', 'K':
+		factor = kILO
+	case 'm', 'M':
+		factor = mEGA
+	case 'g', 'G':
+		factor = gIGA
+	default:
+		return nil, fmt.Errorf("invalid memory size string '%s'", ms)
+	}
+
+	num, err := strconv.ParseInt(intStr, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewMemSize(num * factor), nil
 }
 
 // The number of bytes in the MemSize
