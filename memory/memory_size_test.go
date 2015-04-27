@@ -90,7 +90,7 @@ var _ = Describe("MemorySize", func() {
 
 		BeforeEach(func() {
 			zero = memory.MS_ZERO
-			noMeg, oneMeg, twoMeg, oneKilo, twoGig = getMs("0"), getMs("1M"), getMs("2M"), getMs("1k"), getMs("2g")
+			noMeg, oneMeg, twoMeg, oneKilo, twoGig = getMs(0), getMs(mEGA), getMs(2*mEGA), getMs(kILO), getMs(2*gIGA)
 		})
 
 		It("compares values correctly", func() {
@@ -116,7 +116,8 @@ var _ = Describe("MemorySize", func() {
 		It("correctly scales memory sizes", func() {
 			Ω(oneMeg.Scale(2.0)).To(Equal(twoMeg))
 			Ω(twoGig.Scale(1.0 / 1024)).To(Equal(twoMeg))
-			Ω(getMs("3B").Scale(0.5)).To(Equal(getMs("2B")))
+			Ω(getMs(3).Scale(0.5)).To(Equal(getMs(2)))
+			Ω(getMs(0).Scale(1e8)).To(Equal(memory.MS_ZERO))
 		})
 
 		It("correctly derives proportion between two memory sizes", func() {
@@ -125,6 +126,7 @@ var _ = Describe("MemorySize", func() {
 		})
 
 		It("converts a memory size to a string correctly", func() {
+			Ω(memory.MS_ZERO.String()).Should(Equal("0"))
 			Ω(oneMeg.String()).Should(Equal("1M"))
 			Ω(oneMeg.Scale(0.75).String()).Should(Equal("768K"))
 			Ω(twoMeg.Scale(3.0).Scale(1.5).String()).Should(Equal("9M"))
@@ -134,20 +136,20 @@ var _ = Describe("MemorySize", func() {
 	})
 })
 
-func getMs(mStr string) *memory.MemSize {
-	ms, err := memory.NewMemSize(mStr)
+func getMs(msInt int64) *memory.MemSize {
+	ms, err := memory.NewMemSize(msInt)
 	Ω(err).ShouldNot(HaveOccurred())
 	return ms
 }
 
 func testItWorks(memStr string, memVal int64) {
-	ms, err := memory.NewMemSize(memStr)
+	ms, err := memory.NewMemSizeFromString(memStr)
 	Ω(err).ShouldNot(HaveOccurred())
 	Ω(ms.Bytes()).Should(Equal(memVal))
 }
 
 func testItFails(memStr string) {
-	ms, err := memory.NewMemSize(memStr)
+	ms, err := memory.NewMemSizeFromString(memStr)
 	Ω(ms).Should(BeNil())
 	Ω(err).Should(HaveOccurred())
 }

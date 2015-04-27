@@ -26,7 +26,7 @@ import (
 // allocation. It understands the normal nK, nM, nG string representations,
 // and permits scaling and comparison operations.  The methods are described
 // in-line.
-// type MemSize is exported, all the methods take *MemSize
+// type MemSize is exported, all the methods have receiver *MemSize
 
 type MemSize struct {
 	sizeInBytes int64
@@ -43,7 +43,12 @@ const (
 var MS_ZERO *MemSize
 
 func init() {
-	MS_ZERO, _ = NewMemSize("0")
+	MS_ZERO, _ = NewMemSize(0)
+}
+
+// Construct a new MemSize object from an int64
+func NewMemSize(ms int64) (*MemSize, error) {
+	return &MemSize{ms}, nil
 }
 
 // Construct a new MemSize object from a string description
@@ -51,7 +56,7 @@ func init() {
 // Errors include:
 //	errors from ParseInt
 //	error invalid memory size string '%s'
-func NewMemSize(ms string) (*MemSize, error) {
+func NewMemSizeFromString(ms string) (*MemSize, error) {
 	ms = strings.TrimSpace(ms)
 	var bytes int64 = 0
 	if ms != "0" {
@@ -76,7 +81,7 @@ func NewMemSize(ms string) (*MemSize, error) {
 
 		bytes = num * factor
 	}
-	return &MemSize{bytes}, nil
+	return NewMemSize(bytes)
 }
 
 // The number of bytes in the MemSize
