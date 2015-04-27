@@ -104,23 +104,25 @@ func (ms *MemSize) Gigas() int64 {
 	return ms.sizeInBytes / gIGA
 }
 
-// A string presentation of the MemSize rounded down to whole numbers
-// of giga-, mega-, kilo- bytes, and using the K,M,G suffices.
-// Less than 1K produces "0" as the string output.
+// A string presentation of the MemSize rounded down to whole numbers of
+// kilobytes, and expressed in the highest unit that is exact using the K,M,G
+// suffices. Less than 1K produces "0" as the string output.
 func (ms *MemSize) String() string {
 	var (
 		val  int64
 		suff string
 	)
-	if v := ms.Gigas(); v > 0 {
-		val, suff = v, "G"
-	} else if v := ms.Megas(); v > 0 {
-		val, suff = v, "M"
-	} else if v := ms.Kilos(); v > 0 {
-		val, suff = v, "K"
-	} else {
+
+	if v := ms.Kilos(); v == 0 {
 		return "0"
+	} else if v%mEGA == 0 {
+		val, suff = v/mEGA, "G"
+	} else if v%kILO == 0 {
+		val, suff = v/kILO, "M"
+	} else {
+		val, suff = v, "K"
 	}
+
 	return fmt.Sprintf("%d%s", val, suff)
 }
 

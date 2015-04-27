@@ -113,7 +113,11 @@ var _ = Describe("MemorySize", func() {
 			Ω(noMeg.Add(twoGig)).To(Equal(twoGig))
 		})
 
-		It("correctly scales memory sizes", func() {
+		It("correctly scales negative memory sizes", func() {
+			Ω(getMs(-3).Scale(0.5)).To(Equal(getMs(-1)))
+		})
+
+		It("correctly scales positive memory sizes", func() {
 			Ω(oneMeg.Scale(2.0)).To(Equal(twoMeg))
 			Ω(twoGig.Scale(1.0 / 1024)).To(Equal(twoMeg))
 			Ω(getMs(3).Scale(0.5)).To(Equal(getMs(2)))
@@ -132,6 +136,15 @@ var _ = Describe("MemorySize", func() {
 			Ω(twoMeg.Scale(3.0).Scale(1.5).String()).Should(Equal("9M"))
 			Ω(twoMeg.Scale(300.0).Scale(25.6).String()).Should(Equal("15G"))
 			Ω(twoGig.Scale(1.0001).Scale(1.0 / 1.0001).String()).Should(Equal("2G"))
+		})
+
+		It("converts a memory size to a string by rounding DOWN kilobytes", func() {
+			Ω(getMs(1*kILO - 1).String()).Should(Equal("0"))
+			Ω(getMs(2*kILO - 1).String()).Should(Equal("1K"))
+			Ω(getMs(1*mEGA - 1).String()).Should(Equal("1023K"))
+			Ω(getMs(2*mEGA - 1).String()).Should(Equal("2047K"))
+			Ω(getMs(1*gIGA - 1).String()).Should(Equal("1048575K"))
+			Ω(getMs(2*gIGA + 1023).String()).Should(Equal("2G"))
 		})
 	})
 })
