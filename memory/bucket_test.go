@@ -54,6 +54,8 @@ var _ = Describe("MemoryBucket and StackMemoryBucket", func() {
 		Context("works", func() {
 			It("with non-blank name and good weights", func() {
 				b := shouldWork(memory.NewBucket("abucketname", 0.0, testRange))
+
+				Ω(b.Name()).Should(Equal("abucketname"))
 				Ω(b.GetRange()).Should(Equal(testRange))
 				Ω(b.GetKSize()).Should(BeNil())
 				b.SetKSize(124)
@@ -65,6 +67,7 @@ var _ = Describe("MemoryBucket and StackMemoryBucket", func() {
 				sb, err := memory.NewStackBucket(0.0, testZeroRange)
 				Ω(err).ShouldNot(HaveOccurred())
 
+				Ω(sb.Name()).Should(Equal("stack"))
 				Ω(sb.GetRange()).Should(Equal(testZeroRange))
 				Ω(sb.GetKSize()).Should(BeNil())
 				sb.SetKSize(124)
@@ -76,6 +79,8 @@ var _ = Describe("MemoryBucket and StackMemoryBucket", func() {
 
 			It("the same with spaced non-blank name", func() {
 				b := shouldWork(memory.NewBucket("  \t abucketname ", 0.0, testRange))
+				Ω(b.Name()).Should(Equal("abucketname"))
+
 				Ω(shouldWork(memory.NewBucket("abucketname", 0.0, testRange))).Should(Equal(b))
 			})
 

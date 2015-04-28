@@ -25,6 +25,8 @@ import (
 // A Bucket is used to calculate default sizes for various type of memory.
 
 type Bucket interface {
+	Name() string // Name of bucket
+
 	GetKSize() *int64 // Size of bucket in kilobytes, if set; nil otherwise
 	SetKSize(int64)
 
@@ -32,6 +34,8 @@ type Bucket interface {
 	SetRange(Range)
 
 	GetWeight() float64 // Proportion of total memory this bucket is allowed to consume by default.
+
+	DefaultSize() MemSize // only supported by 'stack' buckets
 }
 
 type bucket struct {
@@ -39,6 +43,11 @@ type bucket struct {
 	ksize  *int64
 	srange Range
 	weight float64
+}
+
+// Returns the name of the bucket
+func (b *bucket) Name() string {
+	return b.name
 }
 
 // Returns a pointer to int64 because this value can be unset.
@@ -83,25 +92,25 @@ func newBucket(name string, weight float64, srange Range) (*bucket, error) {
 	}, nil
 }
 
-// A StackBucket is exactly like a bucket except that it supports DefaultSize().
-type StackBucket interface {
-	Bucket
-	DefaultSize() MemSize
-}
-
-func NewStackBucket(weight float64, srange Range) (StackBucket, error) {
+// A StackBucket is exactly like a bucket except that it supports
+// DefaultSize() properly.
+func NewStackBucket(weight float64, srange Range) (Bucket, error) {
 	return newBucket("stack", weight, srange)
 }
 
 var (
-	jvm_DEFAULT_STACK_SIZE = NewMemSize(mEGA)
+	jre_DEFAULT_STACK_SIZE = NewMemSize(mEGA)
 )
 
-// The default stacksize (minimum of the range, or the JRE standard default).
+// The default stacksize: Floor of the range, or the JRE standard default if
+// the Floor is 0. Zero if this is not a bucket named 'stack'.
 func (b *bucket) DefaultSize() MemSize {
+	if b.name != "stack" {
+		return MS_ZERO
+	}
 	floor := b.srange.Floor()
 	if floor.Bytes() == 0 {
-		return jvm_DEFAULT_STACK_SIZE
+		return jre_DEFAULT_STACK_SIZE
 	}
 	return floor
 }
