@@ -27,12 +27,12 @@ var _ = Describe("MemoryRange", func() {
 
 	Context("string constructor", func() {
 		var (
-			itWorks func(str string, lo *memory.MemSize) memory.Range
+			itWorks func(str string, lo memory.MemSize) memory.Range
 			itFails func(str string)
 		)
 
 		BeforeEach(func() {
-			itWorks = func(str string, lo *memory.MemSize) memory.Range {
+			itWorks = func(str string, lo memory.MemSize) memory.Range {
 				rnge, err := memory.NewRangeFromString(str)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(rnge).ShouldNot(BeNil())
@@ -101,13 +101,13 @@ var _ = Describe("MemoryRange", func() {
 
 	Context("memory_size constructors", func() {
 		var (
-			boundedWorks   func(lo, hi *memory.MemSize) memory.Range
-			unboundedWorks func(lo *memory.MemSize) memory.Range
-			boundedFails   func(lo, hi *memory.MemSize)
+			boundedWorks   func(lo, hi memory.MemSize) memory.Range
+			unboundedWorks func(lo memory.MemSize) memory.Range
+			boundedFails   func(lo, hi memory.MemSize)
 		)
 
 		BeforeEach(func() {
-			boundedWorks = func(lo, hi *memory.MemSize) memory.Range {
+			boundedWorks = func(lo, hi memory.MemSize) memory.Range {
 				rnge, err := memory.NewRange(lo, hi)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(rnge).ShouldNot(BeNil())
@@ -119,7 +119,7 @@ var _ = Describe("MemoryRange", func() {
 				return rnge
 			}
 
-			unboundedWorks = func(lo *memory.MemSize) memory.Range {
+			unboundedWorks = func(lo memory.MemSize) memory.Range {
 				rnge, err := memory.NewUnboundedRange(lo)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(rnge).ShouldNot(BeNil())
@@ -130,7 +130,7 @@ var _ = Describe("MemoryRange", func() {
 				return rnge
 			}
 
-			boundedFails = func(lo, hi *memory.MemSize) {
+			boundedFails = func(lo, hi memory.MemSize) {
 				_, err := memory.NewRange(lo, hi)
 				Ω(err).Should(HaveOccurred())
 			}

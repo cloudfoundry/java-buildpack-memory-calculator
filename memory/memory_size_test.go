@@ -40,7 +40,7 @@ var _ = Describe("MemorySize", func() {
 
 			testItFails = func(memStr string) {
 				ms, err := memory.NewMemSizeFromString(memStr)
-				Ω(ms).Should(BeNil())
+				Ω(ms).Should(BeZero())
 				Ω(err).Should(HaveOccurred())
 			}
 		})
@@ -107,7 +107,7 @@ var _ = Describe("MemorySize", func() {
 	})
 
 	Context("operations", func() {
-		var zero, noMeg, oneMeg, twoMeg, oneKilo, twoGig *memory.MemSize
+		var zero, noMeg, oneMeg, twoMeg, oneKilo, twoGig memory.MemSize
 
 		BeforeEach(func() {
 			zero = memory.MS_ZERO

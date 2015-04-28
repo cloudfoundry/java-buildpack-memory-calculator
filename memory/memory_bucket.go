@@ -86,7 +86,7 @@ func newBucket(name string, weight float64, srange Range) (*bucket, error) {
 // A StackBucket is exactly like a bucket except that it supports DefaultSize().
 type StackBucket interface {
 	Bucket
-	DefaultSize() *MemSize
+	DefaultSize() MemSize
 }
 
 func NewStackBucket(weight float64, srange Range) (StackBucket, error) {
@@ -98,7 +98,7 @@ var (
 )
 
 // The default stacksize (minimum of the range, or the JRE standard default).
-func (b *bucket) DefaultSize() *MemSize {
+func (b *bucket) DefaultSize() MemSize {
 	floor := b.srange.Floor()
 	if floor.Bytes() == 0 {
 		return jvm_DEFAULT_STACK_SIZE

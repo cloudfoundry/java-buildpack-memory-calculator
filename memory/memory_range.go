@@ -23,23 +23,23 @@ import (
 
 // Range denotes a range of memory sizes. There are both bounded and unbounded
 // ranges. A bounded range has both a lower and an upper bound; an unbounded
-// range has only a lower bound. Bounds are specified as *MemSize values.
+// range has only a lower bound. Bounds are specified as MemSize values.
 type Range interface {
-	Floor() *MemSize                 // The lower bound of the range
-	Ceiling() (*MemSize, error)      // The upper bound of the range (returns an error if the range is unbounded)
-	IsBounded() bool                 // true iff the range is bounded
-	Contains(val *MemSize) bool      // true iff val is in the range
-	Constrain(val *MemSize) *MemSize // val if val is in the range, otherwise the nearest bound of the range
-	Degenerate() bool                // true iff the lower bound equals the upper bound (always false for unbounded ranges)
-	Scale(factor float64) Range      // A new Range with both the lower and upper bounds modified by the given factor. nil if factor is negative.
-	Equals(rnge Range) bool          // true iff the range denotes the same range as rnge.
+	Floor() MemSize                // The lower bound of the range
+	Ceiling() (MemSize, error)     // The upper bound of the range (returns an error if the range is unbounded)
+	IsBounded() bool               // true iff the range is bounded
+	Contains(val MemSize) bool     // true iff val is in the range
+	Constrain(val MemSize) MemSize // val if val is in the range, otherwise the nearest bound of the range
+	Degenerate() bool              // true iff the lower bound equals the upper bound (always false for unbounded ranges)
+	Scale(factor float64) Range    // A new Range with both the lower and upper bounds modified by the given factor. nil if factor is negative.
+	Equals(rnge Range) bool        // true iff the range denotes the same range as rnge.
 
 	fmt.Stringer
 }
 
 type memRange struct {
-	lower     *MemSize
-	upper     *MemSize
+	lower     MemSize
+	upper     MemSize
 	unbounded bool
 }
 
@@ -95,20 +95,20 @@ func NewRangeFromString(strRange string) (Range, error) {
 	return nil, fmt.Errorf("invalid string range '%s'", strRange)
 }
 
-// NewRange produces a bounded range from a lower bound *MemSize and an upper
-// bound *MemSize. It is an error if the lower bound is greater than the upper
+// NewRange produces a bounded range from a lower bound MemSize and an upper
+// bound MemSize. It is an error if the lower bound is greater than the upper
 // bound.
-func NewRange(low *MemSize, upp *MemSize) (Range, error) {
+func NewRange(low MemSize, upp MemSize) (Range, error) {
 	return newRange(low.Bytes(), upp.Bytes(), false)
 }
 
-// NewUnboundedRange produces an unbounded range given a lower bound *MemSize.
-func NewUnboundedRange(low *MemSize) (Range, error) {
+// NewUnboundedRange produces an unbounded range given a lower bound MemSize.
+func NewUnboundedRange(low MemSize) (Range, error) {
 	return newRange(low.Bytes(), 0, true)
 }
 
-// Floor() produces the lower bound *MemSize (not a copy)
-func (r *memRange) Floor() *MemSize {
+// Floor() produces the lower bound MemSize
+func (r *memRange) Floor() MemSize {
 	return r.lower
 }
 
@@ -117,23 +117,23 @@ func (r *memRange) IsBounded() bool {
 	return !r.unbounded
 }
 
-// Ceiling() produces the upper bound *MemSize (not a copy) if the range is
-// bounded. It returns an error if the range is unbounded.
-func (r *memRange) Ceiling() (*MemSize, error) {
+// Ceiling() produces the upper bound MemSize if the range is bounded. It
+// returns an error if the range is unbounded.
+func (r *memRange) Ceiling() (MemSize, error) {
 	if r.unbounded {
-		return nil, fmt.Errorf("Cannot take Ceiling() of unbounded range %v...", r.lower)
+		return 0, fmt.Errorf("Cannot take Ceiling() of unbounded range %v...", r.lower)
 	}
 	return r.upper, nil
 }
 
 // Contains(val) returns true iff val is within the range.
-func (r *memRange) Contains(val *MemSize) bool {
+func (r *memRange) Contains(val MemSize) bool {
 	return (!val.LessThan(r.lower)) && (r.unbounded || !(r.upper.LessThan(val)))
 }
 
-// Constrain(val) returns val (not a copy) iff val is within the range,
-// otherwise returns Floor() or Ceiling() whichever is nearer val numerically.
-func (r *memRange) Constrain(val *MemSize) *MemSize {
+// Constrain(val) returns val iff val is within the range, otherwise returns
+// Floor() or Ceiling() whichever is nearer val numerically.
+func (r *memRange) Constrain(val MemSize) MemSize {
 	if val.LessThan(r.lower) {
 		return r.lower
 	}
@@ -180,7 +180,7 @@ func (r *memRange) Equals(r2 Range) bool {
 
 // Produces a string representation of the range in the same format as
 // interpreted by NewRangeFromString(). The limits are String representations
-// of the Floor() and Ceiling() *MemSize values, which means that values are
+// of the Floor() and Ceiling() MemSize values, which means that values are
 // accurate to the next lower whole kilobyte. limits numerically less than
 // 1024 bytes are denoted by '0'.
 func (r *memRange) String() string {
@@ -197,7 +197,7 @@ func newRange(low, upp int64, unb bool) (Range, error) {
 
 	lowMs := NewMemSize(low)
 
-	var uppMs *MemSize = nil
+	var uppMs MemSize
 	if !unb {
 		uppMs = NewMemSize(upp)
 	}
@@ -209,6 +209,6 @@ func newRange(low, upp int64, unb bool) (Range, error) {
 	}, nil
 }
 
-func fstms(f *MemSize, _ error) *MemSize {
+func fstms(f MemSize, _ error) MemSize {
 	return f
 }

@@ -36,7 +36,7 @@ const (
 	gIGA = 1024 * mEGA
 )
 
-func getMs(msInt int64) *memory.MemSize {
+func getMs(msInt int64) memory.MemSize {
 	return memory.NewMemSize(msInt)
 }
 
