@@ -75,18 +75,15 @@ var _ = Describe("MemoryRange", func() {
 			})
 
 			It("creates a range with no upper or lower bound correctly", func() {
-				rnge := itWorks(" .. ", memory.MS_ZERO)
-				Ω(rnge.IsBounded()).Should(BeFalse())
-				Ω(rnge.Degenerate()).Should(BeFalse())
-				_, err := rnge.Ceiling()
-				Ω(err).Should(HaveOccurred())
+				Ω(itWorks("..", memory.MS_ZERO)).Should(Equal(itWorks("0..", memory.MS_ZERO)))
+			})
+
+			It("creates a range of 0.. with an empty range string", func() {
+				Ω(itWorks("", memory.MS_ZERO)).Should(Equal(itWorks("0..", memory.MS_ZERO)))
 			})
 		})
 
 		Context("fails", func() {
-			It("fails to create a range from an empty string", func() {
-				itFails("")
-			})
 			It("fails to create an empty range", func() {
 				itFails("2m..1m")
 			})

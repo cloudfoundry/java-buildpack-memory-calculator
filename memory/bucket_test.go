@@ -22,93 +22,117 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("MemoryBucket and StackMemoryBucket", func() {
+var _ = Describe("MemoryBucket", func() {
+	var (
+		DEFAULT_JRE_STACK_SIZE = memory.NewMemSize(mEGA)
+		testRange              memory.Range
+		testZeroRange          memory.Range
+		testUBRange            memory.Range
+		shouldFail             func(memory.Bucket, error)
+		shouldWork             func(memory.Bucket, error) memory.Bucket
+	)
+
+	BeforeEach(func() {
+		testRange = getBMR(2*mEGA, 3*mEGA)
+		testZeroRange = getBMR(0, 4*mEGA)
+		testUBRange = getUMR(10 * kILO)
+
+		shouldFail = func(b memory.Bucket, err error) {
+			Ω(b).Should(BeNil())
+			Ω(err).Should(HaveOccurred())
+		}
+
+		shouldWork = func(b memory.Bucket, err error) memory.Bucket {
+			Ω(b).ShouldNot(BeNil())
+			Ω(err).ShouldNot(HaveOccurred())
+			return b
+		}
+	})
+
 	Context("constructors", func() {
-		var (
-			DEFAULT_JRE_STACK_SIZE = memory.NewMemSize(mEGA)
-			testRange              memory.Range
-			testZeroRange          memory.Range
-			shouldFail             func(memory.Bucket, error)
-			shouldWork             func(memory.Bucket, error) memory.Bucket
-		)
 
-		BeforeEach(func() {
-			var err error
-			testRange, err = memory.NewRangeFromString("2m..3m")
-			Ω(err).ShouldNot(HaveOccurred())
-			testZeroRange, err = memory.NewRangeFromString("0..3m")
-			Ω(err).ShouldNot(HaveOccurred())
-
-			shouldFail = func(b memory.Bucket, err error) {
-				Ω(b).Should(BeNil())
-				Ω(err).Should(HaveOccurred())
-			}
-
-			shouldWork = func(b memory.Bucket, err error) memory.Bucket {
-				Ω(b).ShouldNot(BeNil())
-				Ω(err).ShouldNot(HaveOccurred())
-				return b
-			}
-		})
-
-		Context("works", func() {
+		Context("work", func() {
 			It("with non-blank name and good weights", func() {
-				b := shouldWork(memory.NewBucket("abucketname", 0.0, testRange))
+				b := shouldWork(memory.NewBucket("abucketname", 0.2, testRange))
 
 				Ω(b.Name()).Should(Equal("abucketname"))
-				Ω(b.GetRange()).Should(Equal(testRange))
+				Ω(b.Range()).Should(Equal(testRange))
 				Ω(b.GetSize()).Should(BeNil())
 				b.SetSize(124)
 				Ω(*b.GetSize()).Should(Equal(memory.MemSize(124)))
-				Ω(b.GetWeight()).Should(BeNumerically("~", 0.0))
+				Ω(b.Weight()).Should(BeNumerically("~", 0.2))
+				Ω(b.DefaultSize()).Should(Equal(memory.MS_ZERO))
 			})
 
-			It("with StackBucket and good weights", func() {
-				sb, err := memory.NewStackBucket(0.0, testZeroRange)
-				Ω(err).ShouldNot(HaveOccurred())
+			It("with 'stack' bucket and good weights", func() {
+				sb := shouldWork(memory.NewBucket("stack", 0.1, testZeroRange))
 
 				Ω(sb.Name()).Should(Equal("stack"))
-				Ω(sb.GetRange()).Should(Equal(testZeroRange))
-				Ω(sb.GetSize()).Should(BeNil())
-				sb.SetSize(124)
-				Ω(*sb.GetSize()).Should(Equal(memory.MemSize(124)))
-				Ω(sb.GetWeight()).Should(BeNumerically("~", 0.0))
 				Ω(sb.DefaultSize()).Should(Equal(DEFAULT_JRE_STACK_SIZE))
 
+				sb = shouldWork(memory.NewBucket("stack", 0.1, testRange))
+				Ω(sb.DefaultSize()).Should(Equal(memory.NewMemSize(2 * mEGA)))
 			})
 
-			It("the same with spaced non-blank name", func() {
+			It("with spaced non-blank name", func() {
 				b := shouldWork(memory.NewBucket("  \t abucketname ", 0.0, testRange))
 				Ω(b.Name()).Should(Equal("abucketname"))
 
-				Ω(shouldWork(memory.NewBucket("abucketname", 0.0, testRange))).Should(Equal(b))
+				b2 := shouldWork(memory.NewBucket("abucketname", 0.0, testRange))
+				Ω(b).Should(Equal(b2))
 			})
 
 			It("with non-zero weights", func() {
 				b := shouldWork(memory.NewBucket("abucketname", 1.0, testRange))
-				Ω(b.GetWeight()).Should(BeNumerically("~", 1.0))
+				Ω(b.Weight()).Should(BeNumerically("~", 1.0))
 				b = shouldWork(memory.NewBucket("abucketname", 0.2, testRange))
-				Ω(b.GetWeight()).Should(BeNumerically("~", 0.2))
+				Ω(b.Weight()).Should(BeNumerically("~", 0.2))
 				b = shouldWork(memory.NewBucket("abucketname", 0.9, testRange))
-				Ω(b.GetWeight()).Should(BeNumerically("~", 0.9))
+				Ω(b.Weight()).Should(BeNumerically("~", 0.9))
 			})
 		})
 
-		Context("fails", func() {
-			It("fails with blank names", func() {
+		Context("fail", func() {
+			It("with bad names", func() {
 				shouldFail(memory.NewBucket("", 0.0, testRange))
 				shouldFail(memory.NewBucket("   ", 0.0, testRange))
 				shouldFail(memory.NewBucket("  \t", 0.0, testRange))
 			})
 
-			It("fails with bad weights", func() {
+			It("with bad weights", func() {
 				shouldFail(memory.NewBucket("abucket", -0.01, testRange))
 				shouldFail(memory.NewBucket("abucket", 10.0, testRange))
-				shouldFail(memory.NewBucket("abucket", 1.01, testRange))
-				shouldFail(memory.NewStackBucket(-0.01, testRange))
-				shouldFail(memory.NewStackBucket(10.0, testRange))
-				shouldFail(memory.NewStackBucket(1.01, testRange))
+				shouldFail(memory.NewBucket("stack", 1.01, testRange))
 			})
 		})
 	})
+
+	Context("operations", func() {
+		It("sets Size correctly", func() {
+			b := shouldWork(memory.NewBucket("abucket", 0.1, testRange))
+			Ω(b.GetSize()).Should(BeNil())
+
+			b.SetSize(memory.MS_ZERO)
+			checkSize(b, memory.MS_ZERO)
+
+			b.SetSize(getMs(3 * mEGA))
+			checkSize(b, getMs(3*mEGA))
+		})
+
+		It("sets Range correctly", func() {
+			b := shouldWork(memory.NewBucket("abucket", 0.1, testRange))
+			Ω(b.Range()).Should(Equal(getBMR(2*mEGA, 3*mEGA)))
+
+			b.SetRange(getUMR(10 * kILO))
+			Ω(b.Range()).Should(Equal(testUBRange))
+
+			b.SetRange(testZeroRange)
+			Ω(b.Range()).Should(Equal(testZeroRange))
+		})
+	})
 })
+
+func checkSize(b memory.Bucket, ms memory.MemSize) {
+	Ω(b.GetSize()).ShouldNot(BeNil())
+	Ω(*b.GetSize()).Should(Equal(ms))
+}

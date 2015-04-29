@@ -26,7 +26,7 @@ import (
 // range has only a lower bound. Bounds are specified as MemSize values.
 type Range interface {
 	Floor() MemSize                // The lower bound of the range
-	Ceiling() (MemSize, error)     // The upper bound of the range (returns an error if the range is unbounded)
+	Ceiling() (MemSize, error)     // The upper bound of the range (returns an error iff the range is not bounded)
 	IsBounded() bool               // true iff the range is bounded
 	Contains(val MemSize) bool     // true iff val is in the range
 	Constrain(val MemSize) MemSize // val if val is in the range, otherwise the nearest bound of the range
@@ -45,7 +45,7 @@ type memRange struct {
 
 // NewRangeFromString produces a Range from a string representation.
 //
-// strRange ::= numLimit | limit '..' limit
+// strRange ::= '' | numLimit | limit '..' limit
 // limit    ::= '' | numLimit
 // numLimit ::= '0' | INTEGER unit
 // unit     ::= 'b' | 'B' | 'k' | 'K' | 'm' | 'M' | 'g' | 'G'
@@ -60,8 +60,13 @@ type memRange struct {
 // Errors include syntax errors, and 'invalid bounded range' which occurs if
 // the lower limit is numerically greater than the upper limit.
 func NewRangeFromString(strRange string) (Range, error) {
+	strRange = strings.TrimSpace(strRange)
 
-	bounds := strings.Split(strings.TrimSpace(strRange), "..")
+	if strRange == "" {
+		strRange = ".."
+	}
+
+	bounds := strings.Split(strRange, "..")
 
 	if len(bounds) == 2 {
 
@@ -118,7 +123,7 @@ func (r *memRange) IsBounded() bool {
 }
 
 // Ceiling() produces the upper bound MemSize if the range is bounded. It
-// returns an error if the range is unbounded.
+// returns an error iff the range is unbounded.
 func (r *memRange) Ceiling() (MemSize, error) {
 	if r.unbounded {
 		return 0, fmt.Errorf("Cannot take Ceiling() of unbounded range %v...", r.lower)
@@ -171,18 +176,18 @@ func (r *memRange) Equals(r2 Range) bool {
 		if r.unbounded {
 			return !r2.IsBounded()
 		}
-		if r2.IsBounded() {
-			return r.upper.Equals(fstms(r2.Ceiling()))
+		if ceiling, err := r2.Ceiling(); err == nil {
+			return r.upper.Equals(ceiling)
 		}
 	}
 	return false
 }
 
 // Produces a string representation of the range in the same format as
-// interpreted by NewRangeFromString(). The limits are String representations
-// of the Floor() and Ceiling() MemSize values, which means that values are
-// accurate to the next lower whole kilobyte. limits numerically less than
-// 1024 bytes are denoted by '0'.
+// interpreted by NewRangeFromString(). The limits are String()
+// representations of the Floor() and Ceiling() MemSize values, which means
+// that values are rounded to the next lower whole kilobyte. limits
+// numerically less than 1024 bytes are denoted by '0'.
 func (r *memRange) String() string {
 	if r.unbounded {
 		return fmt.Sprintf("%v..", r.lower)
@@ -207,8 +212,4 @@ func newRange(low, upp int64, unb bool) (Range, error) {
 		upper:     uppMs,
 		unbounded: unb,
 	}, nil
-}
-
-func fstms(f MemSize, _ error) MemSize {
-	return f
 }

@@ -28,12 +28,12 @@ type Bucket interface {
 	Name() string // Name of bucket
 
 	GetSize() *MemSize // Size of bucket, if set; nil otherwise
-	SetSize(MemSize)
+	SetSize(MemSize)   // cannot unset the size, once set
 
-	GetRange() Range // Permissible range of sizes for this bucket.
+	Range() Range // Permissible range of sizes for this bucket.
 	SetRange(Range)
 
-	GetWeight() float64 // Proportion of total memory this bucket is allowed to consume by default.
+	Weight() float64 // Proportion of total memory this bucket is allowed to consume by default.
 
 	DefaultSize() MemSize // only supported by 'stack' buckets
 }
@@ -61,7 +61,7 @@ func (b *bucket) SetSize(size MemSize) {
 	b.size = &tmpsize
 }
 
-func (b *bucket) GetRange() Range {
+func (b *bucket) Range() Range {
 	return b.srange
 }
 
@@ -69,7 +69,7 @@ func (b *bucket) SetRange(srange Range) {
 	b.srange = srange
 }
 
-func (b *bucket) GetWeight() float64 {
+func (b *bucket) Weight() float64 {
 	return b.weight
 }
 
@@ -92,17 +92,11 @@ func newBucket(name string, weight float64, srange Range) (*bucket, error) {
 	}, nil
 }
 
-// A StackBucket is exactly like a bucket except that it supports
-// DefaultSize() properly.
-func NewStackBucket(weight float64, srange Range) (Bucket, error) {
-	return newBucket("stack", weight, srange)
-}
-
 var (
 	jre_DEFAULT_STACK_SIZE = NewMemSize(mEGA)
 )
 
-// The default stacksize: Floor of the range, or the JRE standard default if
+// The default stacksize: Floor() of the range, or the JRE standard default if
 // the Floor is 0. Zero if this is not a bucket named 'stack'.
 func (b *bucket) DefaultSize() MemSize {
 	if b.name != "stack" {
