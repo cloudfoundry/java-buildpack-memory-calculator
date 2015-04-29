@@ -27,8 +27,8 @@ import (
 type Bucket interface {
 	Name() string // Name of bucket
 
-	GetKSize() *int64 // Size of bucket in kilobytes, if set; nil otherwise
-	SetKSize(int64)
+	GetSize() *MemSize // Size of bucket, if set; nil otherwise
+	SetSize(MemSize)
 
 	GetRange() Range // Permissible range of sizes for this bucket.
 	SetRange(Range)
@@ -40,7 +40,7 @@ type Bucket interface {
 
 type bucket struct {
 	name   string
-	ksize  *int64
+	size   *MemSize
 	srange Range
 	weight float64
 }
@@ -50,15 +50,15 @@ func (b *bucket) Name() string {
 	return b.name
 }
 
-// Returns a pointer to int64 because this value can be unset.
-func (b *bucket) GetKSize() *int64 {
-	return b.ksize
+// Returns a pointer to MemSize because this value can be unset.
+func (b *bucket) GetSize() *MemSize {
+	return b.size
 }
 
-// Generates a new pointer to int64 internally.
-func (b *bucket) SetKSize(ksize int64) {
-	tmpsize := ksize
-	b.ksize = &tmpsize
+// Generates a new pointer to MemSize internally.
+func (b *bucket) SetSize(size MemSize) {
+	tmpsize := size
+	b.size = &tmpsize
 }
 
 func (b *bucket) GetRange() Range {

@@ -57,9 +57,9 @@ var _ = Describe("MemoryBucket and StackMemoryBucket", func() {
 
 				Ω(b.Name()).Should(Equal("abucketname"))
 				Ω(b.GetRange()).Should(Equal(testRange))
-				Ω(b.GetKSize()).Should(BeNil())
-				b.SetKSize(124)
-				Ω(*b.GetKSize()).Should(Equal(int64(124)))
+				Ω(b.GetSize()).Should(BeNil())
+				b.SetSize(124)
+				Ω(*b.GetSize()).Should(Equal(memory.MemSize(124)))
 				Ω(b.GetWeight()).Should(BeNumerically("~", 0.0))
 			})
 
@@ -69,9 +69,9 @@ var _ = Describe("MemoryBucket and StackMemoryBucket", func() {
 
 				Ω(sb.Name()).Should(Equal("stack"))
 				Ω(sb.GetRange()).Should(Equal(testZeroRange))
-				Ω(sb.GetKSize()).Should(BeNil())
-				sb.SetKSize(124)
-				Ω(*sb.GetKSize()).Should(Equal(int64(124)))
+				Ω(sb.GetSize()).Should(BeNil())
+				sb.SetSize(124)
+				Ω(*sb.GetSize()).Should(Equal(memory.MemSize(124)))
 				Ω(sb.GetWeight()).Should(BeNumerically("~", 0.0))
 				Ω(sb.DefaultSize()).Should(Equal(DEFAULT_JRE_STACK_SIZE))
 
