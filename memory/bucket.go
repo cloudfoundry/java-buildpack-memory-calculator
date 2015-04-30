@@ -82,8 +82,8 @@ func newBucket(name string, weight float64, srange Range) (*bucket, error) {
 	if name == "" {
 		return nil, fmt.Errorf("Bucket name must not be blank.")
 	}
-	if weight < 0.0 || weight > 1.0 {
-		return nil, fmt.Errorf("Weight (%g) for bucket %s must be <=1 and >=0.", weight, name)
+	if weight <= 0.0 {
+		return nil, fmt.Errorf("Weight (%g) for bucket %s must be positive.", weight, name)
 	}
 	return &bucket{
 		name:   name,

@@ -75,16 +75,16 @@ var _ = Describe("MemoryBucket", func() {
 			})
 
 			It("with spaced non-blank name", func() {
-				b := shouldWork(memory.NewBucket("  \t abucketname ", 0.0, testRange))
+				b := shouldWork(memory.NewBucket("  \t abucketname ", 0.1, testRange))
 				Ω(b.Name()).Should(Equal("abucketname"))
 
-				b2 := shouldWork(memory.NewBucket("abucketname", 0.0, testRange))
+				b2 := shouldWork(memory.NewBucket("abucketname", 0.1, testRange))
 				Ω(b).Should(Equal(b2))
 			})
 
 			It("with non-zero weights", func() {
-				b := shouldWork(memory.NewBucket("abucketname", 1.0, testRange))
-				Ω(b.Weight()).Should(BeNumerically("~", 1.0))
+				b := shouldWork(memory.NewBucket("abucketname", 10.0, testRange))
+				Ω(b.Weight()).Should(BeNumerically("~", 10.0))
 				b = shouldWork(memory.NewBucket("abucketname", 0.2, testRange))
 				Ω(b.Weight()).Should(BeNumerically("~", 0.2))
 				b = shouldWork(memory.NewBucket("abucketname", 0.9, testRange))
@@ -94,15 +94,14 @@ var _ = Describe("MemoryBucket", func() {
 
 		Context("fail", func() {
 			It("with bad names", func() {
-				shouldFail(memory.NewBucket("", 0.0, testRange))
-				shouldFail(memory.NewBucket("   ", 0.0, testRange))
-				shouldFail(memory.NewBucket("  \t", 0.0, testRange))
+				shouldFail(memory.NewBucket("", 1.0, testRange))
+				shouldFail(memory.NewBucket("   ", 1.0, testRange))
+				shouldFail(memory.NewBucket("  \t", 1.0, testRange))
 			})
 
 			It("with bad weights", func() {
 				shouldFail(memory.NewBucket("abucket", -0.01, testRange))
-				shouldFail(memory.NewBucket("abucket", 10.0, testRange))
-				shouldFail(memory.NewBucket("stack", 1.01, testRange))
+				shouldFail(memory.NewBucket("abucket", -10.01, testRange))
 			})
 		})
 	})
