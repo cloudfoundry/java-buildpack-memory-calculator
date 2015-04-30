@@ -6,7 +6,7 @@
 [Install Go][] and then `get` the memory calculator (in the Go source tree).
 
 We run our tests with [Ginkgo/Gomega][] and manage dependencies with [Godep][].
-Ginkgo is one of the dependencies we manage, so get Godep, too.
+Ginkgo is one of the dependencies we manage, so get Godep before starting work.
 
 ```shell
 go get -v github.com/cloudfoundry/java-buildpack-memory-calculator
