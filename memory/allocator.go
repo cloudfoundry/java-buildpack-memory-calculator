@@ -16,49 +16,111 @@
 
 package memory
 
-import "fmt"
+import (
+	"fmt"
+	"math"
 
-type switchFun func(v string) []string
-
-func apply(f ...string) func(string) []string {
-	return func(v string) []string {
-		var res = make([]string, 2)
-		for _, form := range f {
-			res = append(res, fmt.Sprintf(form, v))
-		}
-		return res
-	}
-}
-
-var switchFuns = map[string]switchFun{
-	"heap":      apply("-Xmx%s", "-Xms%s"),
-	"metaspace": apply("-XX:MaxMetaspaceSize=%s", "-XX:MetaspaceSize=%s"),
-	"permgen":   apply("-XX:MaxPermSize=%s", "-XX:PermSize=%s"),
-	"stack":     apply("-Xss%s"),
-}
+	"github.com/cloudfoundry/java-buildpack-memory-calculator/memory/switches"
+)
 
 type Allocator interface {
-	Balance(MemSize)  // Balance allocations to buckets within MemSize memory limit
-	LowerBounds()     // Allocate without a memory limit
-	Switches() string // Generate JRE switches from current allocations
+	Balance(memLimit MemSize)        // Balance allocations to buckets within MemSize memory limit
+	SetLowerBounds()                 // Allocate without a memory limit
+	Switches(switches.Funs) []string // Generate memory switches from current allocations
 }
 
 type allocator struct {
 	buckets map[string]Bucket
 }
 
-func NewAllocator(sizes, heuristics map[string]string) *allocator {
-	return nil
+func NewAllocator(sizes map[string]string, heuristics map[string]float64) (*allocator, error) {
+	if buckets, err := createMemoryBuckets(sizes, heuristics); err != nil {
+		return nil, fmt.Errorf("allocator not created: %s", err)
+	} else {
+		return &allocator{
+			buckets: buckets,
+		}, nil
+	}
 }
 
-func (a *allocator) Balance(ms MemSize) {
+func (a *allocator) Balance(memLimit MemSize) {
+	// Adjust stack bucket, if it exists
+	stackBucket, estNumThreads := a.normaliseStack(memLimit)
 
+	// balance buckets
+	a.balance()
+
+	// Validate result and issue warnings?
+
+	// Re-adjust stack bucket, if it exists
+	a.unnormaliseStack(stackBucket, estNumThreads)
 }
 
-func (a *allocator) LowerBounds() {
-
+func (a *allocator) SetLowerBounds() {
+	for _, b := range a.buckets {
+		b.SetSize(b.Range().Floor())
+	}
 }
 
-func (a *allocator) Switches() string {
-	return ""
+func (a *allocator) Switches(sfs switches.Funs) []string {
+	var strs = make([]string, 0, 10)
+	for s, b := range a.buckets {
+		strs = append(strs, sfs.Apply(s, b.GetSize().String())...)
+	}
+	return strs
+}
+
+func createMemoryBuckets(sizes map[string]string, heuristics map[string]float64) (map[string]Bucket, error) {
+	buckets := map[string]Bucket{}
+	for name, weight := range heuristics {
+		size, ok := sizes[name]
+		if !ok {
+			size = ".."
+		}
+		if aRange, err := NewRangeFromString(size); err == nil {
+			if buckets[name], err = NewBucket(name, weight, aRange); err != nil {
+				return nil, fmt.Errorf("memory type '%s' cannot be allocated: %s", name, err)
+			}
+		} else {
+			return nil, fmt.Errorf("memory type '%s' cannot be allocated: %s", name, err)
+		}
+	}
+	return buckets, nil
+}
+
+func (a *allocator) totalWeight() float64 {
+	var w float64
+	for _, b := range a.buckets {
+		w = w + b.Weight()
+	}
+	return w
+}
+
+func (a *allocator) normaliseStack(memLimit MemSize) (Bucket, float64) {
+	if sb, ok := a.buckets["stack"]; ok {
+		stackMem := a.weightedProportion(memLimit, sb)
+		estNum := math.Max(1.0, stackMem/float64(sb.DefaultSize()))
+		nsb, _ := NewBucket("normalised stack", sb.Weight(), sb.Range().Scale(estNum))
+
+		a.buckets["stack"] = nsb
+		return sb, estNum
+	}
+	return nil, 0.0
+}
+
+func (a *allocator) weightedProportion(memLimit MemSize, b Bucket) float64 {
+	return float64(memLimit) * b.Weight() / a.totalWeight()
+}
+
+func (a *allocator) unnormaliseStack(sb Bucket, estNum float64) {
+	if sb == nil {
+		return
+	}
+	newSize := (*a.buckets["stack"].GetSize()).Scale(1.0 / estNum)
+	sb.SetSize(newSize)
+	a.buckets["stack"] = sb
+}
+
+func (a *allocator) balance() {
+
 }
