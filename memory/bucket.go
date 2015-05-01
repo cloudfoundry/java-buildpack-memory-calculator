@@ -36,6 +36,8 @@ type Bucket interface {
 	Weight() float64 // Proportion of total memory this bucket is allowed to consume by default.
 
 	DefaultSize() MemSize // only supported by 'stack' buckets
+
+	String() string // mainly for testing
 }
 
 type bucket struct {
@@ -107,4 +109,8 @@ func (b *bucket) DefaultSize() MemSize {
 		return jre_DEFAULT_STACK_SIZE
 	}
 	return floor
+}
+
+func (b *bucket) String() string {
+	return fmt.Sprintf("Bucket{name: %s, size: %s, range: %s, weight: %g}", b.name, b.size, b.srange, b.weight)
 }

@@ -180,6 +180,7 @@ var _ = Describe("MemoryRange", func() {
 			Ω(bmr.Constrain(getMs(gIGA + 1))).Should(Equal(getMs(gIGA)))
 			Ω(bmr.Constrain(getMs(gIGA - 1))).Should(Equal(getMs(gIGA - 1)))
 
+			Ω(bmr.Constrain(getMs(2 * gIGA))).Should(Equal(getMs(gIGA)))
 			Ω(bmr.Constrain(getMs(2 * mEGA))).Should(Equal(getMs(2 * mEGA)))
 			Ω(bmr.Constrain(getMs(2 * kILO))).Should(Equal(getMs(mEGA)))
 			Ω(bmr.Constrain(getMs(-2 * mEGA))).Should(Equal(getMs(mEGA)))

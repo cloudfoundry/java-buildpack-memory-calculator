@@ -136,6 +136,11 @@ func (ms MemSize) Add(other MemSize) MemSize {
 	return MemSize(ms + other)
 }
 
+// Produce a new MemSize with the difference: the number of bytes in receiver minus that in other.
+func (ms MemSize) Subtract(other MemSize) MemSize {
+	return MemSize(ms - other)
+}
+
 // Produce a new MemSize with factor times the number of bytes in it (rounded to nearest integer).
 func (ms MemSize) Scale(factor float64) MemSize {
 	return MemSize(factor*float64(ms) + 0.5)

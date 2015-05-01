@@ -24,13 +24,17 @@ import (
 )
 
 type Allocator interface {
-	Balance(memLimit MemSize)        // Balance allocations to buckets within MemSize memory limit
-	SetLowerBounds()                 // Allocate without a memory limit
-	Switches(switches.Funs) []string // Generate memory switches from current allocations
+	Balance(memLimit MemSize) error  // Balance allocations to buckets within memory limit
+	SetLowerBounds()                 // Allocate smallest memories allowed
+	Switches(switches.Funs) []string // Get selected memory switches from current allocations
+	GetWarnings() []string           // Get warnings (if balancing succeeded)
 }
 
 type allocator struct {
-	buckets map[string]Bucket
+	originalSizes map[string]string // unmodified after creation
+	buckets       map[string]Bucket // named buckets for allocation
+	warnings      []string          // warnings if allocation found issues
+	failure       error             // error if allocation failed
 }
 
 func NewAllocator(sizes map[string]string, heuristics map[string]float64) (*allocator, error) {
@@ -38,22 +42,37 @@ func NewAllocator(sizes map[string]string, heuristics map[string]float64) (*allo
 		return nil, fmt.Errorf("allocator not created: %s", err)
 	} else {
 		return &allocator{
-			buckets: buckets,
+			originalSizes: sizes,
+			buckets:       buckets,
 		}, nil
 	}
 }
 
-func (a *allocator) Balance(memLimit MemSize) {
+const (
+	NATIVE_MEMORY_WARNING_FACTOR float64 = 3.0
+	TOTAL_MEMORY_WARNING_FACTOR  float64 = 0.8
+	CLOSE_TO_DEFAULT_FACTOR      float64 = 0.1
+)
+
+// Balance memory between buckets, adjusting stack units, observing
+// constraints, and detecting memory wastage and default proximity.
+func (a *allocator) Balance(memLimit MemSize) error {
 	// Adjust stack bucket, if it exists
 	stackBucket, estNumThreads := a.normaliseStack(memLimit)
 
 	// balance buckets
-	a.balance()
+	a.balance(memLimit)
 
-	// Validate result and issue warnings?
+	// Validate result and gather warnings
+	a.validateAllocation(memLimit)
 
 	// Re-adjust stack bucket, if it exists
 	a.unnormaliseStack(stackBucket, estNumThreads)
+
+	if a.failure != nil {
+		return fmt.Errorf("Total memory exceeded by configuration: %v", getSizes(a.originalSizes))
+	}
+	return nil
 }
 
 func (a *allocator) SetLowerBounds() {
@@ -63,11 +82,29 @@ func (a *allocator) SetLowerBounds() {
 }
 
 func (a *allocator) Switches(sfs switches.Funs) []string {
+	if a.failure != nil {
+		return nil
+	}
 	var strs = make([]string, 0, 10)
 	for s, b := range a.buckets {
 		strs = append(strs, sfs.Apply(s, b.GetSize().String())...)
 	}
 	return strs
+}
+
+func (a *allocator) GetWarnings() []string {
+	if a.failure != nil {
+		return nil
+	}
+	return a.warnings
+}
+
+func getSizes(ss map[string]string) []string {
+	result := []string{}
+	for _, s := range ss {
+		result = append(result, s)
+	}
+	return result
 }
 
 func createMemoryBuckets(sizes map[string]string, heuristics map[string]float64) (map[string]Bucket, error) {
@@ -88,28 +125,28 @@ func createMemoryBuckets(sizes map[string]string, heuristics map[string]float64)
 	return buckets, nil
 }
 
-func (a *allocator) totalWeight() float64 {
+func totalWeight(bs map[string]Bucket) float64 {
 	var w float64
-	for _, b := range a.buckets {
+	for _, b := range bs {
 		w = w + b.Weight()
 	}
 	return w
 }
 
-func (a *allocator) normaliseStack(memLimit MemSize) (Bucket, float64) {
+func (a *allocator) normaliseStack(memLimit MemSize) (originalStackBucket Bucket, estNumThreads float64) {
 	if sb, ok := a.buckets["stack"]; ok {
-		stackMem := a.weightedProportion(memLimit, sb)
-		estNum := math.Max(1.0, stackMem/float64(sb.DefaultSize()))
-		nsb, _ := NewBucket("normalised stack", sb.Weight(), sb.Range().Scale(estNum))
+		stackMem := weightedSize(totalWeight(a.buckets), memLimit, sb)
+		estNumThreads = math.Max(1.0, stackMem/float64(sb.DefaultSize()))
+		nsb, _ := NewBucket("normalised stack", sb.Weight(), sb.Range().Scale(estNumThreads))
 
 		a.buckets["stack"] = nsb
-		return sb, estNum
+		return sb, estNumThreads
 	}
 	return nil, 0.0
 }
 
-func (a *allocator) weightedProportion(memLimit MemSize, b Bucket) float64 {
-	return float64(memLimit) * b.Weight() / a.totalWeight()
+func weightedSize(totWeight float64, memLimit MemSize, b Bucket) float64 {
+	return (float64(memLimit) * b.Weight()) / totWeight
 }
 
 func (a *allocator) unnormaliseStack(sb Bucket, estNum float64) {
@@ -121,6 +158,125 @@ func (a *allocator) unnormaliseStack(sb Bucket, estNum float64) {
 	a.buckets["stack"] = sb
 }
 
-func (a *allocator) balance() {
+// Balance memory between buckets, observing constraints.
+func (a *allocator) balance(memLimit MemSize) {
+	remaining := copyBucketMap(a.buckets)
+	removed := true
 
+	for removed && len(remaining) != 0 {
+		var err error
+		memLimit, removed, err = balanceOrRemove(remaining, memLimit)
+		if err != nil {
+			a.failure = err
+			return
+		}
+	}
+}
+
+func (a *allocator) validateAllocation(memLimit MemSize) {
+	// memory_wastage_warning(buckets)
+	a.warnings = append(a.warnings, memoryWastageWarnings(a.buckets, memLimit)...)
+	// close_to_default_warnings(buckets)
+	a.warnings = append(a.warnings, closeToDefaultWarnings(a.buckets, a.originalSizes, memLimit)...)
+}
+
+func memoryWastageWarnings(bs map[string]Bucket, memLimit MemSize) []string {
+	warnings := []string{}
+	if nativeBucket, ok := bs["native"]; ok && nativeBucket.Range().Floor() == MS_ZERO {
+		totWeight := totalWeight(bs)
+		floatSize := NATIVE_MEMORY_WARNING_FACTOR * weightedSize(totWeight, memLimit, nativeBucket)
+		if MemSize(math.Floor(0.5 + floatSize)).LessThan(*nativeBucket.GetSize()) {
+			warnings = append(warnings,
+				fmt.Sprintf(
+					"There is more than %g times more spare native memory than the default "+
+						"so configured Java memory may be too small or available memory may be too large",
+					NATIVE_MEMORY_WARNING_FACTOR))
+		}
+	}
+
+	totalSize := MS_ZERO
+	for _, b := range bs {
+		totalSize = totalSize.Add(*b.GetSize())
+	}
+	if totalSize.LessThan(memLimit.Scale(TOTAL_MEMORY_WARNING_FACTOR)) {
+		warnings = append(warnings,
+			fmt.Sprintf(
+				"The allocated Java memory sizes total %s which is less than %g of "+
+					"the available memory, so configured Java memory sizes may be too small or available memory may be too large",
+				totalSize.String(), TOTAL_MEMORY_WARNING_FACTOR))
+	}
+	return warnings
+}
+
+func closeToDefaultWarnings(bs map[string]Bucket, sizes map[string]string, memLimit MemSize) []string {
+	totWeight := totalWeight(bs)
+	warnings := []string{}
+	for name, b := range bs {
+		if _, ok := sizes[name]; ok && name != "stack" && !b.Range().Degenerate() {
+			floatDefSize := weightedSize(totWeight, memLimit, b)
+			floatActualSize := float64(*b.GetSize())
+			var factor float64
+			if floatDefSize > 0.0 {
+				factor = math.Abs((floatActualSize - floatDefSize) / floatDefSize)
+			}
+			if (floatDefSize == 0.0 && floatActualSize == 0.0) || (factor < CLOSE_TO_DEFAULT_FACTOR) {
+				warnings = append(warnings,
+					fmt.Sprintf(
+						"The computed value %s of memory size %s is close to the default value %s. "+
+							"Consider taking the default.",
+						b.GetSize(), name, MemSize(math.Floor(0.5+floatDefSize))))
+			}
+		}
+	}
+	return warnings
+}
+
+// Balance the allocation of memLeft memory between remaining buckets, and see
+// if any buckets cannot be so allocated. Buckets that are constrained are
+// then allocated the constrained amount, and removed from the remaining map.
+//
+// This function modifies the caller's bucket map.
+//
+// Returns the remaining memory not so allocated, a bool indicating if some were
+// removed from consideration, and a possible memory exceeded error.
+func balanceOrRemove(remaining map[string]Bucket, memLeft MemSize) (MemSize, bool, error) {
+	bucketsRemoved := []string{}
+	remainingWeight := totalWeight(remaining)
+
+	allocatedInThisPass := MS_ZERO
+	for name, b := range remaining {
+
+		// round to nearest, so as not to lose a byte inadvertently.
+		size := MemSize(math.Floor(0.5 + weightedSize(remainingWeight, memLeft, b)))
+
+		if b.Range().Contains(size) {
+			b.SetSize(size)
+		} else {
+			newSize := b.Range().Constrain(size)
+			b.SetSize(newSize)
+			allocatedInThisPass = allocatedInThisPass.Add(newSize)
+			bucketsRemoved = append(bucketsRemoved, name)
+		}
+	}
+
+	memLeft = memLeft.Subtract(allocatedInThisPass)
+	if memLeft.LessThan(MS_ZERO) {
+		return 0, false, fmt.Errorf("memory exceeded")
+	}
+
+	// do deletes afterwards in case the for .. range is disturbed
+	for _, name := range bucketsRemoved {
+		delete(remaining, name)
+	}
+
+	return memLeft, len(bucketsRemoved) != 0, nil
+}
+
+// Shallow copy of bucket map.
+func copyBucketMap(bs map[string]Bucket) map[string]Bucket {
+	cpy := map[string]Bucket{}
+	for k, b := range bs {
+		cpy[k] = b
+	}
+	return cpy
 }

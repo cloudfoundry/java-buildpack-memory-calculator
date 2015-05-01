@@ -34,12 +34,28 @@ func apply(ss ...string) func(string) []string {
 	}
 }
 
-var JreSwitchFuns = Funs{
-	"heap":      apply("-Xmx%s", "-Xms%s"),
-	"metaspace": apply("-XX:MaxMetaspaceSize=%s", "-XX:MetaspaceSize=%s"),
-	"permgen":   apply("-XX:MaxPermSize=%s", "-XX:PermSize=%s"),
-	"stack":     apply("-Xss%s"),
-}
+var (
+	AllJreSwitchFuns = Funs{
+		"heap":      apply("-Xmx%s", "-Xms%s"),
+		"metaspace": apply("-XX:MaxMetaspaceSize=%s", "-XX:MetaspaceSize=%s"),
+		"permgen":   apply("-XX:MaxPermSize=%s", "-XX:PermSize=%s"),
+		"stack":     apply("-Xss%s"),
+	}
+
+	StdJreSwitchFuns = Funs{
+		"heap":      apply("-Xmx%s"),
+		"metaspace": apply("-XX:MaxMetaspaceSize=%s"),
+		"permgen":   apply("-XX:MaxPermSize=%s"),
+		"stack":     apply("-Xss%s"),
+	}
+
+	AltJreSwitchFuns = Funs{
+		"heap":      apply("-Xms%s"),
+		"metaspace": apply("-XX:MetaspaceSize=%s"),
+		"permgen":   apply("-XX:PermSize=%s"),
+		"stack":     apply("-Xss%s"),
+	}
+)
 
 func (sf Funs) HasKey(akey string) bool {
 	_, ok := sf[akey]
@@ -50,5 +66,5 @@ func (sf Funs) Apply(akey string, aparm string) []string {
 	if ƒ, ok := sf[akey]; ok {
 		return ƒ(aparm)
 	}
-	return make([]string, 0, 0)
+	return []string{}
 }
