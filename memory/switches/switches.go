@@ -41,20 +41,6 @@ var (
 		"permgen":   apply("-XX:MaxPermSize=%s", "-XX:PermSize=%s"),
 		"stack":     apply("-Xss%s"),
 	}
-
-	StdJreSwitchFuns = Funs{
-		"heap":      apply("-Xmx%s"),
-		"metaspace": apply("-XX:MaxMetaspaceSize=%s"),
-		"permgen":   apply("-XX:MaxPermSize=%s"),
-		"stack":     apply("-Xss%s"),
-	}
-
-	AltJreSwitchFuns = Funs{
-		"heap":      apply("-Xms%s"),
-		"metaspace": apply("-XX:MetaspaceSize=%s"),
-		"permgen":   apply("-XX:PermSize=%s"),
-		"stack":     apply("-Xss%s"),
-	}
 )
 
 func (sf Funs) HasKey(akey string) bool {

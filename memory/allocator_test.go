@@ -97,8 +97,14 @@ var _ = Describe("Allocator", func() {
 					"Bucket{name: native, size: 0, range: 0.., weight: 1}",
 				))
 
-				sws := a.Switches(switches.StdJreSwitchFuns)
-				Ω(sws).Should(ConsistOf("-Xmx30M", "-XX:MaxPermSize=10M", "-Xss2M")) // heap, permgen, stack
+				sws := a.Switches(switches.AllJreSwitchFuns)
+				Ω(sws).Should(ConsistOf(
+					"-Xmx30M",
+					"-Xms30M",
+					"-XX:MaxPermSize=10M",
+					"-XX:PermSize=10M",
+					"-Xss2M",
+				)) // heap, permgen, stack
 			})
 		})
 

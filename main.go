@@ -20,6 +20,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+
+	"github.com/cloudfoundry/java-buildpack-memory-calculator/memory/flags"
+	"github.com/cloudfoundry/java-buildpack-memory-calculator/memory/switches"
 )
 
 const (
@@ -29,12 +32,12 @@ const (
 var (
 	help = flag.Bool("help", false, "prints description and flag help")
 
-	totMemory = flag.String("totMemory", "",
-		"total memory available to allocate, expressed as an integral "+
-			"number of bytes, kilobytes, megabytes or gigabytes")
 	jreVersion = flag.String("jreVersion", "",
 		"the version of Java runtime to use; "+
 			"this determines the names and the format of the switches generated")
+	totMemory = flag.String("totMemory", "",
+		"total memory available to allocate, expressed as an integral "+
+			"number of bytes, kilobytes, megabytes or gigabytes")
 	memoryWeights = flag.String("memoryWeights", "",
 		"the weights given to each memory type, e.g. 'heap:15,permgen:5,stack:1,native:2'")
 	memorySizes = flag.String("memorySizes", "",
@@ -50,7 +53,10 @@ func main() {
 		os.Exit(2)
 	}
 
-	os.Exit(1) // error if we get here
+	version := validateJreVersion()
+	_ = validateWeights(version)
+
+	_ = switches.AllJreSwitchFuns
 }
 
 func printHelp() {
@@ -66,4 +72,21 @@ func noArgs(args []string) bool {
 
 func helpArg() bool {
 	return flag.Parsed() && *help
+}
+
+func validateJreVersion() flags.Version {
+	if jreVersion == nil {
+		fmt.Fprintf(os.Stderr, "No -jreVersion supplied")
+		os.Exit(1)
+	}
+	v, err := flags.NewVersion(*jreVersion)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error in -jreVersion: %s", err)
+		os.Exit(1)
+	}
+	return v
+}
+
+func validateWeights(version flags.Version) map[string]float64 {
+	return nil
 }

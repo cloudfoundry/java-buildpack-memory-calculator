@@ -16,6 +16,7 @@
 package integration_test
 
 import (
+	"bytes"
 	"os/exec"
 
 	. "github.com/onsi/ginkgo"
@@ -32,10 +33,26 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 		Ω(co).Should(ContainSubstring("\nUsage of "), "Usage prefix")
 	})
 
+	It("executes with errors on bad version flag", func() {
+		badFlag := "-jreVersion=1.O.O"
+		so, se, err := runOutAndErr(badFlag)
+		Ω(err).Should(HaveOccurred(), badFlag)
+
+		Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlag)
+		Ω(string(se)).Should(ContainSubstring("Error in -jreVersion: Version "), "stderr incorrect for "+badFlag)
+	})
 })
 
 func runOutput(args ...string) ([]byte, error) {
 	cmd := exec.Command(jbmcExec, args...)
 	co, err := cmd.CombinedOutput()
 	return co, err
+}
+
+func runOutAndErr(args ...string) ([]byte, []byte, error) {
+	cmd := exec.Command(jbmcExec, args...)
+	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
+	cmd.Stdout, cmd.Stderr = stdout, stderr
+	err := cmd.Run()
+	return stdout.Bytes(), stderr.Bytes(), err
 }
