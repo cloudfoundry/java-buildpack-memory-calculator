@@ -18,11 +18,30 @@ package integration_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 
 	"testing"
 )
 
+// Path to calculator executable
+var jbmcExec string
+
 func TestIntegration(t *testing.T) {
+
+	// build main program for testing
+	SynchronizedBeforeSuite(func() []byte {
+		jbmcExec, err := gexec.Build("github.com/cloudfoundry/java-buildpack-memory-calculator", "-a", "-race")
+		Ω(err).ShouldNot(HaveOccurred())
+		return []byte(jbmcExec)
+	}, func(jbmcBinPath []byte) {
+		jbmcExec = string(jbmcBinPath)
+	})
+
+	SynchronizedAfterSuite(func() {
+	}, func() {
+		gexec.CleanupBuildArtifacts()
+	})
+
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Integration Suite")
 }

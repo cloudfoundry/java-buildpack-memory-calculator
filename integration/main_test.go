@@ -16,12 +16,26 @@
 package integration_test
 
 import (
-	// . "github.com/cloudfoundry/java-buildpack-memory-calculator/integration"
+	"os/exec"
 
 	. "github.com/onsi/ginkgo"
-	// . "github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("java-buildpack-memory-calculator executable", func() {
 
+	It("executes with help on no parms", func() {
+		co, err := runOutput()
+		Ω(err).Should(HaveOccurred(), jbmcExec)
+		Ω(co).Should(ContainSubstring("\njava-buildpack-memory-calculator\n"), "announce name")
+		Ω(co).Should(ContainSubstring("-help=false"), "flag prompts")
+		Ω(co).Should(ContainSubstring("\nUsage of "), "Usage prefix")
+	})
+
 })
+
+func runOutput(args ...string) ([]byte, error) {
+	cmd := exec.Command(jbmcExec, args...)
+	co, err := cmd.CombinedOutput()
+	return co, err
+}
