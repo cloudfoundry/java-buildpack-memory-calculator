@@ -24,6 +24,7 @@ import (
 )
 
 type strmap map[string]string
+type rngmap map[string]memory.Range
 
 type floatmap map[string]float64
 
@@ -56,7 +57,7 @@ var _ = Describe("Allocator", func() {
 	})
 
 	JustBeforeEach(func() {
-		a = shouldWork(memory.NewAllocator(sizes, weights))
+		a = shouldWork(memory.NewAllocator(convertToRanges(sizes), weights))
 	})
 
 	Context("constructor", func() {
@@ -423,3 +424,11 @@ var _ = Describe("Allocator", func() {
 		})
 	})
 })
+
+func convertToRanges(sizes strmap) rngmap {
+	ranges := rngmap{}
+	for k, s := range sizes {
+		ranges[k], _ = memory.NewRangeFromString(s)
+	}
+	return ranges
+}

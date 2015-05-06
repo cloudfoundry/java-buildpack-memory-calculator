@@ -31,13 +31,13 @@ type Allocator interface {
 }
 
 type allocator struct {
-	originalSizes map[string]string // unmodified after creation
+	originalSizes map[string]Range  // unmodified after creation
 	buckets       map[string]Bucket // named buckets for allocation
 	warnings      []string          // warnings if allocation found issues
 	failure       error             // error if allocation failed
 }
 
-func NewAllocator(sizes map[string]string, heuristics map[string]float64) (*allocator, error) {
+func NewAllocator(sizes map[string]Range, heuristics map[string]float64) (*allocator, error) {
 	if buckets, err := createMemoryBuckets(sizes, heuristics); err != nil {
 		return nil, fmt.Errorf("allocator not created: %s", err)
 	} else {
@@ -99,26 +99,23 @@ func (a *allocator) GetWarnings() []string {
 	return a.warnings
 }
 
-func getSizes(ss map[string]string) []string {
+func getSizes(ss map[string]Range) []string {
 	result := []string{}
 	for _, s := range ss {
-		result = append(result, s)
+		result = append(result, s.String())
 	}
 	return result
 }
 
-func createMemoryBuckets(sizes map[string]string, heuristics map[string]float64) (map[string]Bucket, error) {
+func createMemoryBuckets(sizes map[string]Range, heuristics map[string]float64) (map[string]Bucket, error) {
 	buckets := map[string]Bucket{}
 	for name, weight := range heuristics {
-		size, ok := sizes[name]
+		aRange, ok := sizes[name]
 		if !ok {
-			size = ".."
+			aRange, _ = NewUnboundedRange(MEMSIZE_ZERO)
 		}
-		if aRange, err := NewRangeFromString(size); err == nil {
-			if buckets[name], err = NewBucket(name, weight, aRange); err != nil {
-				return nil, fmt.Errorf("memory type '%s' cannot be allocated: %s", name, err)
-			}
-		} else {
+		var err error
+		if buckets[name], err = NewBucket(name, weight, aRange); err != nil {
 			return nil, fmt.Errorf("memory type '%s' cannot be allocated: %s", name, err)
 		}
 	}
@@ -208,7 +205,7 @@ func memoryWastageWarnings(bs map[string]Bucket, memLimit MemSize) []string {
 	return warnings
 }
 
-func closeToDefaultWarnings(bs map[string]Bucket, sizes map[string]string, memLimit MemSize) []string {
+func closeToDefaultWarnings(bs map[string]Bucket, sizes map[string]Range, memLimit MemSize) []string {
 	totWeight := totalWeight(bs)
 	warnings := []string{}
 	for name, b := range bs {
