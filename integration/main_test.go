@@ -25,7 +25,7 @@ import (
 
 var _ = Describe("java-buildpack-memory-calculator executable", func() {
 
-	It("executes with help on no parms", func() {
+	It("executes with help and usage on no parms", func() {
 		co, err := runOutput()
 		Ω(err).Should(HaveOccurred(), jbmcExec)
 		Ω(co).Should(ContainSubstring("\njava-buildpack-memory-calculator\n"), "announce name")
@@ -33,14 +33,33 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 		Ω(co).Should(ContainSubstring("\nUsage of "), "Usage prefix")
 	})
 
-	It("executes with errors on bad version flag", func() {
-		badFlag := "-jreVersion=1.O.O"
-		so, se, err := runOutAndErr(badFlag)
-		Ω(err).Should(HaveOccurred(), badFlag)
-
-		Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlag)
-		Ω(string(se)).Should(ContainSubstring("Error in -jreVersion: Version "), "stderr incorrect for "+badFlag)
+	It("executes with usage but no help on bad flag", func() {
+		co, err := runOutput("-unknownFlag")
+		Ω(err).Should(HaveOccurred(), jbmcExec)
+		Ω(co).ShouldNot(ContainSubstring("\njava-buildpack-memory-calculator\n"), "announce name")
+		Ω(co).Should(ContainSubstring("flag provided but not defined: "), "flag prompts")
+		Ω(co).Should(ContainSubstring("-help=false"), "flag prompts")
+		Ω(co).Should(ContainSubstring("\nUsage of "), "Usage prefix")
 	})
+
+	It("executes with error on bad version syntax", func() {
+		badFlags := []string{"-jreVersion=1.O.O"}
+		so, se, err := runOutAndErr(badFlags...)
+		Ω(err).Should(HaveOccurred(), badFlags[0])
+
+		Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
+		Ω(string(se)).Should(ContainSubstring("Error in -jreVersion: Version "), "stderr incorrect for "+badFlags[0])
+	})
+
+	It("executes with error on bad total memory syntax", func() {
+		badFlags := []string{"-totMemory=badmem", "-jreVersion=1.0.0"}
+		so, se, err := runOutAndErr(badFlags...)
+		Ω(err).Should(HaveOccurred(), badFlags[0])
+
+		Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
+		Ω(string(se)).Should(ContainSubstring("Error in -totMemory: "), "stderr incorrect for "+badFlags[0])
+	})
+
 })
 
 func runOutput(args ...string) ([]byte, error) {

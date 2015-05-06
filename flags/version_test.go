@@ -17,7 +17,7 @@
 package flags_test
 
 import (
-	. "github.com/cloudfoundry/java-buildpack-memory-calculator/memory/flags"
+	. "github.com/cloudfoundry/java-buildpack-memory-calculator/flags"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

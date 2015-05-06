@@ -17,11 +17,12 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
+	"strings"
 
-	"github.com/cloudfoundry/java-buildpack-memory-calculator/memory/flags"
+	"github.com/cloudfoundry/java-buildpack-memory-calculator/flags"
+	"github.com/cloudfoundry/java-buildpack-memory-calculator/memory"
 	"github.com/cloudfoundry/java-buildpack-memory-calculator/memory/switches"
 )
 
@@ -29,64 +30,29 @@ const (
 	exec_name = "java-buildpack-memory-calculator"
 )
 
-var (
-	help = flag.Bool("help", false, "prints description and flag help")
-
-	jreVersion = flag.String("jreVersion", "",
-		"the version of Java runtime to use; "+
-			"this determines the names and the format of the switches generated")
-	totMemory = flag.String("totMemory", "",
-		"total memory available to allocate, expressed as an integral "+
-			"number of bytes, kilobytes, megabytes or gigabytes")
-	memoryWeights = flag.String("memoryWeights", "",
-		"the weights given to each memory type, e.g. 'heap:15,permgen:5,stack:1,native:2'")
-	memorySizes = flag.String("memorySizes", "",
-		"the size ranges allowed for each memory type, "+
-			"e.g. 'heap:128m..1G,permgen:64m,stack:2m..4m,native:100m..'")
-)
-
 func main() {
-	flag.Parse() // exit on error
 
-	if noArgs(os.Args[1:]) || helpArg() {
-		printHelp()
-		os.Exit(2)
-	}
+	// validateFlags() will exit on error
+	memSize, weights, sizes := flags.ValidateFlags()
 
-	version := validateJreVersion()
-	_ = validateWeights(version)
+	switchFuns := switches.AllJreSwitchFuns
 
-	_ = switches.AllJreSwitchFuns
-}
-
-func printHelp() {
-	fmt.Printf("\n%s\n", exec_name)
-	fmt.Println("\nCalculate JRE memory switches " +
-		"based upon the total memory available and the size ranges and weights given.\n")
-	flag.Usage()
-}
-
-func noArgs(args []string) bool {
-	return len(args) == 0
-}
-
-func helpArg() bool {
-	return flag.Parsed() && *help
-}
-
-func validateJreVersion() flags.Version {
-	if jreVersion == nil {
-		fmt.Fprintf(os.Stderr, "No -jreVersion supplied")
-		os.Exit(1)
-	}
-	v, err := flags.NewVersion(*jreVersion)
+	allocator, err := memory.NewAllocator(sizes, weights)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error in -jreVersion: %s", err)
+		fmt.Fprintf(os.Stderr, "Cannot allocate memory: %s", err)
 		os.Exit(1)
 	}
-	return v
-}
 
-func validateWeights(version flags.Version) map[string]float64 {
-	return nil
+	if err = allocator.Balance(memSize); err != nil {
+		fmt.Fprintf(os.Stderr, "Cannot balance memory: %s", err)
+		os.Exit(1)
+	}
+
+	if warnings := allocator.GetWarnings(); len(warnings) != 0 {
+		fmt.Fprintln(os.Stderr, strings.Join(warnings, "\n"))
+	}
+
+	switches := allocator.Switches(switchFuns)
+	fmt.Fprint(os.Stdout, strings.Join(switches, " "))
+
 }
