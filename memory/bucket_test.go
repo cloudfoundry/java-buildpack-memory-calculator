@@ -33,9 +33,9 @@ var _ = Describe("MemoryBucket", func() {
 	)
 
 	BeforeEach(func() {
-		testRange = getBMR(2*mEGA, 3*mEGA)
-		testZeroRange = getBMR(0, 4*mEGA)
-		testUBRange = getUMR(10 * kILO)
+		testRange = boundedMemoryRange(2*mEGA, 3*mEGA)
+		testZeroRange = boundedMemoryRange(0, 4*mEGA)
+		testUBRange = unboundedMemoryRange(10 * kILO)
 
 		shouldFail = func(b memory.Bucket, err error) {
 			Ω(b).Should(BeNil())
@@ -61,7 +61,7 @@ var _ = Describe("MemoryBucket", func() {
 				b.SetSize(124)
 				Ω(*b.GetSize()).Should(Equal(memory.MemSize(124)))
 				Ω(b.Weight()).Should(BeNumerically("~", 0.2))
-				Ω(b.DefaultSize()).Should(Equal(memory.MS_ZERO))
+				Ω(b.DefaultSize()).Should(Equal(memory.MEMSIZE_ZERO))
 			})
 
 			It("with 'stack' bucket and good weights", func() {
@@ -111,8 +111,8 @@ var _ = Describe("MemoryBucket", func() {
 			b := shouldWork(memory.NewBucket("abucket", 0.1, testRange))
 			Ω(b.GetSize()).Should(BeNil())
 
-			b.SetSize(memory.MS_ZERO)
-			checkSize(b, memory.MS_ZERO)
+			b.SetSize(memory.MEMSIZE_ZERO)
+			checkSize(b, memory.MEMSIZE_ZERO)
 
 			b.SetSize(getMs(3 * mEGA))
 			checkSize(b, getMs(3*mEGA))
@@ -120,9 +120,9 @@ var _ = Describe("MemoryBucket", func() {
 
 		It("sets Range correctly", func() {
 			b := shouldWork(memory.NewBucket("abucket", 0.1, testRange))
-			Ω(b.Range()).Should(Equal(getBMR(2*mEGA, 3*mEGA)))
+			Ω(b.Range()).Should(Equal(boundedMemoryRange(2*mEGA, 3*mEGA)))
 
-			b.SetRange(getUMR(10 * kILO))
+			b.SetRange(unboundedMemoryRange(10 * kILO))
 			Ω(b.Range()).Should(Equal(testUBRange))
 
 			b.SetRange(testZeroRange)

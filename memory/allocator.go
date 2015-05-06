@@ -182,7 +182,7 @@ func (a *allocator) validateAllocation(memLimit MemSize) {
 
 func memoryWastageWarnings(bs map[string]Bucket, memLimit MemSize) []string {
 	warnings := []string{}
-	if nativeBucket, ok := bs["native"]; ok && nativeBucket.Range().Floor() == MS_ZERO {
+	if nativeBucket, ok := bs["native"]; ok && nativeBucket.Range().Floor() == MEMSIZE_ZERO {
 		totWeight := totalWeight(bs)
 		floatSize := NATIVE_MEMORY_WARNING_FACTOR * weightedSize(totWeight, memLimit, nativeBucket)
 		if MemSize(math.Floor(0.5 + floatSize)).LessThan(*nativeBucket.GetSize()) {
@@ -194,7 +194,7 @@ func memoryWastageWarnings(bs map[string]Bucket, memLimit MemSize) []string {
 		}
 	}
 
-	totalSize := MS_ZERO
+	totalSize := MEMSIZE_ZERO
 	for _, b := range bs {
 		totalSize = totalSize.Add(*b.GetSize())
 	}
@@ -243,13 +243,14 @@ func balanceOrRemove(remaining map[string]Bucket, memLeft MemSize) (MemSize, boo
 	bucketsRemoved := []string{}
 	remainingWeight := totalWeight(remaining)
 
-	allocatedInThisPass := MS_ZERO
+	allocatedInThisPass := MEMSIZE_ZERO
 	for name, b := range remaining {
 
 		// round to nearest, so as not to lose a byte inadvertently.
 		size := MemSize(math.Floor(0.5 + weightedSize(remainingWeight, memLeft, b)))
 
 		if b.Range().Contains(size) {
+			// speculatively set the size, in case this pass doesn't remove any buckets
 			b.SetSize(size)
 		} else {
 			newSize := b.Range().Constrain(size)
@@ -260,7 +261,7 @@ func balanceOrRemove(remaining map[string]Bucket, memLeft MemSize) (MemSize, boo
 	}
 
 	memLeft = memLeft.Subtract(allocatedInThisPass)
-	if memLeft.LessThan(MS_ZERO) {
+	if memLeft.LessThan(MEMSIZE_ZERO) {
 		return 0, false, fmt.Errorf("memory exceeded")
 	}
 

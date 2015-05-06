@@ -36,12 +36,8 @@ const (
 	gIGA = 1024 * mEGA
 )
 
-// The empty memory allocation (not nil).
-var MS_ZERO MemSize
-
-func init() {
-	MS_ZERO = NewMemSize(0)
-}
+// The empty memory size.
+const MEMSIZE_ZERO = MemSize(0)
 
 // Construct a new MemSize object from an int64
 func NewMemSize(ms int64) MemSize {
@@ -59,7 +55,7 @@ func NewMemSizeFromString(ms string) (MemSize, error) {
 		return 0, fmt.Errorf("memory size string cannot be empty")
 	}
 	if ms == "0" {
-		return MS_ZERO, nil
+		return MEMSIZE_ZERO, nil
 	}
 
 	factor, intStr := int64(1), ms[:len(ms)-1]

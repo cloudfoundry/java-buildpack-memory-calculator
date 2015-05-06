@@ -40,13 +40,13 @@ func getMs(msInt int64) memory.MemSize {
 	return memory.NewMemSize(msInt)
 }
 
-func getBMR(lo, hi int64) memory.Range {
+func boundedMemoryRange(lo, hi int64) memory.Range {
 	r, err := memory.NewRange(getMs(lo), getMs(hi))
 	Ω(err).ShouldNot(HaveOccurred())
 	return r
 }
 
-func getUMR(lo int64) memory.Range {
+func unboundedMemoryRange(lo int64) memory.Range {
 	r, err := memory.NewUnboundedRange(getMs(lo))
 	Ω(err).ShouldNot(HaveOccurred())
 	return r

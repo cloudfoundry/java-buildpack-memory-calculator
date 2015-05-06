@@ -62,8 +62,8 @@ var _ = Describe("MemoryRange", func() {
 			})
 
 			It("creates a range with implicit lower bound correctly", func() {
-				rnge := itWorks("  .. 5m ", memory.MS_ZERO)
-				Ω(rnge).Should(Equal(itWorks("0..5m", memory.MS_ZERO)))
+				rnge := itWorks("  .. 5m ", memory.MEMSIZE_ZERO)
+				Ω(rnge).Should(Equal(itWorks("0..5m", memory.MEMSIZE_ZERO)))
 			})
 
 			It("creates a range with no upper bound correctly", func() {
@@ -75,11 +75,11 @@ var _ = Describe("MemoryRange", func() {
 			})
 
 			It("creates a range with no upper or lower bound correctly", func() {
-				Ω(itWorks("..", memory.MS_ZERO)).Should(Equal(itWorks("0..", memory.MS_ZERO)))
+				Ω(itWorks("..", memory.MEMSIZE_ZERO)).Should(Equal(itWorks("0..", memory.MEMSIZE_ZERO)))
 			})
 
 			It("creates a range of 0.. with an empty range string", func() {
-				Ω(itWorks("", memory.MS_ZERO)).Should(Equal(itWorks("0..", memory.MS_ZERO)))
+				Ω(itWorks("", memory.MEMSIZE_ZERO)).Should(Equal(itWorks("0..", memory.MEMSIZE_ZERO)))
 			})
 		})
 
@@ -144,7 +144,7 @@ var _ = Describe("MemoryRange", func() {
 
 	Context("operations", func() {
 		It("detects memory sizes in and outside a bounded range correctly", func() {
-			bmr := getBMR(mEGA, gIGA)
+			bmr := boundedMemoryRange(mEGA, gIGA)
 			Ω(bmr.Contains(getMs(mEGA))).Should(BeTrue())
 			Ω(bmr.Contains(getMs(mEGA + 1))).Should(BeTrue())
 			Ω(bmr.Contains(getMs(mEGA - 1))).Should(BeFalse())
@@ -160,7 +160,7 @@ var _ = Describe("MemoryRange", func() {
 		})
 
 		It("detects memory sizes in and outside an unbounded range correctly", func() {
-			umr := getUMR(mEGA)
+			umr := unboundedMemoryRange(mEGA)
 			Ω(umr.Contains(getMs(mEGA))).Should(BeTrue())
 			Ω(umr.Contains(getMs(mEGA + 1))).Should(BeTrue())
 			Ω(umr.Contains(getMs(mEGA - 1))).Should(BeFalse())
@@ -171,7 +171,7 @@ var _ = Describe("MemoryRange", func() {
 		})
 
 		It("constrains memory sizes in and outside a bounded range correctly", func() {
-			bmr := getBMR(mEGA, gIGA)
+			bmr := boundedMemoryRange(mEGA, gIGA)
 			Ω(bmr.Constrain(getMs(mEGA))).Should(Equal(getMs(mEGA)))
 			Ω(bmr.Constrain(getMs(mEGA + 1))).Should(Equal(getMs(mEGA + 1)))
 			Ω(bmr.Constrain(getMs(mEGA - 1))).Should(Equal(getMs(mEGA)))
@@ -187,7 +187,7 @@ var _ = Describe("MemoryRange", func() {
 		})
 
 		It("constrains memory sizes in and outside an unbounded range correctly", func() {
-			umr := getUMR(mEGA)
+			umr := unboundedMemoryRange(mEGA)
 			Ω(umr.Constrain(getMs(mEGA))).Should(Equal(getMs(mEGA)))
 			Ω(umr.Constrain(getMs(mEGA + 1))).Should(Equal(getMs(mEGA + 1)))
 			Ω(umr.Constrain(getMs(mEGA - 1))).Should(Equal(getMs(mEGA)))
@@ -200,15 +200,15 @@ var _ = Describe("MemoryRange", func() {
 		It("compares ranges for equality", func() {
 			bmr1, err := memory.NewRangeFromString("3m..5m")
 			Ω(err).ShouldNot(HaveOccurred())
-			bmr2 := getBMR(3*mEGA, 5*mEGA)
+			bmr2 := boundedMemoryRange(3*mEGA, 5*mEGA)
 			Ω(bmr1.Equals(bmr2)).Should(BeTrue())
 			Ω(bmr2.Equals(bmr1)).Should(BeTrue())
-			bmr3 := getBMR(3*mEGA, 6*mEGA)
+			bmr3 := boundedMemoryRange(3*mEGA, 6*mEGA)
 			Ω(bmr1.Equals(bmr3)).Should(BeFalse())
 			Ω(bmr3.Equals(bmr1)).Should(BeFalse())
 			Ω(bmr3.Equals(bmr3)).Should(BeTrue())
 
-			umr1 := getUMR(3 * mEGA)
+			umr1 := unboundedMemoryRange(3 * mEGA)
 			Ω(umr1.Equals(umr1)).Should(BeTrue())
 			Ω(bmr1.Equals(umr1)).Should(BeFalse())
 			Ω(umr1.Equals(bmr2)).Should(BeFalse())
@@ -219,20 +219,20 @@ var _ = Describe("MemoryRange", func() {
 		})
 
 		It("scales by a factor", func() {
-			bmr := getBMR(3*mEGA, 5*mEGA)
-			Ω(bmr.Scale(2.0)).Should(Equal(getBMR(6*mEGA, 10*mEGA)))
-			Ω(bmr.Scale(0.5)).Should(Equal(getBMR(3*(mEGA/2), 5*(mEGA/2))))
+			bmr := boundedMemoryRange(3*mEGA, 5*mEGA)
+			Ω(bmr.Scale(2.0)).Should(Equal(boundedMemoryRange(6*mEGA, 10*mEGA)))
+			Ω(bmr.Scale(0.5)).Should(Equal(boundedMemoryRange(3*(mEGA/2), 5*(mEGA/2))))
 			Ω(bmr.Scale(-1.0)).Should(BeNil())
 		})
 	})
 
 	It("produces correct string representations", func() {
-		Ω(getBMR(3*mEGA, 5*mEGA).String()).Should(Equal("3M..5M"))
-		Ω(getBMR(3*kILO, 5*mEGA).String()).Should(Equal("3K..5M"))
-		Ω(getBMR(-3*mEGA, 5*mEGA).String()).Should(Equal("-3M..5M"))
-		Ω(getUMR(3 * mEGA).String()).Should(Equal("3M.."))
-		Ω(getUMR(-3 * mEGA).String()).Should(Equal("-3M.."))
-		Ω(getUMR(0).String()).Should(Equal("0.."))
-		Ω(getBMR(0, 2*gIGA).String()).Should(Equal("0..2G"))
+		Ω(boundedMemoryRange(3*mEGA, 5*mEGA).String()).Should(Equal("3M..5M"))
+		Ω(boundedMemoryRange(3*kILO, 5*mEGA).String()).Should(Equal("3K..5M"))
+		Ω(boundedMemoryRange(-3*mEGA, 5*mEGA).String()).Should(Equal("-3M..5M"))
+		Ω(unboundedMemoryRange(3 * mEGA).String()).Should(Equal("3M.."))
+		Ω(unboundedMemoryRange(-3 * mEGA).String()).Should(Equal("-3M.."))
+		Ω(unboundedMemoryRange(0).String()).Should(Equal("0.."))
+		Ω(boundedMemoryRange(0, 2*gIGA).String()).Should(Equal("0..2G"))
 	})
 })

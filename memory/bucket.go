@@ -102,7 +102,7 @@ var (
 // the Floor is 0. Zero if this is not a bucket named 'stack'.
 func (b *bucket) DefaultSize() MemSize {
 	if b.name != "stack" {
-		return MS_ZERO
+		return MEMSIZE_ZERO
 	}
 	floor := b.srange.Floor()
 	if floor.Bytes() == 0 {

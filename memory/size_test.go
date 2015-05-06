@@ -110,7 +110,7 @@ var _ = Describe("MemorySize", func() {
 		var zero, noMeg, oneMeg, twoMeg, oneKilo, twoGig memory.MemSize
 
 		BeforeEach(func() {
-			zero = memory.MS_ZERO
+			zero = memory.MEMSIZE_ZERO
 			noMeg, oneMeg, twoMeg, oneKilo, twoGig = getMs(0), getMs(mEGA), getMs(2*mEGA), getMs(kILO), getMs(2*gIGA)
 		})
 
@@ -142,7 +142,7 @@ var _ = Describe("MemorySize", func() {
 			Ω(oneMeg.Scale(2.0)).To(Equal(twoMeg))
 			Ω(twoGig.Scale(1.0 / 1024)).To(Equal(twoMeg))
 			Ω(getMs(3).Scale(0.5)).To(Equal(getMs(2)))
-			Ω(getMs(0).Scale(1e8)).To(Equal(memory.MS_ZERO))
+			Ω(getMs(0).Scale(1e8)).To(Equal(memory.MEMSIZE_ZERO))
 		})
 
 		It("correctly derives proportion between two memory sizes", func() {
@@ -151,7 +151,7 @@ var _ = Describe("MemorySize", func() {
 		})
 
 		It("converts a memory size to a string correctly", func() {
-			Ω(memory.MS_ZERO.String()).Should(Equal("0"))
+			Ω(memory.MEMSIZE_ZERO.String()).Should(Equal("0"))
 			Ω(oneMeg.String()).Should(Equal("1M"))
 			Ω(oneMeg.Scale(0.75).String()).Should(Equal("768K"))
 			Ω(twoMeg.Scale(3.0).Scale(1.5).String()).Should(Equal("9M"))
