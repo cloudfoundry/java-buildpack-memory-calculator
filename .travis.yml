@@ -2,6 +2,7 @@
 language: go
 go:
 - 1.4.2
+script: scripts/runTests
 sudo: false
 notifications:
   slack:

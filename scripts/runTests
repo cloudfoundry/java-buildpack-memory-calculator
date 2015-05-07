@@ -13,9 +13,9 @@ function status_on_exit {
 }
 
 function run-in-godep {
-    local goDepsPath=$(cd $(dirname $0)/.. && pwd)/Godeps/_workspace
-    mkdir -p $goDepsPath/bin
-    GOPATH=$goDepsPath:$GOPATH PATH=$goDepsPath/bin:$PATH $@
+    local goDepsPath=$(godep path)
+    mkdir -p "${goDepsPath}/bin"
+    GOPATH="${goDepsPath}:${GOPATH}" PATH="${goDepsPath}/bin:${PATH}" "$@"
 }
 
 # Install ginkgo (from Godeps) into Godeps workspace
@@ -25,6 +25,6 @@ run-in-godep go install -v github.com/onsi/ginkgo/ginkgo
 trap status_on_exit EXIT
 
 # Announce test run
-    echo; echo ginkgo $ginkgoTags "$@"; echo
+echo; echo ginkgo ${ginkgoTags} "$@"; echo
 # Run all tests under Godeps environment
-run-in-godep ginkgo $ginkgoTags "$@"
+run-in-godep ginkgo ${ginkgoTags} "$@"
