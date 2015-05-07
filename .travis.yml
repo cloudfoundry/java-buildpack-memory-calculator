@@ -2,6 +2,7 @@
 language: go
 go:
 - 1.4.2
+install: go get -v github.com/tools/godep
 script: scripts/runTests
 sudo: false
 notifications:
