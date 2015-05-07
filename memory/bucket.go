@@ -21,23 +21,15 @@ import (
 	"strings"
 )
 
-// This file defines and implements the Bucket interface type.
 // A Bucket is used to calculate default sizes for various type of memory.
-
 type Bucket interface {
-	Name() string // Name of bucket
-
-	GetSize() *MemSize // Size of bucket, if set; nil otherwise
-	SetSize(MemSize)   // cannot unset the size, once set
-
-	Range() Range // Permissible range of sizes for this bucket.
-	SetRange(Range)
-
-	Weight() float64 // Proportion of total memory this bucket is allowed to consume by default.
-
-	DefaultSize() MemSize // only supported by 'stack' buckets
-
-	String() string // mainly for testing
+	Name() string         // Name of bucket
+	GetSize() *MemSize    // Size of bucket, if set; nil if not set
+	SetSize(MemSize)      // (cannot unset the size, once set)
+	Range() Range         // Permissible range of sizes for this bucket.
+	Weight() float64      // Proportion of total memory this bucket is allowed to consume by default.
+	DefaultSize() MemSize // Default size for 'stack' buckets
+	String() string
 }
 
 type bucket struct {
@@ -47,30 +39,28 @@ type bucket struct {
 	weight float64
 }
 
-// Returns the name of the bucket
+// Name returns the (internal) bucket name
 func (b *bucket) Name() string {
 	return b.name
 }
 
-// Returns a pointer to MemSize because this value can be unset.
+// GetSize returns a pointer to the size of the bucket because this value may not be set.
 func (b *bucket) GetSize() *MemSize {
 	return b.size
 }
 
-// Generates a new pointer to MemSize internally.
+// SetSize sets the size of the bucket
 func (b *bucket) SetSize(size MemSize) {
 	tmpsize := size
 	b.size = &tmpsize
 }
 
+// Range returns the bucket range constraint
 func (b *bucket) Range() Range {
 	return b.srange
 }
 
-func (b *bucket) SetRange(srange Range) {
-	b.srange = srange
-}
-
+// Weight returns the (relative) weight for this bucket allocation
 func (b *bucket) Weight() float64 {
 	return b.weight
 }
@@ -98,8 +88,8 @@ var (
 	jre_DEFAULT_STACK_SIZE = NewMemSize(mEGA)
 )
 
-// The default stacksize: Floor() of the range, or the JRE standard default if
-// the Floor is 0. Zero if this is not a bucket named 'stack'.
+// The default stack size: Floor() of the Range, or the JRE standard default if
+// the floor is 0. (MEMSIZE_ZERO if this is not a bucket named 'stack'.)
 func (b *bucket) DefaultSize() MemSize {
 	if b.name != "stack" {
 		return MEMSIZE_ZERO
@@ -111,6 +101,7 @@ func (b *bucket) DefaultSize() MemSize {
 	return floor
 }
 
+// String representation of a bucket, used for testing.
 func (b *bucket) String() string {
 	return fmt.Sprintf("Bucket{name: %s, size: %s, range: %s, weight: %g}", b.name, b.size, b.srange, b.weight)
 }

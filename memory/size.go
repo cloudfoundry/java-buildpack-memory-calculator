@@ -52,7 +52,7 @@ func NewMemSize(ms int64) MemSize {
 func NewMemSizeFromString(ms string) (MemSize, error) {
 	ms = strings.TrimSpace(ms)
 	if ms == "" {
-		return 0, fmt.Errorf("memory size string cannot be empty")
+		return MEMSIZE_ZERO, fmt.Errorf("memory size string cannot be empty")
 	}
 	if ms == "0" {
 		return MEMSIZE_ZERO, nil

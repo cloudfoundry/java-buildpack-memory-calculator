@@ -118,14 +118,14 @@ var _ = Describe("MemoryBucket", func() {
 			checkSize(b, getMs(3*mEGA))
 		})
 
-		It("sets Range correctly", func() {
+		It("initialises various values for range correctly", func() {
 			b := shouldWork(memory.NewBucket("abucket", 0.1, testRange))
 			Ω(b.Range()).Should(Equal(boundedMemoryRange(2*mEGA, 3*mEGA)))
 
-			b.SetRange(unboundedMemoryRange(10 * kILO))
-			Ω(b.Range()).Should(Equal(testUBRange))
+			b = shouldWork(memory.NewBucket("abucket", 0.1, unboundedMemoryRange(10*kILO)))
+			Ω(b.Range()).Should(Equal(testUBRange), "unboundedRange")
 
-			b.SetRange(testZeroRange)
+			b = shouldWork(memory.NewBucket("abucket", 0.1, testZeroRange))
 			Ω(b.Range()).Should(Equal(testZeroRange))
 		})
 	})

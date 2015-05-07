@@ -101,8 +101,8 @@ func (a *allocator) GetWarnings() []string {
 
 func getSizes(ss map[string]Range) []string {
 	result := []string{}
-	for _, s := range ss {
-		result = append(result, s.String())
+	for n, s := range ss {
+		result = append(result, n+":"+s.String())
 	}
 	return result
 }
@@ -209,7 +209,7 @@ func closeToDefaultWarnings(bs map[string]Bucket, sizes map[string]Range, memLim
 	totWeight := totalWeight(bs)
 	warnings := []string{}
 	for name, b := range bs {
-		if _, ok := sizes[name]; ok && name != "stack" && !b.Range().Degenerate() {
+		if _, ok := sizes[name]; ok && name != "stack" && b.Range().Degenerate() {
 			floatDefSize := weightedSize(totWeight, memLimit, b)
 			floatActualSize := float64(*b.GetSize())
 			var factor float64
@@ -219,7 +219,7 @@ func closeToDefaultWarnings(bs map[string]Bucket, sizes map[string]Range, memLim
 			if (floatDefSize == 0.0 && floatActualSize == 0.0) || (factor < CLOSE_TO_DEFAULT_FACTOR) {
 				warnings = append(warnings,
 					fmt.Sprintf(
-						"The computed value %s of memory size %s is close to the default value %s. "+
+						"The specified value %s for memory type %s is close to the computed value %s. "+
 							"Consider taking the default.",
 						b.GetSize(), name, MemSize(math.Floor(0.5+floatDefSize))))
 			}

@@ -1,3 +1,19 @@
+// Encoding: utf-8
+// Cloud Foundry Java Buildpack
+// Copyright (c) 2015 the original author or authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package flags
 
 import (
@@ -10,23 +26,35 @@ import (
 	"github.com/cloudfoundry/java-buildpack-memory-calculator/memory"
 )
 
+const (
+	executableName = "java-buildpack-memory-calculator"
+	totalFlag      = "totMemory"
+	weightsFlag    = "memoryWeights"
+	sizesFlag      = "memorySizes"
+)
+
+func printHelp() {
+	fmt.Printf("\n%s\n", executableName)
+	fmt.Println("\nCalculate JRE memory switches " +
+		"based upon the total memory available and the size ranges and weights given.\n")
+	flag.Usage()
+}
+
 var (
 	help = flag.Bool("help", false, "prints description and flag help")
 
-	jreVersion = flag.String("jreVersion", "",
-		"the version of Java runtime to use; "+
-			"this determines the names and the format of the switches generated")
-	totMemory = flag.String("totMemory", "",
+	totMemory = flag.String(totalFlag, "",
 		"total memory available to allocate, expressed as an integral "+
 			"number of bytes, kilobytes, megabytes or gigabytes")
-	memoryWeights = flag.String("memoryWeights", "",
+	memoryWeights = flag.String(weightsFlag, "",
 		"the weights given to each memory type, e.g. 'heap:15,permgen:5,stack:1,native:2'")
-	memorySizes = flag.String("memorySizes", "",
+	memorySizes = flag.String(sizesFlag, "",
 		"the size ranges allowed for each memory type, "+
 			"e.g. 'heap:128m..1G,permgen:64m,stack:2m..4m,native:100m..'")
 )
 
-func ValidateFlags() (memory.MemSize, map[string]float64, map[string]memory.Range) {
+// Validate flags passed on command line; exit(1) if invalid; exit(2) if help printed
+func ValidateFlags() (memSize memory.MemSize, weights map[string]float64, sizes map[string]memory.Range, memIsSpecified bool) {
 
 	flag.Parse() // exit on error
 
@@ -36,45 +64,46 @@ func ValidateFlags() (memory.MemSize, map[string]float64, map[string]memory.Rang
 	}
 
 	// validation routines exit on error
-	version := validateJreVersion()
-	memSize := validateTotMemory()
-	weights := validateWeights(version)
-	sizes := validateSizes(version)
-	return memSize, weights, sizes
+	memSize, memIsSpecified = validateTotMemory(*totMemory)
+	weights = validateWeights(*memoryWeights)
+	sizes = validateSizes(*memorySizes)
 
+	return memSize, weights, sizes, memIsSpecified
 }
 
-func validateJreVersion() Version {
-	v, err := NewVersion(*jreVersion)
+func validateTotMemory(mem string) (value memory.MemSize, isSpecified bool) {
+	if mem == "" {
+		return memory.MEMSIZE_ZERO, false
+	}
+	ms, err := memory.NewMemSizeFromString(mem)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error in -jreVersion: %s", err)
+		fmt.Fprintf(os.Stderr, "Error in -%s flag: %s", totalFlag, err)
 		os.Exit(1)
 	}
-	return v
+	return ms, true
 }
 
-func validateTotMemory() memory.MemSize {
-	ms, err := memory.NewMemSizeFromString(*totMemory)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error in -totMemory: %s", err)
-		os.Exit(1)
-	}
-	return ms
-}
-
-func validateWeights(version Version) map[string]float64 {
+func validateWeights(weights string) map[string]float64 {
 	ws := map[string]float64{}
 
-	weightClauses := strings.Split(*memoryWeights, ",")
+	if weights == "" {
+		return ws
+	}
+
+	weightClauses := strings.Split(weights, ",")
 	for _, clause := range weightClauses {
-		if parts := strings.Split(clause, ":"); len(parts) == 2 && validMemoryType(parts[0], version) {
-			var err error
-			if ws[parts[0]], err = strconv.ParseFloat(parts[1], 32); err != nil {
-				fmt.Fprintf(os.Stderr, "Bad float in -memoryWeights, clause %s : %s", clause, err)
+		if parts := strings.Split(clause, ":"); len(parts) == 2 {
+			if floatVal, err := strconv.ParseFloat(parts[1], 32); err != nil {
+				fmt.Fprintf(os.Stderr, "Bad weight in -%s flag; clause '%s' : %s", weightsFlag, clause, err)
 				os.Exit(1)
+			} else if floatVal <= 0.0 {
+				fmt.Fprintf(os.Stderr, "Weight must be positive in -%s flag; clause '%s'", weightsFlag, clause)
+				os.Exit(1)
+			} else {
+				ws[parts[0]] = floatVal
 			}
 		} else {
-			fmt.Fprintf(os.Stderr, "Bad clause '%s' in -memoryWeights", clause)
+			fmt.Fprintf(os.Stderr, "Bad clause '%s' in -%s flag", clause, weightsFlag)
 			os.Exit(1)
 		}
 	}
@@ -82,31 +111,28 @@ func validateWeights(version Version) map[string]float64 {
 	return ws
 }
 
-func validateSizes(version Version) map[string]memory.Range {
+func validateSizes(sizes string) map[string]memory.Range {
 	rs := map[string]memory.Range{}
 
-	rangeClauses := strings.Split(*memorySizes, ",")
+	if sizes == "" {
+		return rs
+	}
+
+	rangeClauses := strings.Split(sizes, ",")
 	for _, clause := range rangeClauses {
-		if parts := strings.Split(clause, ":"); len(parts) == 2 && validMemoryType(parts[0], version) {
+		if parts := strings.Split(clause, ":"); len(parts) == 2 {
 			var err error
 			if rs[parts[0]], err = memory.NewRangeFromString(parts[1]); err != nil {
-				fmt.Fprintf(os.Stderr, "Bad range in -memorySizes, clause %s : %s", clause, err)
+				fmt.Fprintf(os.Stderr, "Bad range in -%s flag, clause '%s' : %s", sizesFlag, clause, err)
 				os.Exit(1)
 			}
 		} else {
-			fmt.Fprintf(os.Stderr, "Bad clause '%s' in -memorySizes", clause)
+			fmt.Fprintf(os.Stderr, "Bad clause '%s' in -%s flag", clause, sizesFlag)
 			os.Exit(1)
 		}
 	}
 
 	return rs
-}
-
-func printHelp() {
-	fmt.Printf("\n%s\n", "java-buildpack-memory-calculator")
-	fmt.Println("\nCalculate JRE memory switches " +
-		"based upon the total memory available and the size ranges and weights given.\n")
-	flag.Usage()
 }
 
 func noArgs(args []string) bool {
@@ -115,8 +141,4 @@ func noArgs(args []string) bool {
 
 func helpArg() bool {
 	return flag.Parsed() && *help
-}
-
-func validMemoryType(memType string, version Version) bool {
-	return true
 }

@@ -421,6 +421,42 @@ var _ = Describe("Allocator", func() {
 				})
 
 			})
+
+			Context("when the specified maximum memory sizes imply the total memory size may be too large", func() {
+
+				BeforeEach(func() {
+					sizes = strmap{"heap": "800m", "permgen": "800m"}
+					weights = floatmap{"heap": 5.0, "permgen": 3.0, "stack": 1.0, "native": 1.0}
+					memLimit = memory.NewMemSize(4 * gIGA)
+				})
+
+				It("sets the heap and permgen and issues a warning", func() {
+					bucks := memory.GetBuckets(a)
+					Ω(bucks).Should(ContainElement(
+						"Bucket{name: permgen, size: 800M, range: 800M..800M, weight: 3}"))
+					Ω(bucks).Should(ContainElement(
+						"Bucket{name: heap, size: 800M, range: 800M..800M, weight: 5}"))
+					Ω(a.GetWarnings()).Should(ConsistOf("There is more than 3 times more spare native memory than the default so configured Java memory may be too small or available memory may be too large"))
+				})
+
+			})
+
+			Context("when the specified maximum heap size is close to the default", func() {
+
+				BeforeEach(func() {
+					sizes = strmap{"heap": "2049m"}
+					weights = floatmap{"heap": 5.0, "permgen": 3.0, "stack": 1.0, "native": 1.0}
+					memLimit = memory.NewMemSize(4 * gIGA)
+				})
+
+				It("sets the heap size as specified and issues a warning", func() {
+					bucks := memory.GetBuckets(a)
+					Ω(bucks).Should(ContainElement(
+						"Bucket{name: heap, size: 2049M, range: 2049M..2049M, weight: 5}"))
+					Ω(a.GetWarnings()).Should(ConsistOf("The specified value 2049M for memory type heap is close to the computed value 2G. Consider taking the default."))
+				})
+
+			})
 		})
 	})
 })

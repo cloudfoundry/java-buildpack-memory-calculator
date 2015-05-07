@@ -33,7 +33,7 @@ const (
 func main() {
 
 	// validateFlags() will exit on error
-	memSize, weights, sizes := flags.ValidateFlags()
+	memSize, weights, sizes, memSizeSpecified := flags.ValidateFlags()
 
 	switchFuns := switches.AllJreSwitchFuns
 
@@ -43,13 +43,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = allocator.Balance(memSize); err != nil {
-		fmt.Fprintf(os.Stderr, "Cannot balance memory: %s", err)
-		os.Exit(1)
-	}
-
-	if warnings := allocator.GetWarnings(); len(warnings) != 0 {
-		fmt.Fprintln(os.Stderr, strings.Join(warnings, "\n"))
+	if memSizeSpecified {
+		if err = allocator.Balance(memSize); err != nil {
+			fmt.Fprintf(os.Stderr, "Cannot balance memory: %s", err)
+			os.Exit(1)
+		}
+		if warnings := allocator.GetWarnings(); len(warnings) != 0 {
+			fmt.Fprintln(os.Stderr, strings.Join(warnings, "\n"))
+		}
+	} else {
+		allocator.SetLowerBounds()
 	}
 
 	switches := allocator.Switches(switchFuns)
