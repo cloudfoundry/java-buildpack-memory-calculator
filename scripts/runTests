@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -e -u
+
+ginkgoTags="-r -failOnPending -randomizeAllSpecs -skipMeasurements=true -race"
+
+function status_on_exit {
+      if [ $? -eq 0 ]; then
+          echo -e "\nSICKLY SUITE SUCCESS"
+      else
+          echo -e "\nBITTER SUITE FAILURE"
+      fi
+}
+
+function run-in-godep {
+    local goDepsPath=$(cd $(dirname $0)/.. && pwd)/Godeps/_workspace
+    mkdir -p $goDepsPath/bin
+    GOPATH=$goDepsPath:$GOPATH PATH=$goDepsPath/bin:$PATH $@
+}
+
+# Install ginkgo (from Godeps) into Godeps workspace
+run-in-godep go install -v github.com/onsi/ginkgo/ginkgo
+
+# Print status however we terminate
+trap status_on_exit EXIT
+
+# Announce test run
+    echo; echo ginkgo $ginkgoTags "$@"; echo
+# Run all tests under Godeps environment
+run-in-godep ginkgo $ginkgoTags "$@"
