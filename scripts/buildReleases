@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -e -u
+
+function build() {
+  local type=$1
+  local target="java-buildpack-memory-calculator-${type}"
+
+  GOOS=${type} go build -a && mv java-buildpack-memory-calculator ${target}
+  echo "Built ${target}"
+}
+
+build linux
+build darwin
