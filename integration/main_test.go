@@ -159,7 +159,7 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 
 			It("fails with an error", func() {
 				Ω(cmdErr).Should(HaveOccurred(), "exit status")
-				Ω(string(sErr)).Should(ContainSubstring("Cannot balance memory: Total memory exceeded by configuration: ["), "stderr")
+				Ω(string(sErr)).Should(ContainSubstring("Cannot balance memory: Memory allocation failed for configuration: ["), "stderr")
 				Ω(string(sOut)).Should(Equal(""), "stdout")
 			})
 		})

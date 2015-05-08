@@ -34,7 +34,6 @@ type allocator struct {
 	originalSizes map[string]Range  // unmodified after creation
 	buckets       map[string]Bucket // named buckets for allocation
 	warnings      []string          // warnings if allocation found issues
-	failure       error             // error if allocation failed
 }
 
 func NewAllocator(sizes map[string]Range, heuristics map[string]float64) (*allocator, error) {
@@ -57,21 +56,20 @@ const (
 // Balance memory between buckets, adjusting stack units, observing
 // constraints, and detecting memory wastage and default proximity.
 func (a *allocator) Balance(memLimit MemSize) error {
-	// Adjust stack bucket, if it exists
+	// adjust stack bucket, if it exists
 	stackBucket, estNumThreads := a.normaliseStack(memLimit)
 
-	// balance buckets
-	a.balance(memLimit)
+	// distribute memory among the buckets
+	if berr := a.balance(memLimit); berr != nil {
+		return fmt.Errorf("Memory allocation failed for configuration: %v, : %s", getSizes(a.originalSizes), berr)
+	}
 
-	// Validate result and gather warnings
+	// validate result and gather warnings
 	a.validateAllocation(memLimit)
 
-	// Re-adjust stack bucket, if it exists
+	// reset stack bucket, if it exists
 	a.unnormaliseStack(stackBucket, estNumThreads)
 
-	if a.failure != nil {
-		return fmt.Errorf("Total memory exceeded by configuration: %v", getSizes(a.originalSizes))
-	}
 	return nil
 }
 
@@ -82,9 +80,6 @@ func (a *allocator) SetLowerBounds() {
 }
 
 func (a *allocator) Switches(sfs switches.Funs) []string {
-	if a.failure != nil {
-		return nil
-	}
 	var strs = make([]string, 0, 10)
 	for s, b := range a.buckets {
 		strs = append(strs, sfs.Apply(s, b.GetSize().String())...)
@@ -93,12 +88,10 @@ func (a *allocator) Switches(sfs switches.Funs) []string {
 }
 
 func (a *allocator) GetWarnings() []string {
-	if a.failure != nil {
-		return nil
-	}
 	return a.warnings
 }
 
+// getSizes returns a slice of memory type range strings
 func getSizes(ss map[string]Range) []string {
 	result := []string{}
 	for n, s := range ss {
@@ -130,6 +123,7 @@ func totalWeight(bs map[string]Bucket) float64 {
 	return w
 }
 
+// Replace stack bucket to make it represent total memory for stacks temporarily
 func (a *allocator) normaliseStack(memLimit MemSize) (originalStackBucket Bucket, estNumThreads float64) {
 	if sb, ok := a.buckets["stack"]; ok {
 		stackMem := weightedSize(totalWeight(a.buckets), memLimit, sb)
@@ -146,6 +140,7 @@ func weightedSize(totWeight float64, memLimit MemSize, b Bucket) float64 {
 	return (float64(memLimit) * b.Weight()) / totWeight
 }
 
+// Replace stack bucket, and set size per thread
 func (a *allocator) unnormaliseStack(sb Bucket, estNum float64) {
 	if sb == nil {
 		return
@@ -156,7 +151,7 @@ func (a *allocator) unnormaliseStack(sb Bucket, estNum float64) {
 }
 
 // Balance memory between buckets, observing constraints.
-func (a *allocator) balance(memLimit MemSize) {
+func (a *allocator) balance(memLimit MemSize) error {
 	remaining := copyBucketMap(a.buckets)
 	removed := true
 
@@ -164,10 +159,18 @@ func (a *allocator) balance(memLimit MemSize) {
 		var err error
 		memLimit, removed, err = balanceOrRemove(remaining, memLimit)
 		if err != nil {
-			a.failure = err
-			return
+			return err
 		}
 	}
+
+	// check for zero allocations
+	for n, b := range a.buckets {
+		if b.GetSize().String() == "0" {
+			return fmt.Errorf("Cannot allocate memory to '%n' type", n)
+		}
+	}
+
+	return nil
 }
 
 func (a *allocator) validateAllocation(memLimit MemSize) {
@@ -179,16 +182,8 @@ func (a *allocator) validateAllocation(memLimit MemSize) {
 
 func memoryWastageWarnings(bs map[string]Bucket, memLimit MemSize) []string {
 	warnings := []string{}
-	if nativeBucket, ok := bs["native"]; ok && nativeBucket.Range().Floor() == MEMSIZE_ZERO {
-		totWeight := totalWeight(bs)
-		floatSize := NATIVE_MEMORY_WARNING_FACTOR * weightedSize(totWeight, memLimit, nativeBucket)
-		if MemSize(math.Floor(0.5 + floatSize)).LessThan(*nativeBucket.GetSize()) {
-			warnings = append(warnings,
-				fmt.Sprintf(
-					"There is more than %g times more spare native memory than the default "+
-						"so configured Java memory may be too small or available memory may be too large",
-					NATIVE_MEMORY_WARNING_FACTOR))
-		}
+	if nb, ok := bs["native"]; ok {
+		warnings = append(warnings, nativeBucketWarning(nb, totalWeight(bs), memLimit)...)
 	}
 
 	totalSize := MEMSIZE_ZERO
@@ -203,6 +198,19 @@ func memoryWastageWarnings(bs map[string]Bucket, memLimit MemSize) []string {
 				totalSize.String(), TOTAL_MEMORY_WARNING_FACTOR))
 	}
 	return warnings
+}
+
+func nativeBucketWarning(nativeBucket Bucket, totWeight float64, memLimit MemSize) []string {
+	if nativeBucket.Range().Floor() == MEMSIZE_ZERO {
+		floatSize := NATIVE_MEMORY_WARNING_FACTOR * weightedSize(totWeight, memLimit, nativeBucket)
+		if MemSize(math.Floor(0.5 + floatSize)).LessThan(*nativeBucket.GetSize()) {
+			return []string{fmt.Sprintf(
+				"There is more than %g times more spare native memory than the default "+
+					"so configured Java memory may be too small or available memory may be too large",
+				NATIVE_MEMORY_WARNING_FACTOR)}
+		}
+	}
+	return []string{}
 }
 
 func closeToDefaultWarnings(bs map[string]Bucket, sizes map[string]Range, memLimit MemSize) []string {
