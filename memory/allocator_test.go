@@ -56,10 +56,6 @@ var _ = Describe("Allocator", func() {
 		}
 	})
 
-	JustBeforeEach(func() {
-		a = shouldWork(memory.NewAllocator(convertToRanges(sizes), weights))
-	})
-
 	Context("constructor", func() {
 
 		Context("with good parameters", func() {
@@ -77,6 +73,10 @@ var _ = Describe("Allocator", func() {
 					"permgen": 3.0,
 					"native":  1.0,
 				}
+			})
+
+			JustBeforeEach(func() {
+				a = shouldWork(memory.NewAllocator(convertToRanges(sizes), weights))
 			})
 
 			It("succeeds", func() {
@@ -108,14 +108,89 @@ var _ = Describe("Allocator", func() {
 				)) // heap, permgen, stack
 			})
 		})
+	})
 
-		Context("good balancing", func() {
-			var (
-				memLimit = memory.MemSize(0)
-			)
+	Context("balancing", func() {
+		var (
+			memLimit = memory.MEMSIZE_ZERO
+			aerr     error
+		)
+
+		JustBeforeEach(func() {
+			a = shouldWork(memory.NewAllocator(convertToRanges(sizes), weights))
+			aerr = a.Balance(memLimit)
+		})
+
+		Context("badly", func() {
 
 			JustBeforeEach(func() {
-				Ω(a.Balance(memLimit)).ShouldNot(HaveOccurred())
+				Ω(aerr).Should(HaveOccurred())
+			})
+
+			Context("with no memory and one bucket", func() {
+				BeforeEach(func() {
+					sizes = strmap{"heap": "0.."}
+					weights = floatmap{"heap": 5.0}
+					memLimit = memory.MEMSIZE_ZERO
+				})
+				It("fails", func() {})
+			})
+
+			Context("with not enough memory and one bucket", func() {
+				BeforeEach(func() {
+					sizes = strmap{"heap": "64m.."}
+					weights = floatmap{"heap": 5.0}
+					memLimit = memory.NewMemSize(32 * mEGA)
+				})
+				It("fails", func() {})
+			})
+
+			Context("with not enough memory and two buckets", func() {
+				BeforeEach(func() {
+					sizes = strmap{"heap": "33m..", "hope": "32m.."}
+					weights = floatmap{"heap": 1.0, "hope": 1.0}
+					memLimit = memory.NewMemSize(64 * mEGA)
+				})
+				It("fails", func() {})
+			})
+
+			Context("with just enough memory for one out of two buckets", func() {
+				BeforeEach(func() {
+					sizes = strmap{"heap": "38m..", "hope": ".."}
+					weights = floatmap{"heap": 1.0, "hope": 1.0}
+					memLimit = memory.NewMemSize(38 * mEGA)
+				})
+				It("fails", func() {})
+			})
+		})
+
+		Context("well", func() {
+			JustBeforeEach(func() {
+				Ω(aerr).ShouldNot(HaveOccurred())
+			})
+
+			Context("with exactly enough memory and one bucket", func() {
+				BeforeEach(func() {
+					sizes = strmap{"heap": "64m.."}
+					weights = floatmap{"heap": 5.0}
+					memLimit = memory.NewMemSize(64 * mEGA)
+				})
+				It("fills the bucket up", func() {
+					Ω(memory.GetBuckets(a)).Should(ConsistOf(
+						"Bucket{name: heap, size: 64M, range: 64M.., weight: 5}",
+					))
+				})
+			})
+
+			Context("with no memory and no buckets", func() {
+				BeforeEach(func() {
+					sizes = strmap{"heap": "0.."}
+					weights = floatmap{}
+					memLimit = memory.MEMSIZE_ZERO
+				})
+				It("results in no buckets", func() {
+					Ω(memory.GetBuckets(a)).Should(BeEmpty())
+				})
 			})
 
 			Context("with single bucket to 'balance'", func() {
@@ -133,7 +208,7 @@ var _ = Describe("Allocator", func() {
 				})
 			})
 
-			Context("with no buckets to 'balance'", func() {
+			Context("with some memory and no buckets to 'balance'", func() {
 
 				BeforeEach(func() {
 					sizes = strmap{}
@@ -146,7 +221,7 @@ var _ = Describe("Allocator", func() {
 				})
 			})
 
-			Context("with two buckets to balance", func() {
+			Context("with some memory and two buckets to balance", func() {
 
 				BeforeEach(func() {
 					sizes = strmap{"heap": "0..", "hope": "0.."}
