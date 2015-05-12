@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
 
+# buildReleases uses cross-compilation features of the Go compiler to build
+# executables for the target platforms we require in the java-buildpack. This
+# script assumes that the Go compiler is installed so that all the platforms
+# can be targeted. If not this script will exit with a non-zero status.
+
 set -e -u
 
 function build() {
   local type=$1
   local target="java-buildpack-memory-calculator-${type}"
 
-  GOOS=${type} go build -a && mv java-buildpack-memory-calculator ${target}
-  echo "Built ${target}"
+  GOOS=${type} go build -a \
+  && mv java-buildpack-memory-calculator ${target} \
+  && echo "Built ${target}"
 }
 
 build linux
