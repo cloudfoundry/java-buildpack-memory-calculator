@@ -25,7 +25,6 @@ import (
 
 type Allocator interface {
 	Balance(memLimit MemSize) error  // Balance allocations to buckets within memory limit
-	SetLowerBounds()                 // Allocate smallest memories allowed
 	Switches(switches.Funs) []string // Get selected memory switches from current allocations
 	GetWarnings() []string           // Get warnings (if balancing succeeded)
 }
@@ -56,6 +55,10 @@ const (
 // Balance memory between buckets, adjusting stack units, observing
 // constraints, and detecting memory wastage and default proximity.
 func (a *allocator) Balance(memLimit MemSize) error {
+	if memLimit.LessThan(MemSize(kILO)) {
+		return fmt.Errorf("Too little memory to allocate: %s", memLimit)
+	}
+
 	// adjust stack bucket, if it exists
 	stackBucket, estNumThreads := a.normaliseStack(memLimit)
 
@@ -71,12 +74,6 @@ func (a *allocator) Balance(memLimit MemSize) error {
 	a.unnormaliseStack(stackBucket, estNumThreads)
 
 	return nil
-}
-
-func (a *allocator) SetLowerBounds() {
-	for _, b := range a.buckets {
-		b.SetSize(b.Range().Floor())
-	}
 }
 
 func (a *allocator) Switches(sfs switches.Funs) []string {

@@ -17,7 +17,6 @@ package memory_test
 
 import (
 	"github.com/cloudfoundry/java-buildpack-memory-calculator/memory"
-	"github.com/cloudfoundry/java-buildpack-memory-calculator/memory/switches"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -59,7 +58,6 @@ var _ = Describe("Allocator", func() {
 	Context("constructor", func() {
 
 		Context("with good parameters", func() {
-
 			BeforeEach(func() {
 				sizes = strmap{
 					"stack":   "2m",
@@ -87,26 +85,6 @@ var _ = Describe("Allocator", func() {
 					"Bucket{name: native, size: <nil>, range: 0.., weight: 1}",
 				))
 			})
-
-			It("sets lower bounds and reports switches correctly", func() {
-				a.SetLowerBounds()
-
-				Ω(memory.GetBuckets(a)).Should(ConsistOf(
-					"Bucket{name: stack, size: 2M, range: 2M..2M, weight: 1}",
-					"Bucket{name: heap, size: 30M, range: 30M.., weight: 5}",
-					"Bucket{name: permgen, size: 10M, range: 10M..10M, weight: 3}",
-					"Bucket{name: native, size: 0, range: 0.., weight: 1}",
-				))
-
-				sws := a.Switches(switches.AllJreSwitchFuns)
-				Ω(sws).Should(ConsistOf(
-					"-Xmx30M",
-					"-Xms30M",
-					"-XX:MaxPermSize=10M",
-					"-XX:PermSize=10M",
-					"-Xss2M",
-				)) // heap, permgen, stack
-			})
 		})
 	})
 
@@ -131,6 +109,15 @@ var _ = Describe("Allocator", func() {
 				BeforeEach(func() {
 					sizes = strmap{"heap": "0.."}
 					weights = floatmap{"heap": 5.0}
+					memLimit = memory.MEMSIZE_ZERO
+				})
+				It("fails", func() {})
+			})
+
+			Context("with no memory and no buckets", func() {
+				BeforeEach(func() {
+					sizes = strmap{"heap": "0.."}
+					weights = floatmap{}
 					memLimit = memory.MEMSIZE_ZERO
 				})
 				It("fails", func() {})
@@ -179,17 +166,6 @@ var _ = Describe("Allocator", func() {
 					Ω(memory.GetBuckets(a)).Should(ConsistOf(
 						"Bucket{name: heap, size: 64M, range: 64M.., weight: 5}",
 					))
-				})
-			})
-
-			Context("with no memory and no buckets", func() {
-				BeforeEach(func() {
-					sizes = strmap{"heap": "0.."}
-					weights = floatmap{}
-					memLimit = memory.MEMSIZE_ZERO
-				})
-				It("results in no buckets", func() {
-					Ω(memory.GetBuckets(a)).Should(BeEmpty())
 				})
 			})
 

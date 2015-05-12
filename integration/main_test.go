@@ -61,6 +61,33 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 		Ω(string(se)).Should(ContainSubstring("Weight must be positive in -memoryWeights flag; clause 'heap:-2'"), "stderr incorrect for "+badFlags[0])
 	})
 
+	It("executes with error when no total memory is supplied", func() {
+		badFlags :=
+			[]string{
+				"-memoryWeights=heap:5,stack:1,permgen:3,native:1",
+				"-memorySizes=stack:2m..,heap:30m..400m,permgen:10m..12m",
+			}
+		so, se, err := runOutAndErr(badFlags...)
+		Ω(err).Should(HaveOccurred(), "no -totMemory flag")
+
+		Ω(string(so)).Should(BeEmpty(), "stdout not empty when no -totMemory flag")
+		Ω(string(se)).Should(ContainSubstring("-totMemory must be specified"), "stderr incorrect when no -totMemory flag")
+	})
+
+	It("executes with error when too little total memory is supplied", func() {
+		badFlags :=
+			[]string{
+				"-totMemory=1023b",
+				"-memoryWeights=heap:5,stack:1,permgen:3,native:1",
+				"-memorySizes=stack:2m..,heap:30m..400m,permgen:10m..12m",
+			}
+		so, se, err := runOutAndErr(badFlags...)
+		Ω(err).Should(HaveOccurred(), badFlags[0])
+
+		Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
+		Ω(string(se)).Should(ContainSubstring("Total memory (-totMemory flag) is less than 1K"), "stderr incorrect for "+badFlags[0])
+	})
+
 	Context("with valid parameters", func() {
 		var (
 			totMemFlag, weightsFlag, sizesFlag string
@@ -77,25 +104,6 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 		JustBeforeEach(func() {
 			goodFlags := []string{totMemFlag, weightsFlag, sizesFlag}
 			sOut, sErr, cmdErr = runOutAndErr(goodFlags...)
-		})
-
-		Context("when no total memory is supplied", func() {
-			BeforeEach(func() {
-				totMemFlag = ""
-				sizesFlag = "-memorySizes=stack:2m..,heap:30m..400m,permgen:10m..12m"
-			})
-
-			It("allocates the minima", func() {
-				Ω(cmdErr).ShouldNot(HaveOccurred(), "exit status")
-				Ω(string(sErr)).Should(Equal(""), "stderr")
-				Ω(strings.Split(string(sOut), " ")).Should(ConsistOf(
-					"-Xmx30M",
-					"-Xms30M",
-					"-Xss2M",
-					"-XX:MaxPermSize=10M",
-					"-XX:PermSize=10M",
-				), "stdout")
-			})
 		})
 
 		Context("using nothing but total memory parameter", func() {
