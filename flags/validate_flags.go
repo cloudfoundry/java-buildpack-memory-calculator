@@ -54,7 +54,7 @@ var (
 )
 
 // Validate flags passed on command line; exit(1) if invalid; exit(2) if help printed
-func ValidateFlags() (memSize memory.MemSize, weights map[string]float64, sizes map[string]memory.Range, memIsSpecified bool) {
+func ValidateFlags() (memSize memory.MemSize, weights map[string]float64, sizes map[string]memory.Range) {
 
 	flag.Parse() // exit on error
 
@@ -63,24 +63,29 @@ func ValidateFlags() (memSize memory.MemSize, weights map[string]float64, sizes 
 		os.Exit(2)
 	}
 
-	// validation routines exit on error
-	memSize, memIsSpecified = validateTotMemory(*totMemory)
+	// validation routines will not return on error
+	memSize = validateTotMemory(*totMemory)
 	weights = validateWeights(*memoryWeights)
 	sizes = validateSizes(*memorySizes)
 
-	return memSize, weights, sizes, memIsSpecified
+	return memSize, weights, sizes
 }
 
-func validateTotMemory(mem string) (value memory.MemSize, isSpecified bool) {
+func validateTotMemory(mem string) memory.MemSize {
 	if mem == "" {
-		return memory.MEMSIZE_ZERO, false
+		fmt.Fprintf(os.Stderr, "-%s must be specified", totalFlag)
+		os.Exit(1)
 	}
 	ms, err := memory.NewMemSizeFromString(mem)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error in -%s flag: %s", totalFlag, err)
 		os.Exit(1)
 	}
-	return ms, true
+	if ms.LessThan(memory.MemSize(1024)) {
+		fmt.Fprintf(os.Stderr, "Total memory (-%s flag) is less than 1K", totalFlag)
+		os.Exit(1)
+	}
+	return ms
 }
 
 func validateWeights(weights string) map[string]float64 {
