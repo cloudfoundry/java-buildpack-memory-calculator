@@ -33,9 +33,7 @@ const (
 func main() {
 
 	// validateFlags() will exit on error
-	memSize, weights, sizes := flags.ValidateFlags()
-
-	switchFuns := switches.AllJreSwitchFuns
+	memSize, weights, sizes, initials := flags.ValidateFlags()
 
 	allocator, err := memory.NewAllocator(sizes, weights)
 	if err != nil {
@@ -50,8 +48,17 @@ func main() {
 	if warnings := allocator.GetWarnings(); len(warnings) != 0 {
 		fmt.Fprintln(os.Stderr, strings.Join(warnings, "\n"))
 	}
+	
+	allocatorSwitches := allocator.Switches(switches.AllocatorJreSwitchFuns)
 
-	switches := allocator.Switches(switchFuns)
+	initialSwitches, warnings := memory.InitialsSwitches(initials, allocator.GetSizes(), switches.InitialJreSwitchFuns)
+
+	if len(warnings) != 0 {
+		fmt.Fprintln(os.Stderr, strings.Join(warnings, "\n"))
+	}
+
+	switches := append(allocatorSwitches, initialSwitches...)
+
 	fmt.Fprint(os.Stdout, strings.Join(switches, " "))
 
 }

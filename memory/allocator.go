@@ -27,6 +27,7 @@ type Allocator interface {
 	Balance(memLimit MemSize) error  // Balance allocations to buckets within memory limit
 	Switches(switches.Funs) []string // Get selected memory switches from current allocations
 	GetWarnings() []string           // Get warnings (if balancing succeeded)
+	GetSizes() map[string]MemSize    // Get a map of all the sizes after balancing
 }
 
 type allocator struct {
@@ -86,6 +87,14 @@ func (a *allocator) Switches(sfs switches.Funs) []string {
 
 func (a *allocator) GetWarnings() []string {
 	return a.warnings
+}
+
+func (a *allocator) GetSizes() map[string]MemSize {
+	sizes := map[string]MemSize{}
+	for name, bucket := range a.buckets {
+		sizes[name] = *bucket.GetSize()
+	}
+	return sizes
 }
 
 // getSizes returns a slice of memory type range strings
