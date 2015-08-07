@@ -24,16 +24,17 @@ import (
 )
 
 type Allocator interface {
-	Balance(memLimit MemSize) error  // Balance allocations to buckets within memory limit
-	Switches(switches.Funs) []string // Get selected memory switches from current allocations
-	GetWarnings() []string           // Get warnings (if balancing succeeded)
-	GetSizes() map[string]MemSize    // Get a map of all the sizes after balancing
+	Balance(memLimit MemSize) error                // Balance allocations to buckets within memory limit
+	Switches(switches.Funs) []string               // Get selected memory switches from current allocations
+	GetWarnings() []string                         // Get warnings (if balancing succeeded)
+	GenerateInitialAllocations(map[string]float64) // Generate initial buckets
 }
 
 type allocator struct {
-	originalSizes map[string]Range  // unmodified after creation
-	buckets       map[string]Bucket // named buckets for allocation
-	warnings      []string          // warnings if allocation found issues
+	originalSizes map[string]Range   // unmodified after creation
+	buckets       map[string]Bucket  // named buckets for allocation
+	warnings      []string           // warnings if allocation found issues
+	allocations   map[string]MemSize // calculated sizes
 }
 
 func NewAllocator(sizes map[string]Range, heuristics map[string]float64) (*allocator, error) {
@@ -52,6 +53,13 @@ const (
 	TOTAL_MEMORY_WARNING_FACTOR  float64 = 0.8
 	CLOSE_TO_DEFAULT_FACTOR      float64 = 0.1
 )
+
+//Set of initial minimums
+var initialMinimums = map[string]MemSize{
+	"heap":      MemSize(2097152),    //2MB minimum works for Java 7 and Java 8
+	"metaspace": NewMemSize(262144),  //256KB
+	"permgen":   NewMemSize(1048576), // 1MB
+}
 
 // Balance memory between buckets, adjusting stack units, observing
 // constraints, and detecting memory wastage and default proximity.
@@ -74,13 +82,23 @@ func (a *allocator) Balance(memLimit MemSize) error {
 	// reset stack bucket, if it exists
 	a.unnormaliseStack(stackBucket, estNumThreads)
 
+	// generate allocations
+	a.generateAllocations()
+
 	return nil
+}
+
+func (a *allocator) generateAllocations() {
+	a.allocations = map[string]MemSize{}
+	for name, bucket := range a.buckets {
+		a.allocations[name] = *bucket.GetSize()
+	}
 }
 
 func (a *allocator) Switches(sfs switches.Funs) []string {
 	var strs = make([]string, 0, 10)
-	for s, b := range a.buckets {
-		strs = append(strs, sfs.Apply(s, b.GetSize().String())...)
+	for s, b := range a.allocations {
+		strs = append(strs, sfs.Apply(s, b.String())...)
 	}
 	return strs
 }
@@ -89,12 +107,24 @@ func (a *allocator) GetWarnings() []string {
 	return a.warnings
 }
 
-func (a *allocator) GetSizes() map[string]MemSize {
-	sizes := map[string]MemSize{}
-	for name, bucket := range a.buckets {
-		sizes[name] = *bucket.GetSize()
+func (a *allocator) GenerateInitialAllocations(initials map[string]float64) {
+	for name, ratio := range initials {
+		initial_name := "initial_" + name
+
+		maxSize := a.buckets[name].GetSize()
+		initSize, initMin := maxSize.Scale(ratio), initialMinimums[name]
+
+		if !initSize.LessThan(initMin) {
+			a.allocations[initial_name] = initSize
+		} else if maxSize.LessThan(initMin) {
+			a.allocations[initial_name] = *maxSize
+		} else {
+			a.allocations[initial_name] = initMin
+			a.warnings = append(a.warnings, fmt.Sprintf(
+				"The configured initial memory size %[1]s for %[2]s is less than the minimum %[3]s.  Setting initial value to %[3]s.",
+				initSize, name, initMin))
+		}
 	}
-	return sizes
 }
 
 // getSizes returns a slice of memory type range strings

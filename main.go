@@ -45,20 +45,15 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Cannot balance memory: %s", err)
 		os.Exit(1)
 	}
+
+	allocator.GenerateInitialAllocations(initials)
+
+	allocatorSwitches := allocator.Switches(switches.AllocatorJreSwitchFuns)
+
 	if warnings := allocator.GetWarnings(); len(warnings) != 0 {
 		fmt.Fprintln(os.Stderr, strings.Join(warnings, "\n"))
 	}
-	
-	allocatorSwitches := allocator.Switches(switches.AllocatorJreSwitchFuns)
 
-	initialSwitches, warnings := memory.InitialsSwitches(initials, allocator.GetSizes(), switches.InitialJreSwitchFuns)
-
-	if len(warnings) != 0 {
-		fmt.Fprintln(os.Stderr, strings.Join(warnings, "\n"))
-	}
-
-	switches := append(allocatorSwitches, initialSwitches...)
-
-	fmt.Fprint(os.Stdout, strings.Join(switches, " "))
+	fmt.Fprint(os.Stdout, strings.Join(allocatorSwitches, " "))
 
 }

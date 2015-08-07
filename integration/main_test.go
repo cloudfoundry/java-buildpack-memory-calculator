@@ -322,7 +322,7 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 
 			It("issues a warning", func() {
 				Ω(cmdErr).ShouldNot(HaveOccurred(), "exit status")
-				Ω(string(sErr)).Should(Equal("The configured initial memory size 0 for heap is less than the jvm minimum 2M.  Setting initial value to 2M.\n"), "stderr")
+				Ω(string(sErr)).Should(Equal("The configured initial memory size 0 for heap is less than the minimum 2M.  Setting initial value to 2M.\n"), "stderr")
 				Ω(strings.Split(string(sOut), " ")).Should(ConsistOf(
 					"-Xss1M",
 					"-XX:MaxPermSize=1258291K",
