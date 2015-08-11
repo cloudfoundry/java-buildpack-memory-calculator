@@ -88,21 +88,67 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 		Ω(string(se)).Should(ContainSubstring("Total memory (-totMemory flag) is less than 1K"), "stderr incorrect for "+badFlags[0])
 	})
 
+	It("executes with error when initial is not a percentage", func() {
+		badFlags :=
+			[]string{
+				"-totMemory=2G",
+				"-memoryWeights=heap:5,stack:1,permgen:3,native:1",
+				"-memorySizes=stack:2m..,heap:30m..400m,permgen:10m..12m",
+				"-memoryInitials=heap:50",
+			}
+		so, se, err := runOutAndErr(badFlags...)
+		Ω(err).Should(HaveOccurred(), badFlags[0])
+
+		Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
+		Ω(string(se)).Should(ContainSubstring("Bad initial value in -memoryInitials flag; clause 'heap:50' : value must be a percentage (e.g. 10%)"), "stderr incorrect for "+badFlags[0])
+	})
+
+	It("executes with error when initial too big", func() {
+		badFlags :=
+			[]string{
+				"-totMemory=2G",
+				"-memoryWeights=heap:5,stack:1,permgen:3,native:1",
+				"-memorySizes=stack:2m..,heap:30m..400m,permgen:10m..12m",
+				"-memoryInitials=heap:101%",
+			}
+		so, se, err := runOutAndErr(badFlags...)
+		Ω(err).Should(HaveOccurred(), badFlags[0])
+
+		Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
+		Ω(string(se)).Should(ContainSubstring("Initial value must be zero or more but no more than 100% in -memoryInitials flag; clause 'heap:101%'"), "stderr incorrect for "+badFlags[0])
+	})
+
+	It("executes with error when initial is negative", func() {
+		badFlags :=
+			[]string{
+				"-totMemory=2G",
+				"-memoryWeights=heap:5,stack:1,permgen:3,native:1",
+				"-memorySizes=stack:2m..,heap:30m..400m,permgen:10m..12m",
+				"-memoryInitials=heap:-1%",
+			}
+		so, se, err := runOutAndErr(badFlags...)
+		Ω(err).Should(HaveOccurred(), badFlags[0])
+
+		Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
+		Ω(string(se)).Should(ContainSubstring("Initial value must be zero or more but no more than 100% in -memoryInitials flag; clause 'heap:-1%'"), "stderr incorrect for "+badFlags[0])
+	})
+
 	Context("with valid parameters", func() {
 		var (
-			totMemFlag, weightsFlag, sizesFlag string
-			sOut, sErr                         []byte
-			cmdErr                             error
+			totMemFlag, weightsFlag, sizesFlag, initialsFlag string
+			sOut, sErr                                       []byte
+			cmdErr                                           error
 		)
 
 		BeforeEach(func() {
 			totMemFlag = "-totMemory=4g"
 			weightsFlag = "-memoryWeights=heap:5,stack:1,permgen:3,native:1"
 			sizesFlag = "-memorySizes=stack:1m"
+			initialsFlag = "-memoryInitials=heap:50%,permgen:50%"
 		})
 
 		JustBeforeEach(func() {
-			goodFlags := []string{totMemFlag, weightsFlag, sizesFlag}
+			goodFlags := []string{totMemFlag, weightsFlag, sizesFlag, initialsFlag}
 			sOut, sErr, cmdErr = runOutAndErr(goodFlags...)
 		})
 
@@ -111,12 +157,29 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 				totMemFlag = "-totMemory=4g"
 				weightsFlag = ""
 				sizesFlag = ""
+				initialsFlag = ""
 			})
 
 			It("succeeds", func() {
 				// Ω(string(sErr)).Should(Equal(""), "stderr") // actually get a warning!
 				Ω(string(sOut)).Should(Equal(""), "stdout")
 				Ω(cmdErr).ShouldNot(HaveOccurred(), "exit status")
+			})
+		})
+
+		Context("using no memoryInitials parameter", func() {
+			BeforeEach(func() {
+				initialsFlag = ""
+			})
+
+			It("succeeds", func() {
+				Ω(cmdErr).ShouldNot(HaveOccurred(), "exit status")
+				Ω(string(sErr)).Should(Equal(""), "stderr")
+				Ω(strings.Split(string(sOut), " ")).Should(ConsistOf(
+					"-Xmx2G",
+					"-Xss1M",
+					"-XX:MaxPermSize=1258291K",
+				), "stdout")
 			})
 		})
 
@@ -131,10 +194,10 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 				Ω(string(sErr)).Should(Equal(""), "stderr")
 				Ω(strings.Split(string(sOut), " ")).Should(ConsistOf(
 					"-Xmx2G",
-					"-Xms2G",
+					"-Xms1G",
 					"-Xss1M",
 					"-XX:MaxPermSize=1258291K",
-					"-XX:PermSize=1258291K",
+					"-XX:PermSize=629145K",
 				), "stdout")
 			})
 		})
@@ -143,6 +206,7 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 			BeforeEach(func() {
 				totMemFlag = "-totMemory=4g"
 				weightsFlag = "-memoryWeights=heap:5,stack:1,metaspace:3,native:1"
+				initialsFlag = "-memoryInitials=heap:50%,metaspace:50%"
 			})
 
 			It("succeeds", func() {
@@ -150,10 +214,10 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 				Ω(string(sErr)).Should(Equal(""), "stderr")
 				Ω(strings.Split(string(sOut), " ")).Should(ConsistOf(
 					"-Xmx2G",
-					"-Xms2G",
+					"-Xms1G",
 					"-Xss1M",
 					"-XX:MaxMetaspaceSize=1258291K",
-					"-XX:MetaspaceSize=1258291K",
+					"-XX:MetaspaceSize=629145K",
 				), "stdout")
 			})
 		})
@@ -184,10 +248,10 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 				Ω(string(sErr)).Should(Equal("There is more than 3 times more spare native memory than the default so configured Java memory may be too small or available memory may be too large\n"), "stderr")
 				Ω(strings.Split(string(sOut), " ")).Should(ConsistOf(
 					"-Xmx800M",
-					"-Xms800M",
+					"-Xms400M",
 					"-Xss3120K",
 					"-XX:MaxPermSize=800M",
-					"-XX:PermSize=800M",
+					"-XX:PermSize=400M",
 				), "stdout")
 			})
 		})
@@ -201,7 +265,7 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 
 			It("issues a warning", func() {
 				Ω(cmdErr).ShouldNot(HaveOccurred(), "exit status")
-				Ω(string(sErr)).Should(Equal("The allocated Java memory sizes total 2469478K which is less than 0.8 of the available memory, so configured Java memory sizes may be too small or available memory may be too large\n"), "stderr")
+				Ω(string(sErr)).Should(ContainSubstring("The allocated Java memory sizes total 2469478K which is less than 0.8 of the available memory, so configured Java memory sizes may be too small or available memory may be too large\n"), "stderr")
 				Ω(strings.Split(string(sOut), " ")).Should(ConsistOf(
 					"-XX:MaxPermSize=1M",
 					"-XX:PermSize=1M",
@@ -224,9 +288,9 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 				Ω(string(sErr)).Should(Equal("The specified value 2049M for memory type heap is close to the computed value 2G. Consider taking the default.\n"), "stderr")
 				Ω(strings.Split(string(sOut), " ")).Should(ConsistOf(
 					"-XX:MaxPermSize=1257676K",
-					"-XX:PermSize=1257676K",
+					"-XX:PermSize=628838K",
 					"-Xmx2049M",
-					"-Xms2049M",
+					"-Xms1049088K",
 					"-Xss1023K",
 				), "stdout")
 			})
@@ -245,9 +309,25 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 				Ω(strings.Split(string(sOut), " ")).Should(ConsistOf(
 					"-Xss984K",
 					"-XX:MaxPermSize=1339M",
-					"-XX:PermSize=1339M",
+					"-XX:PermSize=685568K",
 					"-Xmx2016548K",
-					"-Xms2016548K",
+					"-Xms1008274K",
+				), "stdout")
+			})
+		})
+		Context("when the specified initial memory is less than static minimum", func() {
+			BeforeEach(func() {
+				initialsFlag = "-memoryInitials=heap:0%"
+			})
+
+			It("issues a warning", func() {
+				Ω(cmdErr).ShouldNot(HaveOccurred(), "exit status")
+				Ω(string(sErr)).Should(Equal("The configured initial memory size 0 for heap is less than the minimum 2M.  Setting initial value to 2M.\n"), "stderr")
+				Ω(strings.Split(string(sOut), " ")).Should(ConsistOf(
+					"-Xss1M",
+					"-XX:MaxPermSize=1258291K",
+					"-Xmx2G",
+					"-Xms2M",
 				), "stdout")
 			})
 		})

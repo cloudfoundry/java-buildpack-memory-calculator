@@ -35,11 +35,14 @@ func apply(ss ...string) func(string) []string {
 }
 
 var (
-	AllJreSwitchFuns = Funs{
-		"heap":      apply("-Xmx%s", "-Xms%s"),
-		"metaspace": apply("-XX:MaxMetaspaceSize=%s", "-XX:MetaspaceSize=%s"),
-		"permgen":   apply("-XX:MaxPermSize=%s", "-XX:PermSize=%s"),
-		"stack":     apply("-Xss%s"),
+	AllocatorJreSwitchFuns = Funs{
+		"heap":              apply("-Xmx%s"),
+		"metaspace":         apply("-XX:MaxMetaspaceSize=%s"),
+		"permgen":           apply("-XX:MaxPermSize=%s"),
+		"stack":             apply("-Xss%s"),
+		"initial_heap":      apply("-Xms%s"),
+		"initial_metaspace": apply("-XX:MetaspaceSize=%s"),
+		"initial_permgen":   apply("-XX:PermSize=%s"),
 	}
 )
 

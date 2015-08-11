@@ -31,6 +31,7 @@ const (
 	totalFlag      = "totMemory"
 	weightsFlag    = "memoryWeights"
 	sizesFlag      = "memorySizes"
+	initialsFlag   = "memoryInitials"
 )
 
 func printHelp() {
@@ -51,10 +52,13 @@ var (
 	memorySizes = flag.String(sizesFlag, "",
 		"the size ranges allowed for each memory type, "+
 			"e.g. 'heap:128m..1G,permgen:64m,stack:2m..4m,native:100m..'")
+	memoryInitials = flag.String(initialsFlag, "",
+		"the initial values for each memory type, "+
+			"e.g. 'heap:128m,permgen:64m'")
 )
 
 // Validate flags passed on command line; exit(1) if invalid; exit(2) if help printed
-func ValidateFlags() (memSize memory.MemSize, weights map[string]float64, sizes map[string]memory.Range) {
+func ValidateFlags() (memSize memory.MemSize, weights map[string]float64, sizes map[string]memory.Range, initials map[string]float64) {
 
 	flag.Parse() // exit on error
 
@@ -67,8 +71,9 @@ func ValidateFlags() (memSize memory.MemSize, weights map[string]float64, sizes 
 	memSize = validateTotMemory(*totMemory)
 	weights = validateWeights(*memoryWeights)
 	sizes = validateSizes(*memorySizes)
+	initials = validateInitials(*memoryInitials)
 
-	return memSize, weights, sizes
+	return memSize, weights, sizes, initials
 }
 
 func validateTotMemory(mem string) memory.MemSize {
@@ -138,6 +143,39 @@ func validateSizes(sizes string) map[string]memory.Range {
 	}
 
 	return rs
+}
+
+func validateInitials(initials string) map[string]float64 {
+	is := map[string]float64{}
+
+	if initials == "" {
+		return is
+	}
+
+	initialClauses := strings.Split(initials, ",")
+	for _, clause := range initialClauses {
+		if parts := strings.Split(clause, ":"); len(parts) == 2 {
+			if !strings.HasSuffix(parts[1], "%") {
+				fmt.Fprintf(os.Stderr, "Bad initial value in -%s flag; clause '%s' : value must be a percentage (e.g. 10%%)", initialsFlag, clause)
+				os.Exit(1)
+			}
+			if floatVal, err := strconv.ParseFloat(strings.Replace(parts[1], "%", "", 1), 32); err != nil {
+				fmt.Fprintf(os.Stderr, "Bad initial value in -%s flag; clause '%s' : %s", initialsFlag, clause, err)
+				os.Exit(1)
+			} else if floatVal < 0.0 || floatVal > 100.0 {
+				fmt.Fprintf(os.Stderr, "Initial value must be zero or more but no more than 100%% in -%s flag; clause '%s'", initialsFlag, clause)
+				os.Exit(1)
+			} else {
+				//Convert value to valid scale factor
+				is[parts[0]] = floatVal * .01
+			}
+		} else {
+			fmt.Fprintf(os.Stderr, "Bad clause '%s' in -%s flag", clause, initialsFlag)
+			os.Exit(1)
+		}
+	}
+
+	return is
 }
 
 func noArgs(args []string) bool {
