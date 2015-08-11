@@ -90,13 +90,18 @@ var _ = Describe("Allocator", func() {
 
 	Context("balancing", func() {
 		var (
-			memLimit = memory.MEMSIZE_ZERO
-			aerr     error
+			memLimit   = memory.MEMSIZE_ZERO
+			aerr       error
+			numThreads = 0
 		)
+
+		BeforeEach(func() {
+			numThreads = 0
+		})
 
 		JustBeforeEach(func() {
 			a = shouldWork(memory.NewAllocator(convertToRanges(sizes), weights))
-			aerr = a.Balance(memLimit)
+			aerr = a.Balance(memLimit, numThreads)
 		})
 
 		Context("badly", func() {
@@ -344,6 +349,40 @@ var _ = Describe("Allocator", func() {
 					))
 					Ω(bucks).Should(ContainElement(
 						"Bucket{name: heap, size: 1398101K, range: 0.., weight: 5}",
+					))
+				})
+			})
+
+			Context("when number of threads is specified", func() {
+
+				BeforeEach(func() {
+					sizes = strmap{}
+					weights = floatmap{"heap": 5.0, "permgen": 3.0, "stack": 1.0, "native": 1.0}
+					memLimit = memory.NewMemSize(4 * gIGA)
+					numThreads = 100
+				})
+
+				It("balances the stack according to number of threads", func() {
+					bucks := memory.GetBuckets(a)
+					Ω(bucks).Should(ContainElement(
+						"Bucket{name: stack, size: 4194K, range: 0.., weight: 1}",
+					))
+				})
+			})
+
+			Context("when number of threads is specified and stack size is fixed", func() {
+
+				BeforeEach(func() {
+					sizes = strmap{"stack": "2M"}
+					weights = floatmap{"heap": 5.0, "permgen": 3.0, "stack": 1.0, "native": 1.0}
+					memLimit = memory.NewMemSize(4 * gIGA)
+					numThreads = 100
+				})
+
+				It("balances the stack ignoring the number of threads", func() {
+					bucks := memory.GetBuckets(a)
+					Ω(bucks).Should(ContainElement(
+						"Bucket{name: stack, size: 2M, range: 2M..2M, weight: 1}",
 					))
 				})
 			})
