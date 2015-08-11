@@ -14,7 +14,7 @@ function build() {
   GOOS=${type} go build -a \
   && mv java-buildpack-memory-calculator ${target} \
   && tar -czf ${target}.tar.gz ${target} \
-  && echo "Built ${target}"
+  && echo "Built ${target}.tar.gz"
 }
 
 build linux
