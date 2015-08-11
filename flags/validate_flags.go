@@ -29,6 +29,7 @@ import (
 const (
 	executableName = "java-buildpack-memory-calculator"
 	totalFlag      = "totMemory"
+	threadsFlag    = "stackThreads"
 	weightsFlag    = "memoryWeights"
 	sizesFlag      = "memorySizes"
 	initialsFlag   = "memoryInitials"
@@ -47,6 +48,9 @@ var (
 	totMemory = flag.String(totalFlag, "",
 		"total memory available to allocate, expressed as an integral "+
 			"number of bytes, kilobytes, megabytes or gigabytes")
+	stackThreads = flag.Int(threadsFlag, 0,
+		"number of threads to use in stack allocation calculations, e.g. '50'; "+
+			"the default value of 0 causes an estimate to be used")
 	memoryWeights = flag.String(weightsFlag, "",
 		"the weights given to each memory type, e.g. 'heap:15,permgen:5,stack:1,native:2'")
 	memorySizes = flag.String(sizesFlag, "",
@@ -58,7 +62,7 @@ var (
 )
 
 // Validate flags passed on command line; exit(1) if invalid; exit(2) if help printed
-func ValidateFlags() (memSize memory.MemSize, weights map[string]float64, sizes map[string]memory.Range, initials map[string]float64) {
+func ValidateFlags() (memSize memory.MemSize, numThreads int, weights map[string]float64, sizes map[string]memory.Range, initials map[string]float64) {
 
 	flag.Parse() // exit on error
 
@@ -69,11 +73,12 @@ func ValidateFlags() (memSize memory.MemSize, weights map[string]float64, sizes 
 
 	// validation routines will not return on error
 	memSize = validateTotMemory(*totMemory)
+	numThreads = validateNumThreads(*stackThreads)
 	weights = validateWeights(*memoryWeights)
 	sizes = validateSizes(*memorySizes)
 	initials = validateInitials(*memoryInitials)
 
-	return memSize, weights, sizes, initials
+	return memSize, numThreads, weights, sizes, initials
 }
 
 func validateTotMemory(mem string) memory.MemSize {
@@ -176,6 +181,14 @@ func validateInitials(initials string) map[string]float64 {
 	}
 
 	return is
+}
+
+func validateNumThreads(stackThreads int) int {
+	if stackThreads < 0 {
+		fmt.Fprintf(os.Stderr, "Error in -%s flag; value must be positive", threadsFlag)
+		os.Exit(1)
+	}
+	return stackThreads
 }
 
 func noArgs(args []string) bool {

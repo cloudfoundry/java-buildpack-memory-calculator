@@ -33,7 +33,7 @@ const (
 func main() {
 
 	// validateFlags() will exit on error
-	memSize, weights, sizes, initials := flags.ValidateFlags()
+	memSize, numThreads, weights, sizes, initials := flags.ValidateFlags()
 
 	allocator, err := memory.NewAllocator(sizes, weights)
 	if err != nil {
@@ -41,7 +41,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = allocator.Balance(memSize); err != nil {
+	if err = allocator.Balance(memSize, numThreads); err != nil {
 		fmt.Fprintf(os.Stderr, "Cannot balance memory: %s", err)
 		os.Exit(1)
 	}

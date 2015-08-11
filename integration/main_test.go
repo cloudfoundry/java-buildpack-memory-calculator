@@ -133,6 +133,21 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 		Ω(string(se)).Should(ContainSubstring("Initial value must be zero or more but no more than 100% in -memoryInitials flag; clause 'heap:-1%'"), "stderr incorrect for "+badFlags[0])
 	})
 
+	It("executes with error when stackThreads is negative", func() {
+		badFlags :=
+			[]string{
+				"-totMemory=2G",
+				"-memoryWeights=heap:5,stack:1,permgen:3,native:1",
+				"-memorySizes=stack:2m..,heap:30m..400m,permgen:10m..12m",
+				"-stackThreads=-1",
+			}
+		so, se, err := runOutAndErr(badFlags...)
+		Ω(err).Should(HaveOccurred(), badFlags[0])
+
+		Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
+		Ω(string(se)).Should(ContainSubstring("Error in -stackThreads flag; value must be positive"), "stderr incorrect for "+badFlags[0])
+	})
+
 	Context("with valid parameters", func() {
 		var (
 			totMemFlag, weightsFlag, sizesFlag, initialsFlag string

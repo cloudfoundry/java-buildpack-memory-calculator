@@ -24,10 +24,10 @@ import (
 )
 
 type Allocator interface {
-	Balance(memLimit MemSize) error                // Balance allocations to buckets within memory limit
-	Switches(switches.Funs) []string               // Get selected memory switches from current allocations
-	GetWarnings() []string                         // Get warnings (if balancing succeeded)
-	GenerateInitialAllocations(map[string]float64) // Generate initial buckets
+	Balance(memLimit MemSize, numThreads int) error // Balance allocations to buckets within memory limit
+	Switches(switches.Funs) []string                // Get selected memory switches from current allocations
+	GetWarnings() []string                          // Get warnings (if balancing succeeded)
+	GenerateInitialAllocations(map[string]float64)  // Generate initial buckets
 }
 
 type allocator struct {
@@ -63,13 +63,13 @@ var initialMinimums = map[string]MemSize{
 
 // Balance memory between buckets, adjusting stack units, observing
 // constraints, and detecting memory wastage and default proximity.
-func (a *allocator) Balance(memLimit MemSize) error {
+func (a *allocator) Balance(memLimit MemSize, numThreads int) error {
 	if memLimit.LessThan(MemSize(kILO)) {
 		return fmt.Errorf("Too little memory to allocate: %s", memLimit)
 	}
 
 	// adjust stack bucket, if it exists
-	stackBucket, estNumThreads := a.normaliseStack(memLimit)
+	stackBucket, estNumThreads := a.normaliseStack(memLimit, numThreads)
 
 	// distribute memory among the buckets
 	if berr := a.balance(memLimit); berr != nil {
@@ -160,10 +160,14 @@ func totalWeight(bs map[string]Bucket) float64 {
 }
 
 // Replace stack bucket to make it represent total memory for stacks temporarily
-func (a *allocator) normaliseStack(memLimit MemSize) (originalStackBucket Bucket, estNumThreads float64) {
+func (a *allocator) normaliseStack(memLimit MemSize, numThreads int) (originalStackBucket Bucket, estNumThreads float64) {
 	if sb, ok := a.buckets["stack"]; ok {
 		stackMem := weightedSize(totalWeight(a.buckets), memLimit, sb)
-		estNumThreads = math.Max(1.0, stackMem/float64(sb.DefaultSize()))
+		if numThreads == 0 {
+			estNumThreads = math.Max(1.0, stackMem/float64(sb.DefaultSize()))
+		} else {
+			estNumThreads = float64(numThreads)
+		}
 		nsb, _ := NewBucket("normalised stack", sb.Weight(), sb.Range().Scale(estNumThreads))
 
 		a.buckets["stack"] = nsb
