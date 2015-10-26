@@ -58,7 +58,7 @@ passing `ginkgo watch` the `-r` flag will recursively detect all test suites und
 `watch` does not detect *new* packages. Moreover, changes in package X only rerun the tests for package X, tests for packages
 that depend on X are not rerun.
 
-[OSX only] To receive (desktop) notifications when a test run completes:
+[OSX & Linux only] To receive (desktop) notifications when a test run completes:
 
 	ginkgo -notify
 
@@ -98,6 +98,14 @@ To unfocus tests:
 or
 
 	ginkgo blur
+
+To compile a test suite:
+
+	ginkgo build <path-to-package>
+
+will output an executable file named `package.test`.  This can be run directly or by invoking
+
+	ginkgo <path-to-package.test>
 
 To print out Ginkgo's version:
 
@@ -151,6 +159,7 @@ var Commands []*Command
 func init() {
 	DefaultCommand = BuildRunCommand()
 	Commands = append(Commands, BuildWatchCommand())
+	Commands = append(Commands, BuildBuildCommand())
 	Commands = append(Commands, BuildBootstrapCommand())
 	Commands = append(Commands, BuildGenerateCommand())
 	Commands = append(Commands, BuildNodotCommand())
@@ -225,11 +234,18 @@ func complainAndQuit(complaint string) {
 	os.Exit(1)
 }
 
-func findSuites(args []string, recurse bool, skipPackage string) ([]testsuite.TestSuite, []string) {
+func findSuites(args []string, recurse bool, skipPackage string, allowPrecompiled bool) ([]testsuite.TestSuite, []string) {
 	suites := []testsuite.TestSuite{}
 
 	if len(args) > 0 {
 		for _, arg := range args {
+			if allowPrecompiled {
+				suite, err := testsuite.PrecompiledTestSuite(arg)
+				if err == nil {
+					suites = append(suites, suite)
+					continue
+				}
+			}
 			suites = append(suites, testsuite.SuitesInDir(arg, recurse)...)
 		}
 	} else {

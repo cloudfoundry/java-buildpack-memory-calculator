@@ -206,7 +206,7 @@ func (a *allocator) balance(memLimit MemSize) error {
 	// check for zero allocations
 	for n, b := range a.buckets {
 		if b.GetSize().String() == "0" {
-			return fmt.Errorf("Cannot allocate memory to '%n' type", n)
+			return fmt.Errorf("Cannot allocate memory to '%s' type", n)
 		}
 	}
 

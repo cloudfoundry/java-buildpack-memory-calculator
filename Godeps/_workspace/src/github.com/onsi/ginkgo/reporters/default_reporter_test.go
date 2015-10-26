@@ -2,6 +2,7 @@ package reporters_test
 
 import (
 	"time"
+
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
@@ -26,7 +27,7 @@ var _ = Describe("DefaultReporter", func() {
 		reporterConfig = config.DefaultReporterConfigType{
 			NoColor:           false,
 			SlowSpecThreshold: 0.1,
-			NoisyPendings:     true,
+			NoisyPendings:     false,
 			Verbose:           true,
 			FullTrace:         true,
 		}
@@ -248,8 +249,8 @@ var _ = Describe("DefaultReporter", func() {
 				spec.State = types.SpecStatePending
 			})
 
-			It("should announce the pending spec", func() {
-				Ω(stenographer.Calls()[0]).Should(Equal(call("AnnouncePendingSpec", spec, true)))
+			It("should announce the pending spec, succinctly", func() {
+				Ω(stenographer.Calls()[0]).Should(Equal(call("AnnouncePendingSpec", spec, false)))
 			})
 		})
 
@@ -259,7 +260,7 @@ var _ = Describe("DefaultReporter", func() {
 			})
 
 			It("should announce the skipped spec", func() {
-				Ω(stenographer.Calls()[0]).Should(Equal(call("AnnounceSkippedSpec", spec)))
+				Ω(stenographer.Calls()[0]).Should(Equal(call("AnnounceSkippedSpec", spec, false, true)))
 			})
 		})
 
@@ -290,6 +291,24 @@ var _ = Describe("DefaultReporter", func() {
 
 			It("should announce the failed spec", func() {
 				Ω(stenographer.Calls()[0]).Should(Equal(call("AnnounceSpecFailed", spec, false, true)))
+			})
+		})
+
+		Context("in noisy pendings mode", func() {
+			BeforeEach(func() {
+				reporterConfig.Succinct = false
+				reporterConfig.NoisyPendings = true
+				reporter = reporters.NewDefaultReporter(reporterConfig, stenographer)
+			})
+
+			Context("When the spec is pending", func() {
+				BeforeEach(func() {
+					spec.State = types.SpecStatePending
+				})
+
+				It("should announce the pending spec, noisily", func() {
+					Ω(stenographer.Calls()[0]).Should(Equal(call("AnnouncePendingSpec", spec, true)))
+				})
 			})
 		})
 
@@ -336,7 +355,7 @@ var _ = Describe("DefaultReporter", func() {
 					spec.State = types.SpecStatePending
 				})
 
-				It("should announce the pending spec, but never noisily", func() {
+				It("should announce the pending spec, succinctly", func() {
 					Ω(stenographer.Calls()[0]).Should(Equal(call("AnnouncePendingSpec", spec, false)))
 				})
 			})
@@ -347,7 +366,7 @@ var _ = Describe("DefaultReporter", func() {
 				})
 
 				It("should announce the skipped spec", func() {
-					Ω(stenographer.Calls()[0]).Should(Equal(call("AnnounceSkippedSpec", spec)))
+					Ω(stenographer.Calls()[0]).Should(Equal(call("AnnounceSkippedSpec", spec, true, true)))
 				})
 			})
 

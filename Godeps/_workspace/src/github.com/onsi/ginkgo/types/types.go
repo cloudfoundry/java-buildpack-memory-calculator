@@ -1,8 +1,6 @@
 package types
 
-import (
-	"time"
-)
+import "time"
 
 const GINKGO_FOCUS_EXIT_CODE = 197
 
@@ -37,7 +35,7 @@ type SpecSummary struct {
 }
 
 func (s SpecSummary) HasFailureState() bool {
-	return s.State == SpecStateTimedOut || s.State == SpecStatePanicked || s.State == SpecStateFailed
+	return s.State.IsFailure()
 }
 
 func (s SpecSummary) TimedOut() bool {
@@ -79,7 +77,7 @@ type SetupSummary struct {
 type SpecFailure struct {
 	Message        string
 	Location       CodeLocation
-	ForwardedPanic interface{}
+	ForwardedPanic string
 
 	ComponentIndex        int
 	ComponentType         SpecComponentType
@@ -87,8 +85,9 @@ type SpecFailure struct {
 }
 
 type SpecMeasurement struct {
-	Name string
-	Info interface{}
+	Name  string
+	Info  interface{}
+	Order int
 
 	Results []float64
 
@@ -115,6 +114,10 @@ const (
 	SpecStatePanicked
 	SpecStateTimedOut
 )
+
+func (state SpecState) IsFailure() bool {
+	return state == SpecStateTimedOut || state == SpecStatePanicked || state == SpecStateFailed
+}
 
 type SpecComponentType uint
 

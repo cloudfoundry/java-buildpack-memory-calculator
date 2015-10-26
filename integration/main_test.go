@@ -30,7 +30,7 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 		co, err := runOutput()
 		Ω(err).Should(HaveOccurred(), jbmcExec)
 		Ω(co).Should(ContainSubstring("\njava-buildpack-memory-calculator\n"), "announce name")
-		Ω(co).Should(ContainSubstring("-help=false"), "flag prompts")
+		Ω(co).Should(ContainSubstring("-help\n"), "flag prompts")
 		Ω(co).Should(ContainSubstring("\nUsage of "), "Usage prefix")
 	})
 
@@ -39,7 +39,7 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 		Ω(err).Should(HaveOccurred(), jbmcExec)
 		Ω(co).ShouldNot(ContainSubstring("\njava-buildpack-memory-calculator\n"), "announce name")
 		Ω(co).Should(ContainSubstring("flag provided but not defined: "), "flag prompts")
-		Ω(co).Should(ContainSubstring("-help=false"), "flag prompts")
+		Ω(co).Should(ContainSubstring("-help\n"), "flag prompts")
 		Ω(co).Should(ContainSubstring("\nUsage of "), "Usage prefix")
 	})
 
