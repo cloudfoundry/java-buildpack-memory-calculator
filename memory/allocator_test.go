@@ -154,6 +154,20 @@ var _ = Describe("Allocator", func() {
 				})
 				It("fails", func() {})
 			})
+
+			Context("when the specified sizes leave nothing for stack", func() {
+
+				BeforeEach(func() {
+					sizes = strmap{"heap": "2048m"}
+					weights = floatmap{"heap": 10.0, "stack": 1.0}
+					memLimit = memory.NewMemSize(2 * gIGA)
+				})
+
+				It("fails with a specific error message", func() {
+					Ω(aerr.Error()).Should(Equal("Memory allocation failed for configuration: [heap:2G..2G], : Cannot allocate memory to 'stack' type"))
+				})
+
+			})
 		})
 
 		Context("well", func() {

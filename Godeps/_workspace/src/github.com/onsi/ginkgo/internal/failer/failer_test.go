@@ -30,6 +30,22 @@ var _ = Describe("Failer", func() {
 		})
 	})
 
+	Describe("Skip", func() {
+		It("should handle failures", func() {
+			failer.Skip("something skipped", codeLocationA)
+			failure, state := failer.Drain(types.SpecComponentTypeIt, 3, codeLocationB)
+			Ω(failure).Should(Equal(types.SpecFailure{
+				Message:               "something skipped",
+				Location:              codeLocationA,
+				ForwardedPanic:        "",
+				ComponentType:         types.SpecComponentTypeIt,
+				ComponentIndex:        3,
+				ComponentCodeLocation: codeLocationB,
+			}))
+			Ω(state).Should(Equal(types.SpecStateSkipped))
+		})
+	})
+
 	Describe("Fail", func() {
 		It("should handle failures", func() {
 			failer.Fail("something failed", codeLocationA)
@@ -37,7 +53,7 @@ var _ = Describe("Failer", func() {
 			Ω(failure).Should(Equal(types.SpecFailure{
 				Message:               "something failed",
 				Location:              codeLocationA,
-				ForwardedPanic:        nil,
+				ForwardedPanic:        "",
 				ComponentType:         types.SpecComponentTypeIt,
 				ComponentIndex:        3,
 				ComponentCodeLocation: codeLocationB,
@@ -69,7 +85,7 @@ var _ = Describe("Failer", func() {
 			Ω(failure).Should(Equal(types.SpecFailure{
 				Message:               "Timed out",
 				Location:              codeLocationA,
-				ForwardedPanic:        nil,
+				ForwardedPanic:        "",
 				ComponentType:         types.SpecComponentTypeIt,
 				ComponentIndex:        3,
 				ComponentCodeLocation: codeLocationB,
@@ -90,7 +106,7 @@ var _ = Describe("Failer", func() {
 			Ω(failure).Should(Equal(types.SpecFailure{
 				Message:               "something failed",
 				Location:              codeLocationA,
-				ForwardedPanic:        nil,
+				ForwardedPanic:        "",
 				ComponentType:         types.SpecComponentTypeIt,
 				ComponentIndex:        3,
 				ComponentCodeLocation: codeLocationB,
@@ -107,7 +123,7 @@ var _ = Describe("Failer", func() {
 			Ω(failure).Should(Equal(types.SpecFailure{
 				Message:               "yet another thing failed",
 				Location:              codeLocationA,
-				ForwardedPanic:        nil,
+				ForwardedPanic:        "",
 				ComponentType:         types.SpecComponentTypeIt,
 				ComponentIndex:        3,
 				ComponentCodeLocation: codeLocationB,

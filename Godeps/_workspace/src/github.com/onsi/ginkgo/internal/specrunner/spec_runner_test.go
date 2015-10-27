@@ -20,7 +20,7 @@ var noneFlag = types.FlagTypeNone
 var focusedFlag = types.FlagTypeFocused
 var pendingFlag = types.FlagTypePending
 
-var _ = Describe("Spec Collection", func() {
+var _ = Describe("Spec Runner", func() {
 	var (
 		reporter1 *reporters.FakeReporter
 		reporter2 *reporters.FakeReporter
@@ -61,13 +61,13 @@ var _ = Describe("Spec Collection", func() {
 			}
 		}, flag, codelocation.New(0), 0, failer, 0)
 
-		return spec.New(subject, []*containernode.ContainerNode{})
+		return spec.New(subject, []*containernode.ContainerNode{}, false)
 	}
 
 	newSpecWithBody := func(text string, body interface{}) *spec.Spec {
 		subject := leafnodes.NewItNode(text, body, noneFlag, codelocation.New(0), 0, failer, 0)
 
-		return spec.New(subject, []*containernode.ContainerNode{})
+		return spec.New(subject, []*containernode.ContainerNode{}, false)
 	}
 
 	newRunner := func(config config.GinkgoConfigType, beforeSuiteNode leafnodes.SuiteNode, afterSuiteNode leafnodes.SuiteNode, specs ...*spec.Spec) *SpecRunner {
@@ -85,7 +85,12 @@ var _ = Describe("Spec Collection", func() {
 
 	Describe("Running and Reporting", func() {
 		var specA, pendingSpec, anotherPendingSpec, failedSpec, specB, skippedSpec *spec.Spec
-		BeforeEach(func() {
+		var willRunCalls, didCompleteCalls []string
+		var conf config.GinkgoConfigType
+
+		JustBeforeEach(func() {
+			willRunCalls = []string{}
+			didCompleteCalls = []string{}
 			specA = newSpec("spec A", noneFlag, false)
 			pendingSpec = newSpec("pending spec", pendingFlag, false)
 			anotherPendingSpec = newSpec("another pending spec", pendingFlag, false)
@@ -94,8 +99,26 @@ var _ = Describe("Spec Collection", func() {
 			skippedSpec = newSpec("skipped spec", noneFlag, false)
 			skippedSpec.Skip()
 
-			runner = newRunner(config.GinkgoConfigType{RandomSeed: 17}, newBefSuite("BefSuite", false), newAftSuite("AftSuite", false), specA, pendingSpec, anotherPendingSpec, failedSpec, specB, skippedSpec)
+			reporter1.SpecWillRunStub = func(specSummary *types.SpecSummary) {
+				willRunCalls = append(willRunCalls, "Reporter1")
+			}
+			reporter2.SpecWillRunStub = func(specSummary *types.SpecSummary) {
+				willRunCalls = append(willRunCalls, "Reporter2")
+			}
+
+			reporter1.SpecDidCompleteStub = func(specSummary *types.SpecSummary) {
+				didCompleteCalls = append(didCompleteCalls, "Reporter1")
+			}
+			reporter2.SpecDidCompleteStub = func(specSummary *types.SpecSummary) {
+				didCompleteCalls = append(didCompleteCalls, "Reporter2")
+			}
+
+			runner = newRunner(conf, newBefSuite("BefSuite", false), newAftSuite("AftSuite", false), specA, pendingSpec, anotherPendingSpec, failedSpec, specB, skippedSpec)
 			runner.Run()
+		})
+
+		BeforeEach(func() {
+			conf = config.GinkgoConfigType{RandomSeed: 17}
 		})
 
 		It("should skip skipped/pending tests", func() {
@@ -104,10 +127,17 @@ var _ = Describe("Spec Collection", func() {
 
 		It("should report to any attached reporters", func() {
 			Ω(reporter1.Config).Should(Equal(reporter2.Config))
+			Ω(reporter1.BeforeSuiteSummary).Should(Equal(reporter2.BeforeSuiteSummary))
 			Ω(reporter1.BeginSummary).Should(Equal(reporter2.BeginSummary))
 			Ω(reporter1.SpecWillRunSummaries).Should(Equal(reporter2.SpecWillRunSummaries))
 			Ω(reporter1.SpecSummaries).Should(Equal(reporter2.SpecSummaries))
+			Ω(reporter1.AfterSuiteSummary).Should(Equal(reporter2.AfterSuiteSummary))
 			Ω(reporter1.EndSummary).Should(Equal(reporter2.EndSummary))
+		})
+
+		It("should report that a spec did end in reverse order", func() {
+			Ω(willRunCalls[0:4]).Should(Equal([]string{"Reporter1", "Reporter2", "Reporter1", "Reporter2"}))
+			Ω(didCompleteCalls[0:4]).Should(Equal([]string{"Reporter2", "Reporter1", "Reporter2", "Reporter1"}))
 		})
 
 		It("should report the passed in config", func() {
@@ -135,6 +165,61 @@ var _ = Describe("Spec Collection", func() {
 			Ω(reporter1.EndSummary.NumberOfSkippedSpecs).Should(Equal(1))
 			Ω(reporter1.EndSummary.NumberOfPassedSpecs).Should(Equal(2))
 			Ω(reporter1.EndSummary.NumberOfFailedSpecs).Should(Equal(1))
+		})
+
+		Context("when told to perform a dry run", func() {
+			BeforeEach(func() {
+				conf.DryRun = true
+			})
+
+			It("should report to the reporters", func() {
+				Ω(reporter1.Config).Should(Equal(reporter2.Config))
+				Ω(reporter1.BeforeSuiteSummary).Should(Equal(reporter2.BeforeSuiteSummary))
+				Ω(reporter1.BeginSummary).Should(Equal(reporter2.BeginSummary))
+				Ω(reporter1.SpecWillRunSummaries).Should(Equal(reporter2.SpecWillRunSummaries))
+				Ω(reporter1.SpecSummaries).Should(Equal(reporter2.SpecSummaries))
+				Ω(reporter1.AfterSuiteSummary).Should(Equal(reporter2.AfterSuiteSummary))
+				Ω(reporter1.EndSummary).Should(Equal(reporter2.EndSummary))
+			})
+
+			It("should not actually run anything", func() {
+				Ω(thingsThatRan).Should(BeEmpty())
+			})
+
+			It("report before and after suites as passed", func() {
+				Ω(reporter1.BeforeSuiteSummary.State).Should(Equal(types.SpecStatePassed))
+				Ω(reporter1.AfterSuiteSummary.State).Should(Equal(types.SpecStatePassed))
+			})
+
+			It("should report specs as passed", func() {
+				summaries := reporter1.SpecSummaries
+				Ω(summaries).Should(HaveLen(6))
+				Ω(summaries[0].ComponentTexts).Should(ContainElement("spec A"))
+				Ω(summaries[0].State).Should(Equal(types.SpecStatePassed))
+				Ω(summaries[1].ComponentTexts).Should(ContainElement("pending spec"))
+				Ω(summaries[1].State).Should(Equal(types.SpecStatePending))
+				Ω(summaries[2].ComponentTexts).Should(ContainElement("another pending spec"))
+				Ω(summaries[2].State).Should(Equal(types.SpecStatePending))
+				Ω(summaries[3].ComponentTexts).Should(ContainElement("failed spec"))
+				Ω(summaries[3].State).Should(Equal(types.SpecStatePassed))
+				Ω(summaries[4].ComponentTexts).Should(ContainElement("spec B"))
+				Ω(summaries[4].State).Should(Equal(types.SpecStatePassed))
+				Ω(summaries[5].ComponentTexts).Should(ContainElement("skipped spec"))
+				Ω(summaries[5].State).Should(Equal(types.SpecStateSkipped))
+			})
+
+			It("should report the end of the suite", func() {
+				Ω(reporter1.EndSummary.SuiteDescription).Should(Equal("description"))
+				Ω(reporter1.EndSummary.SuiteSucceeded).Should(BeTrue())
+				Ω(reporter1.EndSummary.SuiteID).Should(MatchRegexp("[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}"))
+				Ω(reporter1.EndSummary.NumberOfSpecsBeforeParallelization).Should(Equal(6))
+				Ω(reporter1.EndSummary.NumberOfTotalSpecs).Should(Equal(6))
+				Ω(reporter1.EndSummary.NumberOfSpecsThatWillBeRun).Should(Equal(3))
+				Ω(reporter1.EndSummary.NumberOfPendingSpecs).Should(Equal(2))
+				Ω(reporter1.EndSummary.NumberOfSkippedSpecs).Should(Equal(1))
+				Ω(reporter1.EndSummary.NumberOfPassedSpecs).Should(Equal(0))
+				Ω(reporter1.EndSummary.NumberOfFailedSpecs).Should(Equal(0))
+			})
 		})
 	})
 
@@ -435,11 +520,43 @@ var _ = Describe("Spec Collection", func() {
 				newSpec("B", noneFlag, true),
 				newSpec("C", noneFlag, false),
 			)
+			reporter1.SpecWillRunStub = func(specSummary *types.SpecSummary) {
+				writer.AddEvent("R1.WillRun")
+			}
+			reporter2.SpecWillRunStub = func(specSummary *types.SpecSummary) {
+				writer.AddEvent("R2.WillRun")
+			}
+			reporter1.SpecDidCompleteStub = func(specSummary *types.SpecSummary) {
+				writer.AddEvent("R1.DidComplete")
+			}
+			reporter2.SpecDidCompleteStub = func(specSummary *types.SpecSummary) {
+				writer.AddEvent("R2.DidComplete")
+			}
 			runner.Run()
 		})
 
 		It("should truncate between tests, but only dump if a test fails", func() {
-			Ω(writer.EventStream).Should(Equal([]string{"TRUNCATE", "A", "TRUNCATE", "B", "DUMP", "TRUNCATE", "C"}))
+			Ω(writer.EventStream).Should(Equal([]string{
+				"TRUNCATE",
+				"R1.WillRun",
+				"R2.WillRun",
+				"A",
+				"R2.DidComplete",
+				"R1.DidComplete",
+				"TRUNCATE",
+				"R1.WillRun",
+				"R2.WillRun",
+				"B",
+				"R2.DidComplete",
+				"DUMP",
+				"R1.DidComplete",
+				"TRUNCATE",
+				"R1.WillRun",
+				"R2.WillRun",
+				"C",
+				"R2.DidComplete",
+				"R1.DidComplete",
+			}))
 		})
 	})
 
