@@ -43,6 +43,15 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 		Ω(co).Should(ContainSubstring("\nUsage of "), "Usage prefix")
 	})
 
+	It("executes with error on unexpected argument", func() {
+		unexpectedArgument := []string{"-totMemory", "128m", "memoryWeights", "'heap:75,metaspace:10,stack:5,native:10'"}
+		so, se, err := runOutAndErr(unexpectedArgument...)
+		Ω(err).Should(HaveOccurred(), unexpectedArgument[2])
+
+		Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+unexpectedArgument[2])
+		Ω(se).Should(ContainSubstring("unexpected argument: memoryWeights"), "stderr incorrect for "+unexpectedArgument[2])
+	})
+
 	It("executes with error on bad total memory syntax", func() {
 		badFlags := []string{"-totMemory=badmem"}
 		so, se, err := runOutAndErr(badFlags...)

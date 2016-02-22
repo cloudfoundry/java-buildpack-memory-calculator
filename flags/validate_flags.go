@@ -72,6 +72,7 @@ func ValidateFlags() (memSize memory.MemSize, numThreads int, weights map[string
 	}
 
 	// validation routines will not return on error
+	validateNoArguments()
 	memSize = validateTotMemory(*totMemory)
 	numThreads = validateNumThreads(*stackThreads)
 	weights = validateWeights(*memoryWeights)
@@ -79,6 +80,13 @@ func ValidateFlags() (memSize memory.MemSize, numThreads int, weights map[string
 	initials = validateInitials(*memoryInitials)
 
 	return memSize, numThreads, weights, sizes, initials
+}
+
+func validateNoArguments() {
+	if len(flag.Args()) != 0 {
+		fmt.Fprintf(os.Stderr, "unexpected argument: %s\n", flag.Args()[0])
+		os.Exit(1)
+	}
 }
 
 func validateTotMemory(mem string) memory.MemSize {
