@@ -70,6 +70,19 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 		Ω(string(se)).Should(ContainSubstring("Weight must be positive in -memoryWeights flag; clause 'heap:-2'"), "stderr incorrect for "+badFlags[0])
 	})
 
+	It("executes with error when no weights map supplied", func() {
+		badFlags :=
+			[]string{
+				"-totMemory=4g",
+				"-memorySizes=stack:2m..,heap:30m..400m,permgen:10m..12m",
+			}
+		so, se, err := runOutAndErr(badFlags...)
+		Ω(err).Should(HaveOccurred(), "no -memoryWeights flag")
+
+		Ω(string(so)).Should(BeEmpty(), "stdout not empty when no -memoryWeights flag")
+		Ω(string(se)).Should(ContainSubstring("-memoryWeights must be specified"), "stderr incorrect when no -memoryWeights flag")
+	})
+
 	It("executes with error when no total memory is supplied", func() {
 		badFlags :=
 			[]string{
@@ -174,21 +187,6 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 		JustBeforeEach(func() {
 			goodFlags := []string{totMemFlag, weightsFlag, sizesFlag, initialsFlag}
 			sOut, sErr, cmdErr = runOutAndErr(goodFlags...)
-		})
-
-		Context("using nothing but total memory parameter", func() {
-			BeforeEach(func() {
-				totMemFlag = "-totMemory=4g"
-				weightsFlag = ""
-				sizesFlag = ""
-				initialsFlag = ""
-			})
-
-			It("succeeds", func() {
-				// Ω(string(sErr)).Should(Equal(""), "stderr") // actually get a warning!
-				Ω(string(sOut)).Should(Equal(""), "stdout")
-				Ω(cmdErr).ShouldNot(HaveOccurred(), "exit status")
-			})
 		})
 
 		Context("using no memoryInitials parameter", func() {

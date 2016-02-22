@@ -110,7 +110,8 @@ func validateWeights(weights string) map[string]float64 {
 	ws := map[string]float64{}
 
 	if weights == "" {
-		return ws
+		fmt.Fprintf(os.Stderr, "-%s must be specified", weightsFlag)
+		os.Exit(1)
 	}
 
 	weightClauses := strings.Split(weights, ",")
