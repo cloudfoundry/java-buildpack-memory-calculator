@@ -1,5 +1,4 @@
 # Java Buildpack Memory Calculator
-[![Build Status](https://travis-ci.org/cloudfoundry/java-buildpack-memory-calculator.svg)](https://travis-ci.org/cloudfoundry/java-buildpack-memory-calculator)
 
 ### Getting started
 
@@ -42,7 +41,7 @@ godep restore
 in the project directory before building or running tests directly from the command line.
 
 If you wish to develop against a particular tagged *version* then, in the
-project directory, you need to checkout this version (using 
+project directory, you need to checkout this version (using
 `git checkout <tag>`) and re-issue `godep restore` before proceeding.
 
 If `godep restore` fails, it is because one of the dependencies cannot be
@@ -52,11 +51,11 @@ Normally `go get -u <project>` for the dependency in error will then allow
 
 ### Release binaries
 
-The executables are built for more than one platform, so the Go compiler must exist 
+The executables are built for more than one platform, so the Go compiler must exist
 for the target platforms we need (currently linux and darwin). The shell script (`buildReleases`)
 will use the Go compiler with the `GOOS` environment variable to generate the executables.
 
-This will not work if the Go installation doesn't support all these platforms, so you may have to 
+This will not work if the Go installation doesn't support all these platforms, so you may have to
 ensure Go is installed with cross-compiler support.
 
 [Install Go]: http://golang.org/doc/install

@@ -1,0 +1,16 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: golang
+    tag: latest
+
+inputs:
+- name: java-buildpack-memory-calculator
+  path: gopath/src/github.com/cloudfoundry/java-buildpack-memory-calculator
+
+run:
+  path: gopath/src/github.com/cloudfoundry/java-buildpack-memory-calculator/ci/test.sh
+
