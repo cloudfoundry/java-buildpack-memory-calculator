@@ -16,20 +16,20 @@ go get -v github.com/tools/godep
 
 (The `-v` options on `go get` are there so you can see what packages are compiled under the covers.)
 
-The (bash) script `scripts/runTests` uses (the correct version of) Ginkgo to
-run the tests (using the correct versions of the dependencies). `runTests`
+The (bash) script `ci/test.sh` uses (the correct version of) Ginkgo to
+run the tests (using the correct versions of the dependencies). `test.sh`
 will recompile Ginkgo if necessary.
 
 The parameters to `runTests` are passed directly to Ginkgo.  For example:
 
 ```shell
-scripts/runTests -r=false memory
+ci/test.sh -r=false memory
 ```
 
 will run the tests in the memory subdirectory *without* recursion into lower
 subdirectories (which is the default).
 
-The current Go environment is not modified by `runTests`.
+The current Go environment is not modified by `test.sh`.
 
 ### Development
 
@@ -52,7 +52,7 @@ Normally `go get -u <project>` for the dependency in error will then allow
 ### Release binaries
 
 The executables are built for more than one platform, so the Go compiler must exist
-for the target platforms we need (currently linux and darwin). The shell script (`buildReleases`)
+for the target platforms we need (currently linux and darwin). The shell script (`ci/build.sh`)
 will use the Go compiler with the `GOOS` environment variable to generate the executables.
 
 This will not work if the Go installation doesn't support all these platforms, so you may have to
