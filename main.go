@@ -1,6 +1,6 @@
 // Encoding: utf-8
 // Cloud Foundry Java Buildpack
-// Copyright (c) 2015 the original author or authors.
+// Copyright (c) 2015-2016 the original author or authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,11 +19,9 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/cloudfoundry/java-buildpack-memory-calculator/flags"
 	"github.com/cloudfoundry/java-buildpack-memory-calculator/memory"
-	"github.com/cloudfoundry/java-buildpack-memory-calculator/memory/switches"
 )
 
 const (
@@ -31,29 +29,30 @@ const (
 )
 
 func main() {
-
 	// validateFlags() will exit on error
-	memSize, numThreads, weights, sizes, initials := flags.ValidateFlags()
+	memSize, numThreads, numLoadedClasses, rawVmOptions := flags.ValidateFlags()
 
-	allocator, err := memory.NewAllocator(sizes, weights)
+	// default the number of threads if it was not supplied
+	if numThreads == 0 {
+		numThreads = 50
+	}
+
+	vmOptions, err := memory.NewVmOptions(rawVmOptions)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Problem with vmOptions: %s", err)
+		os.Exit(1)
+	}
+
+	allocator, err := memory.NewAllocator(vmOptions)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Cannot allocate memory: %s", err)
 		os.Exit(1)
 	}
 
-	if err = allocator.Balance(memSize, numThreads); err != nil {
-		fmt.Fprintf(os.Stderr, "Cannot balance memory: %s", err)
+	if err = allocator.Calculate(numLoadedClasses, numThreads, memSize); err != nil {
+		fmt.Fprintf(os.Stderr, "Cannot calculate memory: %s", err)
 		os.Exit(1)
 	}
 
-	allocator.GenerateInitialAllocations(initials)
-
-	allocatorSwitches := allocator.Switches(switches.AllocatorJreSwitchFuns)
-
-	if warnings := allocator.GetWarnings(); len(warnings) != 0 {
-		fmt.Fprintln(os.Stderr, strings.Join(warnings, "\n"))
-	}
-
-	fmt.Fprint(os.Stdout, strings.Join(allocatorSwitches, " "))
-
+	fmt.Fprint(os.Stdout, allocator.String())
 }
