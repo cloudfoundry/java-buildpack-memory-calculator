@@ -6,7 +6,7 @@ RUN apk add --update \
     curl \
     git  \
     jq \
-    py-pip \
+    py2-pip \
  && rm -rf /var/cache/apk/*
 
 RUN pip install awscli --ignore-installed six
