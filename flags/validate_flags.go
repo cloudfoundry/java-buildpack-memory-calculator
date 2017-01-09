@@ -34,8 +34,12 @@ const (
 
 func printHelp() {
 	fmt.Printf("\n%s\n", executableName)
-	fmt.Println("\nCalculate JRE memory switches " +
-		"based upon the total memory available and the size ranges and weights given.\n")
+	fmt.Printf("\nCalculates JVM memory switches based on the total memory available, the number of classes the application will load, "+
+		"the number of threads that will be used, and any JVM options provided as input.\n\n"+
+		"The output consists of any JVM options provided as input plus any calculated memory switches.\n\n"+
+		"If a calculated memory switch value is unsuitable, it can be set in the JVM options provided as input and will no longer be calculated.\n\n"+
+		"Example invocation from a shell:\n"+
+		"$ %s -loadedClasses=1000 -stackThreads=10 -totMemory=1g -vmOptions=-XX:MaxDirectMemorySize=100M\\ -verbose:gc\n\n", executableName)
 	flag.Usage()
 }
 
@@ -46,9 +50,9 @@ var (
 		"total memory available to allocate, expressed as an integral "+
 			"number of bytes (B), kilobytes (K), megabytes (M) or gigabytes (G), e.g. '1G'")
 	stackThreads = flag.Int(threadsFlag, 0,
-		"number of threads to use in stack allocation calculations'")
+		"number of threads that will be used")
 	loadedClasses = flag.Int(loadedClassesFlag, 0,
-		"an estimate of the number of classes which will be loaded when the application is running")
+		"an estimate of the number of classes that will be loaded when the application is running")
 	vmOptions = flag.String(vmOptionsFlag, "",
 		"Java VM options, typically the JAVA_OPTS specified by the user")
 )
