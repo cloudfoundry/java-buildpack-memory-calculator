@@ -17,558 +17,219 @@ package memory_test
 
 import (
 	"github.com/cloudfoundry/java-buildpack-memory-calculator/memory"
-
+	"github.com/cloudfoundry/java-buildpack-memory-calculator/memory/vmoptionsfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-type strmap map[string]string
-type rngmap map[string]memory.Range
-
-type floatmap map[string]float64
-
 var _ = Describe("Allocator", func() {
 
-	var (
-		a       memory.Allocator
-		sizes   strmap
-		weights floatmap
+	const (
+		testMemSizeString   = "500M"
+		testMemOptionString = "22M"
+	)
 
-		shouldWork func(memory.Allocator, error) memory.Allocator
-		shouldFail func(memory.Allocator, error)
+	var (
+		testMemSize       memory.MemSize
+		testMemOptionSize memory.MemSize
+		vmOptions         *vmoptionsfakes.FakeVmOptions
+		allocator         memory.Allocator
+		err               error
 	)
 
 	BeforeEach(func() {
-		sizes = strmap{}
-
-		weights = floatmap{}
-
-		shouldWork = func(a memory.Allocator, err error) memory.Allocator {
-			Ω(a).ShouldNot(BeNil())
-			Ω(err).ShouldNot(HaveOccurred())
-			return a
-		}
-
-		shouldFail = func(a memory.Allocator, err error) {
-			Ω(a).Should(BeNil())
-			Ω(err).Should(HaveOccurred())
-		}
+		testMemSize, err = memory.NewMemSizeFromString(testMemSizeString)
+		Ω(err).ShouldNot(HaveOccurred())
+		testMemOptionSize, err = memory.NewMemSizeFromString(testMemOptionString)
+		Ω(err).ShouldNot(HaveOccurred())
+		vmOptions = &vmoptionsfakes.FakeVmOptions{}
 	})
 
-	Context("constructor", func() {
-
-		Context("with good parameters", func() {
-			BeforeEach(func() {
-				sizes = strmap{
-					"stack":   "2m",
-					"heap":    "30m..",
-					"permgen": "10m",
-				}
-
-				weights = floatmap{
-					"stack":   1.0,
-					"heap":    5.0,
-					"permgen": 3.0,
-					"native":  1.0,
-				}
-			})
-
-			JustBeforeEach(func() {
-				a = shouldWork(memory.NewAllocator(convertToRanges(sizes), weights))
-			})
-
-			It("succeeds", func() {
-				Ω(memory.GetBuckets(a)).Should(ConsistOf(
-					"Bucket{name: stack, size: <nil>, range: 2M..2M, weight: 1}",
-					"Bucket{name: heap, size: <nil>, range: 30M.., weight: 5}",
-					"Bucket{name: permgen, size: <nil>, range: 10M..10M, weight: 3}",
-					"Bucket{name: native, size: <nil>, range: 0.., weight: 1}",
-				))
-			})
-		})
+	JustBeforeEach(func() {
+		allocator, err = memory.NewAllocator(vmOptions)
+		Ω(err).ShouldNot(HaveOccurred())
 	})
 
-	Context("balancing", func() {
+	Describe("String", func() {
 		var (
-			memLimit   = memory.MEMSIZE_ZERO
-			aerr       error
-			numThreads = 0
+			options map[memory.MemoryType]memory.MemSize
 		)
 
 		BeforeEach(func() {
-			numThreads = 0
+			options = map[memory.MemoryType]memory.MemSize{}
+			vmOptions.MemOptStub = func(memoryType memory.MemoryType) memory.MemSize {
+				return options[memoryType]
+			}
+
+			vmOptions.SetMemOptStub = func(memoryType memory.MemoryType, size memory.MemSize) {
+				options[memoryType] = size
+			}
+
+			vmOptions.StringStub = func() string {
+				return "some string representation"
+			}
+		})
+
+		It("should delegate to the String method of the embedded VmOptions", func() {
+			Ω(allocator.String()).Should(Equal("some string representation"))
+		})
+	})
+
+	Describe("memory size calculations", func() {
+		var (
+			stackThreads int
+
+			expectedCompressedClassSpaceSize memory.MemSize
+			expectedMaxMetaspaceSize         memory.MemSize
+			expectedReservedCodeCacheSize    memory.MemSize
+			expectedMaxDirectMemorySize      memory.MemSize
+
+			options map[memory.MemoryType]memory.MemSize
+		)
+
+		BeforeEach(func() {
+			stackThreads = 10
+
+			expectedCompressedClassSpaceSize = memory.NewMemSize(1450000)
+			expectedMaxMetaspaceSize = memory.NewMemSize(12400000)
+			expectedReservedCodeCacheSize = memory.NewMemSize(6500000)
+			expectedMaxDirectMemorySize = memory.NewMemSize(10 * 1024 * 1024)
+
+			options = map[memory.MemoryType]memory.MemSize{}
+			vmOptions.MemOptStub = func(memoryType memory.MemoryType) memory.MemSize {
+				return options[memoryType]
+			}
+
+			vmOptions.SetMemOptStub = func(memoryType memory.MemoryType, size memory.MemSize) {
+				options[memoryType] = size
+			}
 		})
 
 		JustBeforeEach(func() {
-			a = shouldWork(memory.NewAllocator(convertToRanges(sizes), weights))
-			aerr = a.Balance(memLimit, numThreads)
+			err = allocator.Calculate(1000, stackThreads, testMemSize)
 		})
 
-		Context("badly", func() {
-
-			JustBeforeEach(func() {
-				Ω(aerr).Should(HaveOccurred())
+		Describe("maximum metaspace size", func() {
+			It("should produce the correct estimate", func() {
+				Ω(options[memory.MaxMetaspaceSize]).Should(Equal(expectedMaxMetaspaceSize))
+				Ω(err).ShouldNot(HaveOccurred())
 			})
 
-			Context("with no memory and one bucket", func() {
+			Context("when the value has been set", func() {
 				BeforeEach(func() {
-					sizes = strmap{"heap": "0.."}
-					weights = floatmap{"heap": 5.0}
-					memLimit = memory.MEMSIZE_ZERO
-				})
-				It("fails", func() {})
-			})
-
-			Context("with no memory and no buckets", func() {
-				BeforeEach(func() {
-					sizes = strmap{"heap": "0.."}
-					weights = floatmap{}
-					memLimit = memory.MEMSIZE_ZERO
-				})
-				It("fails", func() {})
-			})
-
-			Context("with not enough memory and one bucket", func() {
-				BeforeEach(func() {
-					sizes = strmap{"heap": "64m.."}
-					weights = floatmap{"heap": 5.0}
-					memLimit = memory.NewMemSize(32 * mEGA)
-				})
-				It("fails", func() {})
-			})
-
-			Context("with not enough memory and two buckets", func() {
-				BeforeEach(func() {
-					sizes = strmap{"heap": "33m..", "hope": "32m.."}
-					weights = floatmap{"heap": 1.0, "hope": 1.0}
-					memLimit = memory.NewMemSize(64 * mEGA)
-				})
-				It("fails", func() {})
-			})
-
-			Context("with just enough memory for one out of two buckets", func() {
-				BeforeEach(func() {
-					sizes = strmap{"heap": "38m..", "hope": ".."}
-					weights = floatmap{"heap": 1.0, "hope": 1.0}
-					memLimit = memory.NewMemSize(38 * mEGA)
-				})
-				It("fails", func() {})
-			})
-
-			Context("when the specified sizes leave nothing for stack", func() {
-
-				BeforeEach(func() {
-					sizes = strmap{"heap": "2048m"}
-					weights = floatmap{"heap": 10.0, "stack": 1.0}
-					memLimit = memory.NewMemSize(2 * gIGA)
+					options[memory.MaxMetaspaceSize] = testMemOptionSize
 				})
 
-				It("fails with a specific error message", func() {
-					Ω(aerr.Error()).Should(Equal("Memory allocation failed for configuration: [heap:2G..2G], : Cannot allocate memory to 'stack' type"))
+				It("should preserve the set value", func() {
+					Ω(options[memory.MaxMetaspaceSize]).Should(Equal(testMemOptionSize))
+					Ω(err).ShouldNot(HaveOccurred())
 				})
-
 			})
 		})
 
-		Context("well", func() {
-			JustBeforeEach(func() {
-				Ω(aerr).ShouldNot(HaveOccurred())
+		Describe("reserved code cache size", func() {
+			It("should produce the correct estimate", func() {
+				Ω(options[memory.ReservedCodeCacheSize]).Should(Equal(expectedReservedCodeCacheSize))
+				Ω(err).ShouldNot(HaveOccurred())
 			})
 
-			Context("with exactly enough memory and one bucket", func() {
+			Context("when the value has been set", func() {
 				BeforeEach(func() {
-					sizes = strmap{"heap": "64m.."}
-					weights = floatmap{"heap": 5.0}
-					memLimit = memory.NewMemSize(64 * mEGA)
+					options[memory.ReservedCodeCacheSize] = testMemOptionSize
 				})
-				It("fills the bucket up", func() {
-					Ω(memory.GetBuckets(a)).Should(ConsistOf(
-						"Bucket{name: heap, size: 64M, range: 64M.., weight: 5}",
-					))
+
+				It("should preserve the set value", func() {
+					Ω(options[memory.ReservedCodeCacheSize]).Should(Equal(testMemOptionSize))
+					Ω(err).ShouldNot(HaveOccurred())
 				})
 			})
+		})
 
-			Context("with single bucket to 'balance'", func() {
-
-				BeforeEach(func() {
-					sizes = strmap{"heap": "0.."}
-					weights = floatmap{"heap": 5.0}
-					memLimit = memory.NewMemSize(1024 * mEGA)
-				})
-
-				It("fills the bucket up", func() {
-					Ω(memory.GetBuckets(a)).Should(ConsistOf(
-						"Bucket{name: heap, size: 1G, range: 0.., weight: 5}",
-					))
-				})
+		Describe("compressed class space size", func() {
+			It("should produce the correct estimate", func() {
+				Ω(options[memory.CompressedClassSpaceSize]).Should(Equal(expectedCompressedClassSpaceSize))
+				Ω(err).ShouldNot(HaveOccurred())
 			})
 
-			Context("with some memory and no buckets to 'balance'", func() {
-
+			Context("when the value has been set", func() {
 				BeforeEach(func() {
-					sizes = strmap{}
-					weights = floatmap{}
-					memLimit = memory.NewMemSize(1024 * mEGA)
+					options[memory.CompressedClassSpaceSize] = testMemOptionSize
 				})
 
-				It("results in no buckets", func() {
-					Ω(memory.GetBuckets(a)).Should(BeEmpty())
+				It("should preserve the set value", func() {
+					Ω(options[memory.CompressedClassSpaceSize]).Should(Equal(testMemOptionSize))
+					Ω(err).ShouldNot(HaveOccurred())
 				})
 			})
+		})
 
-			Context("with some memory and two buckets to balance", func() {
-
-				BeforeEach(func() {
-					sizes = strmap{"heap": "0..", "hope": "0.."}
-					weights = floatmap{"heap": 1.0, "hope": 3.0}
-					memLimit = memory.NewMemSize(4 * gIGA)
-				})
-
-				It("fills the buckets proportionally", func() {
-					Ω(memory.GetBuckets(a)).Should(ConsistOf(
-						"Bucket{name: heap, size: 1G, range: 0.., weight: 1}",
-						"Bucket{name: hope, size: 3G, range: 0.., weight: 3}",
-					))
-				})
+		Describe("maximum direct memory size", func() {
+			It("should produce the correct estimate", func() {
+				Ω(options[memory.MaxDirectMemorySize]).Should(Equal(expectedMaxDirectMemorySize))
+				Ω(err).ShouldNot(HaveOccurred())
 			})
 
-			Context("with two buckets to balance with tight limit", func() {
-
+			Context("when the value has been set", func() {
 				BeforeEach(func() {
-					sizes = strmap{"heap": "1G", "hope": "0.."}
-					weights = floatmap{"heap": 1.0, "hope": 3.0}
-					memLimit = memory.NewMemSize(4 * gIGA)
+					options[memory.MaxDirectMemorySize] = testMemOptionSize
 				})
 
-				It("fills the remaining bucket proportionally", func() {
-					Ω(memory.GetBuckets(a)).Should(ConsistOf(
-						"Bucket{name: heap, size: 1G, range: 1G..1G, weight: 1}",
-						"Bucket{name: hope, size: 3G, range: 0.., weight: 3}",
-					))
+				It("should preserve the set value", func() {
+					Ω(options[memory.MaxDirectMemorySize]).Should(Equal(testMemOptionSize))
+					Ω(err).ShouldNot(HaveOccurred())
 				})
 			})
+		})
 
-			Context("with two buckets to balance with very loose limits", func() {
+		Describe("maximum heap size", func() {
 
+			var (
+				expectedStackSpace      memory.MemSize
+				expectedAllocatedMemory memory.MemSize
+			)
+
+			BeforeEach(func() {
+				expectedStackSpace = memory.NewMemSize(1024 * 1024).Scale(float64(stackThreads))
+				expectedAllocatedMemory = expectedMaxMetaspaceSize.Add(expectedMaxDirectMemorySize).Add(expectedReservedCodeCacheSize).
+					Add(expectedCompressedClassSpaceSize).Add(expectedStackSpace)
+			})
+
+			It("should produce the correct estimate", func() {
+				Ω(options[memory.MaxHeapSize]).Should(Equal(testMemSize.Subtract(expectedAllocatedMemory)))
+			})
+
+			Context("when the stack size has been specified", func() {
 				BeforeEach(func() {
-					sizes = strmap{"heap": "512M..2048M", "hope": "0.."}
-					weights = floatmap{"heap": 1.0, "hope": 3.0}
-					memLimit = memory.NewMemSize(4 * gIGA)
+					options[memory.StackSize] = memory.NewMemSize(2 * 1024 * 1024) // double the default value
 				})
 
-				It("fills the buckets proportionally", func() {
-					Ω(memory.GetBuckets(a)).Should(ConsistOf(
-						"Bucket{name: heap, size: 1G, range: 512M..2G, weight: 1}",
-						"Bucket{name: hope, size: 3G, range: 0.., weight: 3}",
-					))
+				It("should produce the correct estimate", func() {
+					Ω(options[memory.MaxHeapSize]).Should(Equal(testMemSize.Subtract(expectedAllocatedMemory.Add(expectedStackSpace))))
+					Ω(err).ShouldNot(HaveOccurred())
 				})
 			})
 
-			Context("with two buckets to balance with restricting upper limit on one", func() {
-
+			Context("when there is insufficient memory remaining", func() {
 				BeforeEach(func() {
-					sizes = strmap{"heap": "0..512M", "hope": "0.."}
-					weights = floatmap{"heap": 1.0, "hope": 3.0}
-					memLimit = memory.NewMemSize(4 * gIGA)
+					options[memory.MaxDirectMemorySize] = memory.NewMemSize(500 * 1024 * 1024)
 				})
 
-				It("fills the buckets skewed", func() {
-					Ω(memory.GetBuckets(a)).Should(ConsistOf(
-						"Bucket{name: heap, size: 512M, range: 0..512M, weight: 1}",
-						"Bucket{name: hope, size: 3584M, range: 0.., weight: 3}",
-					))
-				})
-			})
-
-			Context("with two buckets to balance with restricting lower limit on one", func() {
-
-				BeforeEach(func() {
-					sizes = strmap{"heap": "2G..", "hope": "0.."}
-					weights = floatmap{"heap": 1.0, "hope": 3.0}
-					memLimit = memory.NewMemSize(4 * gIGA)
-				})
-
-				It("fills the buckets skewed", func() {
-					Ω(memory.GetBuckets(a)).Should(ConsistOf(
-						"Bucket{name: heap, size: 2G, range: 2G.., weight: 1}",
-						"Bucket{name: hope, size: 2G, range: 0.., weight: 3}",
-					))
-				})
-			})
-
-			Context("defaults maximum heap size and permgen size according to the configured weightings", func() {
-
-				BeforeEach(func() {
-					sizes = strmap{}
-					weights = floatmap{"heap": 5.0, "permgen": 3.0, "stack": 1.0, "native": 1.0}
-					memLimit = memory.NewMemSize(1024 * mEGA)
-				})
-
-				It("fills the bucket up", func() {
-					Ω(memory.GetBuckets(a)).Should(ConsistOf(
-						"Bucket{name: stack, size: 1M, range: 0.., weight: 1}",
-						"Bucket{name: heap, size: 512M, range: 0.., weight: 5}",
-						"Bucket{name: permgen, size: 314572K, range: 0.., weight: 3}",
-						"Bucket{name: native, size: 104857K, range: 0.., weight: 1}",
-					))
-				})
-			})
-
-			Context("with a smallish memory limit", func() {
-
-				BeforeEach(func() {
-					sizes = strmap{}
-					weights = floatmap{"heap": 5.0, "permgen": 3.0, "stack": 1.0, "native": 1.0}
-					memLimit = memory.NewMemSize(20 * mEGA)
-				})
-
-				It("still defaults the stacksize", func() {
-					Ω(memory.GetBuckets(a)).Should(ContainElement(
-						"Bucket{name: stack, size: 1M, range: 0.., weight: 1}",
-					))
-				})
-			})
-
-			Context("when maximum heap size is specified", func() {
-
-				BeforeEach(func() {
-					sizes = strmap{"stack": "1m", "heap": "3g"}
-					weights = floatmap{"heap": 5.0, "permgen": 3.0, "stack": 1.0, "native": 1.0}
-					memLimit = memory.NewMemSize(4 * gIGA)
-				})
-
-				It("balances the permgen", func() {
-					bucks := memory.GetBuckets(a)
-					Ω(bucks).Should(ContainElement(
-						"Bucket{name: permgen, size: 471859K, range: 0.., weight: 3}",
-					))
-					Ω(bucks).Should(ContainElement(
-						"Bucket{name: heap, size: 3G, range: 3G..3G, weight: 5}",
-					))
-				})
-			})
-
-			Context("when maximum permgen size is specified", func() {
-
-				BeforeEach(func() {
-					sizes = strmap{"stack": "1M", "permgen": "2g"}
-					weights = floatmap{"heap": 5.0, "permgen": 3.0, "stack": 1.0, "native": 1.0}
-					memLimit = memory.NewMemSize(4 * gIGA)
-				})
-
-				It("balances the heap", func() {
-					bucks := memory.GetBuckets(a)
-					Ω(bucks).Should(ContainElement(
-						"Bucket{name: permgen, size: 2G, range: 2G..2G, weight: 3}",
-					))
-					Ω(bucks).Should(ContainElement(
-						"Bucket{name: heap, size: 1398101K, range: 0.., weight: 5}",
-					))
-				})
-			})
-
-			Context("when number of threads is specified", func() {
-
-				BeforeEach(func() {
-					sizes = strmap{}
-					weights = floatmap{"heap": 5.0, "permgen": 3.0, "stack": 1.0, "native": 1.0}
-					memLimit = memory.NewMemSize(4 * gIGA)
-					numThreads = 100
-				})
-
-				It("balances the stack according to number of threads", func() {
-					bucks := memory.GetBuckets(a)
-					Ω(bucks).Should(ContainElement(
-						"Bucket{name: stack, size: 4194K, range: 0.., weight: 1}",
-					))
-				})
-			})
-
-			Context("when number of threads is specified and stack size is fixed", func() {
-
-				BeforeEach(func() {
-					sizes = strmap{"stack": "2M"}
-					weights = floatmap{"heap": 5.0, "permgen": 3.0, "stack": 1.0, "native": 1.0}
-					memLimit = memory.NewMemSize(4 * gIGA)
-					numThreads = 100
-				})
-
-				It("balances the stack ignoring the number of threads", func() {
-					bucks := memory.GetBuckets(a)
-					Ω(bucks).Should(ContainElement(
-						"Bucket{name: stack, size: 2M, range: 2M..2M, weight: 1}",
-					))
-				})
-			})
-
-			Context("when thread stack size is specified", func() {
-
-				BeforeEach(func() {
-					sizes = strmap{"stack": "2M"}
-					weights = floatmap{"heap": 5.0, "permgen": 3.0, "stack": 1.0, "native": 1.0}
-					memLimit = memory.NewMemSize(4 * gIGA)
-				})
-
-				It("balances the heap and permgen", func() {
-					bucks := memory.GetBuckets(a)
-					Ω(bucks).Should(ContainElement(
-						"Bucket{name: permgen, size: 1258291K, range: 0.., weight: 3}",
-					))
-					Ω(bucks).Should(ContainElement(
-						"Bucket{name: heap, size: 2G, range: 0.., weight: 5}",
-					))
-				})
-			})
-
-			Context("when thread stack size is specified as a range", func() {
-
-				BeforeEach(func() {
-					sizes = strmap{"stack": "2M..3m"}
-					weights = floatmap{"heap": 5.0, "permgen": 3.0, "stack": 1.0, "native": 1.0}
-					memLimit = memory.NewMemSize(4 * gIGA)
-				})
-
-				It("balances the heap and permgen", func() {
-					Ω(memory.GetBuckets(a)).Should(ConsistOf(
-						"Bucket{name: permgen, size: 1258291K, range: 0.., weight: 3}",
-						"Bucket{name: heap, size: 2G, range: 0.., weight: 5}",
-						"Bucket{name: stack, size: 2M, range: 2M..3M, weight: 1}",
-						"Bucket{name: native, size: 419430K, range: 0.., weight: 1}",
-					))
-				})
-			})
-
-			Context("when thread stack size is specified as a range which impinges on heap and permgen", func() {
-
-				BeforeEach(func() {
-					sizes = strmap{"stack": "1g..2g"}
-					weights = floatmap{"heap": 5.0, "permgen": 3.0, "stack": 1.0, "native": 1.0}
-					memLimit = memory.NewMemSize(4 * gIGA)
-				})
-
-				It("balances the heap and permgen", func() {
-					Ω(memory.GetBuckets(a)).Should(ConsistOf(
-						"Bucket{name: permgen, size: 1G, range: 0.., weight: 3}",
-						"Bucket{name: heap, size: 1747626K, range: 0.., weight: 5}",
-						"Bucket{name: stack, size: 1G, range: 1G..2G, weight: 1}",
-						"Bucket{name: native, size: 349525K, range: 0.., weight: 1}",
-					))
-				})
-			})
-
-			Context("when heap size and permgen size allow for excess memory", func() {
-
-				BeforeEach(func() {
-					sizes = strmap{"heap": "50m", "permgen": "50m", "stack": "400m..500m"}
-					weights = floatmap{"heap": 5.0, "permgen": 3.0, "stack": 1.0, "native": 1.0}
-					memLimit = memory.NewMemSize(4 * gIGA)
-				})
-
-				It("balances the heap and permgen", func() {
-					Ω(memory.GetBuckets(a)).Should(ConsistOf(
-						"Bucket{name: permgen, size: 50M, range: 50M..50M, weight: 3}",
-						"Bucket{name: heap, size: 50M, range: 50M..50M, weight: 5}",
-						"Bucket{name: stack, size: 500M, range: 400M..500M, weight: 1}",
-						"Bucket{name: native, size: 3484M, range: 0.., weight: 1}",
-					))
-				})
-			})
-
-			Context("when heap size and permgen size allow for just enough excess memory", func() {
-
-				BeforeEach(func() {
-					sizes = strmap{"heap": "3000m", "permgen": "196m", "stack": "400m..500m"}
-					weights = floatmap{"heap": 5.0, "permgen": 3.0, "stack": 1.0, "native": 1.0}
-					memLimit = memory.NewMemSize(4 * gIGA)
-				})
-
-				It("balances the heap and permgen", func() {
-					Ω(memory.GetBuckets(a)).Should(ContainElement(
-						"Bucket{name: stack, size: 450000K, range: 400M..500M, weight: 1}",
-					))
-				})
-			})
-
-			Context("when heap size and permgen size allow for just enough excess memory", func() {
-
-				BeforeEach(func() {
-					sizes = strmap{"heap": "1m", "permgen": "1m", "stack": "2m"}
-					weights = floatmap{"heap": 5.0, "permgen": 3.0, "stack": 1.0, "native": 1.0}
-					memLimit = memory.NewMemSize(4 * gIGA)
-				})
-
-				It("balances the heap and permgen", func() {
-					Ω(memory.GetBuckets(a)).Should(ConsistOf(
-						"Bucket{name: permgen, size: 1M, range: 1M..1M, weight: 3}",
-						"Bucket{name: heap, size: 1M, range: 1M..1M, weight: 5}",
-						"Bucket{name: stack, size: 2M, range: 2M..2M, weight: 1}",
-						"Bucket{name: native, size: 3772825K, range: 0.., weight: 1}",
-					))
-				})
-			})
-
-			Context("when the specified maximum memory sizes imply the total memory size may be too large", func() {
-
-				BeforeEach(func() {
-					sizes = strmap{"heap": "800m", "permgen": "800m"}
-					weights = floatmap{"heap": 5.0, "permgen": 3.0, "stack": 1.0, "native": 1.0}
-					memLimit = memory.NewMemSize(4 * gIGA)
-				})
-
-				It("sets the heap and permgen", func() {
-					bucks := memory.GetBuckets(a)
-					Ω(bucks).Should(ContainElement(
-						"Bucket{name: permgen, size: 800M, range: 800M..800M, weight: 3}"))
-					Ω(bucks).Should(ContainElement(
-						"Bucket{name: heap, size: 800M, range: 800M..800M, weight: 5}"))
-					Ω(a.GetWarnings()).Should(ConsistOf("There is more than 3 times more spare native memory than the default so configured Java memory may be too small or available memory may be too large"))
+				It("should return an error", func() {
+					Ω(err).Should(MatchError("insufficient memory remaining for heap (memory limit 500M < allocated memory 542113K)"))
 				})
 
 			})
 
-			Context("when the specified maximum memory sizes imply the total memory size may be too large", func() {
-
+			Context("when the value has been set", func() {
 				BeforeEach(func() {
-					sizes = strmap{"heap": "800m", "permgen": "800m"}
-					weights = floatmap{"heap": 5.0, "permgen": 3.0, "stack": 1.0, "native": 1.0}
-					memLimit = memory.NewMemSize(4 * gIGA)
+					options[memory.MaxHeapSize] = testMemOptionSize
 				})
 
-				It("sets the heap and permgen and issues a warning", func() {
-					bucks := memory.GetBuckets(a)
-					Ω(bucks).Should(ContainElement(
-						"Bucket{name: permgen, size: 800M, range: 800M..800M, weight: 3}"))
-					Ω(bucks).Should(ContainElement(
-						"Bucket{name: heap, size: 800M, range: 800M..800M, weight: 5}"))
-					Ω(a.GetWarnings()).Should(ConsistOf("There is more than 3 times more spare native memory than the default so configured Java memory may be too small or available memory may be too large"))
+				It("should preserve the set value", func() {
+					Ω(options[memory.MaxHeapSize]).Should(Equal(testMemOptionSize))
+					Ω(err).ShouldNot(HaveOccurred())
 				})
-
-			})
-
-			Context("when the specified maximum heap size is close to the default", func() {
-
-				BeforeEach(func() {
-					sizes = strmap{"heap": "2049m"}
-					weights = floatmap{"heap": 5.0, "permgen": 3.0, "stack": 1.0, "native": 1.0}
-					memLimit = memory.NewMemSize(4 * gIGA)
-				})
-
-				It("sets the heap size as specified and issues a warning", func() {
-					bucks := memory.GetBuckets(a)
-					Ω(bucks).Should(ContainElement(
-						"Bucket{name: heap, size: 2049M, range: 2049M..2049M, weight: 5}"))
-					Ω(a.GetWarnings()).Should(ConsistOf("The specified value 2049M for memory type heap is close to the computed value 2G. Consider taking the default."))
-				})
-
 			})
 		})
 	})
 })
-
-func convertToRanges(sizes strmap) rngmap {
-	ranges := rngmap{}
-	for k, s := range sizes {
-		ranges[k], _ = memory.NewRangeFromString(s)
-	}
-	return ranges
-}

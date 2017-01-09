@@ -1,6 +1,6 @@
 // Encoding: utf-8
 // Cloud Foundry Java Buildpack
-// Copyright (c) 2015 the original author or authors.
+// Copyright (c) 2015-2016 the original author or authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,19 +20,16 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 
 	"github.com/cloudfoundry/java-buildpack-memory-calculator/memory"
 )
 
 const (
-	executableName = "java-buildpack-memory-calculator"
-	totalFlag      = "totMemory"
-	threadsFlag    = "stackThreads"
-	weightsFlag    = "memoryWeights"
-	sizesFlag      = "memorySizes"
-	initialsFlag   = "memoryInitials"
+	executableName    = "java-buildpack-memory-calculator"
+	totalFlag         = "totMemory"
+	threadsFlag       = "stackThreads"
+	loadedClassesFlag = "loadedClasses"
+	vmOptionsFlag     = "vmOptions"
 )
 
 func printHelp() {
@@ -47,22 +44,17 @@ var (
 
 	totMemory = flag.String(totalFlag, "",
 		"total memory available to allocate, expressed as an integral "+
-			"number of bytes, kilobytes, megabytes or gigabytes")
+			"number of bytes (B), kilobytes (K), megabytes (M) or gigabytes (G), e.g. '1G'")
 	stackThreads = flag.Int(threadsFlag, 0,
-		"number of threads to use in stack allocation calculations, e.g. '50'; "+
-			"the default value of 0 causes an estimate to be used")
-	memoryWeights = flag.String(weightsFlag, "",
-		"the weights given to each memory type, e.g. 'heap:15,permgen:5,stack:1,native:2'")
-	memorySizes = flag.String(sizesFlag, "",
-		"the size ranges allowed for each memory type, "+
-			"e.g. 'heap:128m..1G,permgen:64m,stack:2m..4m,native:100m..'")
-	memoryInitials = flag.String(initialsFlag, "",
-		"the initial values for each memory type, "+
-			"e.g. 'heap:128m,permgen:64m'")
+		"number of threads to use in stack allocation calculations'")
+	loadedClasses = flag.Int(loadedClassesFlag, 0,
+		"an estimate of the number of classes which will be loaded when the application is running")
+	vmOptions = flag.String(vmOptionsFlag, "",
+		"Java VM options, typically the JAVA_OPTS specified by the user")
 )
 
 // Validate flags passed on command line; exit(1) if invalid; exit(2) if help printed
-func ValidateFlags() (memSize memory.MemSize, numThreads int, weights map[string]float64, sizes map[string]memory.Range, initials map[string]float64) {
+func ValidateFlags() (memSize memory.MemSize, numThreads int, numLoadedClasses int, vmOpts string) {
 
 	flag.Parse() // exit on error
 
@@ -75,11 +67,10 @@ func ValidateFlags() (memSize memory.MemSize, numThreads int, weights map[string
 	validateNoArguments()
 	memSize = validateTotMemory(*totMemory)
 	numThreads = validateNumThreads(*stackThreads)
-	weights = validateWeights(*memoryWeights)
-	sizes = validateSizes(*memorySizes)
-	initials = validateInitials(*memoryInitials)
+	numLoadedClasses = validateLoadedClasses(*loadedClasses)
+	vmOpts = *vmOptions
 
-	return memSize, numThreads, weights, sizes, initials
+	return
 }
 
 func validateNoArguments() {
@@ -106,93 +97,23 @@ func validateTotMemory(mem string) memory.MemSize {
 	return ms
 }
 
-func validateWeights(weights string) map[string]float64 {
-	ws := map[string]float64{}
-
-	if weights == "" {
-		fmt.Fprintf(os.Stderr, "-%s must be specified", weightsFlag)
+func validateLoadedClasses(loadedClasses int) int {
+	if loadedClasses == 0 {
+		fmt.Fprintf(os.Stderr, "-%s must be specified", loadedClassesFlag)
 		os.Exit(1)
 	}
-
-	weightClauses := strings.Split(weights, ",")
-	for _, clause := range weightClauses {
-		if parts := strings.Split(clause, ":"); len(parts) == 2 {
-			if floatVal, err := strconv.ParseFloat(parts[1], 32); err != nil {
-				fmt.Fprintf(os.Stderr, "Bad weight in -%s flag; clause '%s' : %s", weightsFlag, clause, err)
-				os.Exit(1)
-			} else if floatVal <= 0.0 {
-				fmt.Fprintf(os.Stderr, "Weight must be positive in -%s flag; clause '%s'", weightsFlag, clause)
-				os.Exit(1)
-			} else {
-				ws[parts[0]] = floatVal
-			}
-		} else {
-			fmt.Fprintf(os.Stderr, "Bad clause '%s' in -%s flag", clause, weightsFlag)
-			os.Exit(1)
-		}
+	if loadedClasses < 0 {
+		fmt.Fprintf(os.Stderr, "Error in -%s flag; value must be positive", loadedClassesFlag)
+		os.Exit(1)
 	}
-
-	return ws
-}
-
-func validateSizes(sizes string) map[string]memory.Range {
-	rs := map[string]memory.Range{}
-
-	if sizes == "" {
-		return rs
-	}
-
-	rangeClauses := strings.Split(sizes, ",")
-	for _, clause := range rangeClauses {
-		if parts := strings.Split(clause, ":"); len(parts) == 2 {
-			var err error
-			if rs[parts[0]], err = memory.NewRangeFromString(parts[1]); err != nil {
-				fmt.Fprintf(os.Stderr, "Bad range in -%s flag, clause '%s' : %s", sizesFlag, clause, err)
-				os.Exit(1)
-			}
-		} else {
-			fmt.Fprintf(os.Stderr, "Bad clause '%s' in -%s flag", clause, sizesFlag)
-			os.Exit(1)
-		}
-	}
-
-	return rs
-}
-
-func validateInitials(initials string) map[string]float64 {
-	is := map[string]float64{}
-
-	if initials == "" {
-		return is
-	}
-
-	initialClauses := strings.Split(initials, ",")
-	for _, clause := range initialClauses {
-		if parts := strings.Split(clause, ":"); len(parts) == 2 {
-			if !strings.HasSuffix(parts[1], "%") {
-				fmt.Fprintf(os.Stderr, "Bad initial value in -%s flag; clause '%s' : value must be a percentage (e.g. 10%%)", initialsFlag, clause)
-				os.Exit(1)
-			}
-			if floatVal, err := strconv.ParseFloat(strings.Replace(parts[1], "%", "", 1), 32); err != nil {
-				fmt.Fprintf(os.Stderr, "Bad initial value in -%s flag; clause '%s' : %s", initialsFlag, clause, err)
-				os.Exit(1)
-			} else if floatVal < 0.0 || floatVal > 100.0 {
-				fmt.Fprintf(os.Stderr, "Initial value must be zero or more but no more than 100%% in -%s flag; clause '%s'", initialsFlag, clause)
-				os.Exit(1)
-			} else {
-				//Convert value to valid scale factor
-				is[parts[0]] = floatVal * .01
-			}
-		} else {
-			fmt.Fprintf(os.Stderr, "Bad clause '%s' in -%s flag", clause, initialsFlag)
-			os.Exit(1)
-		}
-	}
-
-	return is
+	return loadedClasses
 }
 
 func validateNumThreads(stackThreads int) int {
+	if stackThreads == 0 {
+		fmt.Fprintf(os.Stderr, "-%s must be specified", threadsFlag)
+		os.Exit(1)
+	}
 	if stackThreads < 0 {
 		fmt.Fprintf(os.Stderr, "Error in -%s flag; value must be positive", threadsFlag)
 		os.Exit(1)

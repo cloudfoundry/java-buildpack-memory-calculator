@@ -58,11 +58,15 @@ will use the Go compiler with the `GOOS` environment variable to generate the ex
 This will not work if the Go installation doesn't support all these platforms, so you may have to
 ensure Go is installed with cross-compiler support.
 
+### Design
+
+The document [Java Buildpack Memory Calculator v3](https://docs.google.com/document/d/1vlXBiwRIjwiVcbvUGYMrxx2Aw1RVAtxq3iuZ3UK2vXA/edit?usp=sharing)
+provides some rationale for the memory calculator externals.
+
 ## License
 
 The Spring Cloud Services CLI plugin is Open Source software released under the
 [Apache 2.0 license][].
-
 
 [Install Go]: http://golang.org/doc/install
 [Godep]: http://github.com/tools/godep
