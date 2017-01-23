@@ -62,14 +62,14 @@ var _ = Describe("VmOptions", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("should reproduce the raw options in the output", func() {
-			Ω(vmOptions.String()).Should(Equal("-verbose:class"))
+		It("should omit the raw options in the delta output", func() {
+			Ω(vmOptions.DeltaString()).Should(BeEmpty())
 		})
 
 		It("should record any value set", func() {
 			vmOptions.SetMemOpt(memory.CompressedClassSpaceSize, testMemSize)
 			Ω(vmOptions.MemOpt(memory.CompressedClassSpaceSize)).Should(Equal(testMemSize))
-			Ω(vmOptions.String()).Should(Equal("-verbose:class -XX:CompressedClassSpaceSize=30M"))
+			Ω(vmOptions.DeltaString()).Should(Equal("-XX:CompressedClassSpaceSize=30M"))
 		})
 	})
 
@@ -82,8 +82,8 @@ var _ = Describe("VmOptions", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("should reproduce the raw options in the output", func() {
-			Ω(vmOptions.String()).Should(Equal("-Xmx30M"))
+		It("should omit the raw options from the delta output", func() {
+			Ω(vmOptions.DeltaString()).Should(BeEmpty())
 		})
 
 		It("should capture the value in the correct option", func() {
@@ -100,8 +100,8 @@ var _ = Describe("VmOptions", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("should not reproduce the raw options in the output", func() {
-			Ω(vmOptions.String()).ShouldNot(ContainSubstring("-Xmx"))
+		It("should initially not reproduce the maxmimum heap size in the delta output", func() {
+			Ω(vmOptions.DeltaString()).ShouldNot(ContainSubstring("-Xmx"))
 		})
 
 		It("should capture the value in the correct option", func() {
@@ -111,7 +111,7 @@ var _ = Describe("VmOptions", func() {
 		It("should record any value set", func() {
 			vmOptions.SetMemOpt(memory.MaxHeapSize, testMemSize)
 			Ω(vmOptions.MemOpt(memory.MaxHeapSize)).Should(Equal(testMemSize))
-			Ω(vmOptions.String()).Should(ContainSubstring("-Xmx30M"))
+			Ω(vmOptions.DeltaString()).Should(ContainSubstring("-Xmx30M"))
 		})
 	})
 
@@ -124,8 +124,8 @@ var _ = Describe("VmOptions", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("should reproduce the raw options in the output", func() {
-			Ω(vmOptions.String()).Should(Equal("-XX:MaxMetaspaceSize=30M"))
+		It("should omit the raw options from the delta output", func() {
+			Ω(vmOptions.DeltaString()).Should(BeEmpty())
 		})
 
 		It("should capture the value in the correct option", func() {
@@ -142,8 +142,8 @@ var _ = Describe("VmOptions", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("should not reproduce the raw options in the output", func() {
-			Ω(vmOptions.String()).ShouldNot(ContainSubstring("MaxMetaspaceSize"))
+		It("should initially not reproduce the maximum metaspace size in the delta output", func() {
+			Ω(vmOptions.DeltaString()).ShouldNot(ContainSubstring("MaxMetaspaceSize"))
 		})
 
 		It("should capture the value in the correct option", func() {
@@ -153,7 +153,7 @@ var _ = Describe("VmOptions", func() {
 		It("should record any value set", func() {
 			vmOptions.SetMemOpt(memory.MaxMetaspaceSize, testMemSize)
 			Ω(vmOptions.MemOpt(memory.MaxMetaspaceSize)).Should(Equal(testMemSize))
-			Ω(vmOptions.String()).Should(ContainSubstring("-XX:MaxMetaspaceSize=30M"))
+			Ω(vmOptions.DeltaString()).Should(ContainSubstring("-XX:MaxMetaspaceSize=30M"))
 		})
 	})
 
@@ -166,8 +166,8 @@ var _ = Describe("VmOptions", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("should reproduce the raw options in the output", func() {
-			Ω(vmOptions.String()).Should(Equal("-Xss30M"))
+		It("should omit the raw options from the delta output", func() {
+			Ω(vmOptions.DeltaString()).Should(BeEmpty())
 		})
 
 		It("should capture the value in the correct option", func() {
@@ -184,8 +184,8 @@ var _ = Describe("VmOptions", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("should not reproduce the raw options in the output", func() {
-			Ω(vmOptions.String()).ShouldNot(ContainSubstring("Xss"))
+		It("should initially not reproduce the stack size in the delta output", func() {
+			Ω(vmOptions.DeltaString()).ShouldNot(ContainSubstring("Xss"))
 		})
 
 		It("should capture the value in the correct option", func() {
@@ -195,7 +195,7 @@ var _ = Describe("VmOptions", func() {
 		It("should record any value set", func() {
 			vmOptions.SetMemOpt(memory.StackSize, testMemSize)
 			Ω(vmOptions.MemOpt(memory.StackSize)).Should(Equal(testMemSize))
-			Ω(vmOptions.String()).Should(ContainSubstring("-Xss30M"))
+			Ω(vmOptions.DeltaString()).Should(ContainSubstring("-Xss30M"))
 		})
 	})
 
@@ -208,8 +208,8 @@ var _ = Describe("VmOptions", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("should reproduce the raw options in the output", func() {
-			Ω(vmOptions.String()).Should(Equal("-XX:MaxDirectMemorySize=30M"))
+		It("should omit the maximum direct memory size from the delta output", func() {
+			Ω(vmOptions.DeltaString()).Should(BeEmpty())
 		})
 
 		It("should capture the value in the correct option", func() {
@@ -226,8 +226,8 @@ var _ = Describe("VmOptions", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("should not reproduce the raw options in the output", func() {
-			Ω(vmOptions.String()).ShouldNot(ContainSubstring("MaxDirectMemorySize"))
+		It("should initially not reproduce the maximum direct memory size in the delta output", func() {
+			Ω(vmOptions.DeltaString()).ShouldNot(ContainSubstring("MaxDirectMemorySize"))
 		})
 
 		It("should capture the value in the correct option", func() {
@@ -237,7 +237,7 @@ var _ = Describe("VmOptions", func() {
 		It("should record any value set", func() {
 			vmOptions.SetMemOpt(memory.MaxDirectMemorySize, testMemSize)
 			Ω(vmOptions.MemOpt(memory.MaxDirectMemorySize)).Should(Equal(testMemSize))
-			Ω(vmOptions.String()).Should(ContainSubstring("-XX:MaxDirectMemorySize=30M"))
+			Ω(vmOptions.DeltaString()).Should(ContainSubstring("-XX:MaxDirectMemorySize=30M"))
 		})
 	})
 
@@ -250,8 +250,8 @@ var _ = Describe("VmOptions", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("should reproduce the raw options in the output", func() {
-			Ω(vmOptions.String()).Should(Equal("-XX:ReservedCodeCacheSize=30M"))
+		It("should omit the reserved code cache size from the delta output", func() {
+			Ω(vmOptions.DeltaString()).Should(BeEmpty())
 		})
 
 		It("should capture the value in the correct option", func() {
@@ -268,8 +268,8 @@ var _ = Describe("VmOptions", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("should not reproduce the raw options in the output", func() {
-			Ω(vmOptions.String()).ShouldNot(ContainSubstring("ReservedCodeCacheSize"))
+		It("should initially not reproduce the reserved code cache size in the delta output", func() {
+			Ω(vmOptions.DeltaString()).ShouldNot(ContainSubstring("ReservedCodeCacheSize"))
 		})
 
 		It("should capture the value in the correct option", func() {
@@ -279,7 +279,7 @@ var _ = Describe("VmOptions", func() {
 		It("should record any value set", func() {
 			vmOptions.SetMemOpt(memory.ReservedCodeCacheSize, testMemSize)
 			Ω(vmOptions.MemOpt(memory.ReservedCodeCacheSize)).Should(Equal(testMemSize))
-			Ω(vmOptions.String()).Should(ContainSubstring("-XX:ReservedCodeCacheSize=30M"))
+			Ω(vmOptions.DeltaString()).Should(ContainSubstring("-XX:ReservedCodeCacheSize=30M"))
 		})
 	})
 
@@ -292,8 +292,8 @@ var _ = Describe("VmOptions", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("should reproduce the raw options in the output", func() {
-			Ω(vmOptions.String()).Should(Equal("-XX:CompressedClassSpaceSize=30M"))
+		It("should omit the compress class space size from the delta output", func() {
+			Ω(vmOptions.DeltaString()).Should(BeEmpty())
 		})
 
 		It("should capture the value in the correct option", func() {
@@ -310,8 +310,8 @@ var _ = Describe("VmOptions", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("should not reproduce the raw options in the output", func() {
-			Ω(vmOptions.String()).ShouldNot(ContainSubstring("CompressedClassSpaceSize"))
+		It("should initially not reproduce the compressed class space size in the delta output", func() {
+			Ω(vmOptions.DeltaString()).ShouldNot(ContainSubstring("CompressedClassSpaceSize"))
 		})
 
 		It("should capture the value in the correct option", func() {
@@ -321,7 +321,7 @@ var _ = Describe("VmOptions", func() {
 		It("should record any value set", func() {
 			vmOptions.SetMemOpt(memory.CompressedClassSpaceSize, testMemSize)
 			Ω(vmOptions.MemOpt(memory.CompressedClassSpaceSize)).Should(Equal(testMemSize))
-			Ω(vmOptions.String()).Should(ContainSubstring("-XX:CompressedClassSpaceSize=30M"))
+			Ω(vmOptions.DeltaString()).Should(ContainSubstring("-XX:CompressedClassSpaceSize=30M"))
 		})
 	})
 

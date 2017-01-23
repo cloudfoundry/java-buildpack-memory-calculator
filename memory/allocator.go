@@ -106,5 +106,5 @@ func (a *allocator) present(memoryType MemoryType) bool {
 }
 
 func (a *allocator) String() string {
-	return a.vmOptions.String()
+	return a.vmOptions.DeltaString()
 }

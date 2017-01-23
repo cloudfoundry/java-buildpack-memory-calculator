@@ -65,12 +65,12 @@ var _ = Describe("Allocator", func() {
 				options[memoryType] = size
 			}
 
-			vmOptions.StringStub = func() string {
+			vmOptions.DeltaStringStub = func() string {
 				return "some string representation"
 			}
 		})
 
-		It("should delegate to the String method of the embedded VmOptions", func() {
+		It("should delegate to the DeltaString method of the embedded VmOptions", func() {
 			Ω(allocator.String()).Should(Equal("some string representation"))
 		})
 	})

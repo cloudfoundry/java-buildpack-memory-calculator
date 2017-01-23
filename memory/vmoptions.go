@@ -22,7 +22,7 @@ import (
 
 //go:generate counterfeiter -o vmoptionsfakes/fake_vmoptions.go . VmOptions
 type VmOptions interface {
-	String() string
+	DeltaString() string
 	MemOpt(memoryType MemoryType) MemSize
 	SetMemOpt(memoryType MemoryType, size MemSize)
 }
@@ -77,11 +77,10 @@ func NewVmOptions(rawOpts string) (*vmOptions, error) {
 	}, nil
 }
 
-func (vm *vmOptions) String() string {
+func (vm *vmOptions) DeltaString() string {
 	var bb bytes.Buffer
-	bb.WriteString(vm.rawOpts)
 
-	first := vm.rawOpts == ""
+	first := true
 	for k, v := range vm.memOpts {
 		if vm.memOptWasRaw[k] {
 			continue

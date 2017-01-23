@@ -8,10 +8,10 @@ import (
 )
 
 type FakeVmOptions struct {
-	StringStub        func() string
-	stringMutex       sync.RWMutex
-	stringArgsForCall []struct{}
-	stringReturns     struct {
+	DeltaStringStub        func() string
+	deltaStringMutex       sync.RWMutex
+	deltaStringArgsForCall []struct{}
+	deltaStringReturns     struct {
 		result1 string
 	}
 	MemOptStub        func(memoryType memory.MemoryType) memory.MemSize
@@ -32,27 +32,27 @@ type FakeVmOptions struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeVmOptions) String() string {
-	fake.stringMutex.Lock()
-	fake.stringArgsForCall = append(fake.stringArgsForCall, struct{}{})
-	fake.recordInvocation("String", []interface{}{})
-	fake.stringMutex.Unlock()
-	if fake.StringStub != nil {
-		return fake.StringStub()
+func (fake *FakeVmOptions) DeltaString() string {
+	fake.deltaStringMutex.Lock()
+	fake.deltaStringArgsForCall = append(fake.deltaStringArgsForCall, struct{}{})
+	fake.recordInvocation("DeltaString", []interface{}{})
+	fake.deltaStringMutex.Unlock()
+	if fake.DeltaStringStub != nil {
+		return fake.DeltaStringStub()
 	} else {
-		return fake.stringReturns.result1
+		return fake.deltaStringReturns.result1
 	}
 }
 
-func (fake *FakeVmOptions) StringCallCount() int {
-	fake.stringMutex.RLock()
-	defer fake.stringMutex.RUnlock()
-	return len(fake.stringArgsForCall)
+func (fake *FakeVmOptions) DeltaStringCallCount() int {
+	fake.deltaStringMutex.RLock()
+	defer fake.deltaStringMutex.RUnlock()
+	return len(fake.deltaStringArgsForCall)
 }
 
-func (fake *FakeVmOptions) StringReturns(result1 string) {
-	fake.StringStub = nil
-	fake.stringReturns = struct {
+func (fake *FakeVmOptions) DeltaStringReturns(result1 string) {
+	fake.DeltaStringStub = nil
+	fake.deltaStringReturns = struct {
 		result1 string
 	}{result1}
 }
@@ -118,8 +118,8 @@ func (fake *FakeVmOptions) SetMemOptArgsForCall(i int) (memory.MemoryType, memor
 func (fake *FakeVmOptions) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.stringMutex.RLock()
-	defer fake.stringMutex.RUnlock()
+	fake.deltaStringMutex.RLock()
+	defer fake.deltaStringMutex.RUnlock()
 	fake.memOptMutex.RLock()
 	defer fake.memOptMutex.RUnlock()
 	fake.setMemOptMutex.RLock()

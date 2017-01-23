@@ -36,7 +36,7 @@ func printHelp() {
 	fmt.Printf("\n%s\n", executableName)
 	fmt.Printf("\nCalculates JVM memory switches based on the total memory available, the number of classes the application will load, "+
 		"the number of threads that will be used, and any JVM options provided as input.\n\n"+
-		"The output consists of any JVM options provided as input plus any calculated memory switches.\n\n"+
+		"The output consists of any calculated memory switches.\n\n"+
 		"If a calculated memory switch value is unsuitable, it can be set in the JVM options provided as input and will no longer be calculated.\n\n"+
 		"Example invocation from a shell:\n"+
 		"$ %s -loadedClasses=1000 -stackThreads=10 -totMemory=1g -vmOptions=-XX:MaxDirectMemorySize=100M\\ -verbose:gc\n\n", executableName)
