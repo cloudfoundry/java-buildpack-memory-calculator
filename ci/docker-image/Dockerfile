@@ -1,13 +1,11 @@
-FROM golang:alpine
+FROM golang
 
-RUN apk add --update \
-    bash \
-    coreutils \
+RUN apt-get update && apt-get install -y \
     curl \
-    git  \
-    jq \
-    py-pip \
- && rm -rf /var/cache/apk/*
+    python-dev \
+    python-pip \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
 
 RUN pip install awscli --ignore-installed six
 
