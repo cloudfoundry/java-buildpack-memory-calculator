@@ -33,8 +33,8 @@ pushd $GOPATH/src/github.com/cloudfoundry/java-buildpack-memory-calculator
 
   upload \
     java-buildpack-memory-calculator-darwin.tar.gz \
-    $ARTIFACTORY_REPOSITORY/org/cloudfoundry/memory-calculator/$VERSION/java-buildpack-memory-calculator-$(echo $VERSION | sed "s|SNAPSHOT|$(date '+%Y%m%d.%H%M%S')|")-darwin.tar.gz
+    $ARTIFACTORY_REPOSITORY/org/cloudfoundry/java-buildpack-memory-calculator/$VERSION/java-buildpack-memory-calculator-$(echo $VERSION | sed "s|SNAPSHOT|$(date '+%Y%m%d.%H%M%S')|")-darwin.tar.gz
   upload \
     java-buildpack-memory-calculator-linux.tar.gz \
-    $ARTIFACTORY_REPOSITORY/org/cloudfoundry/memory-calculator/$VERSION/java-buildpack-memory-calculator-$(echo $VERSION | sed "s|SNAPSHOT|$(date '+%Y%m%d.%H%M%S')|")-linux.tar.gz
+    $ARTIFACTORY_REPOSITORY/org/cloudfoundry/java-buildpack-memory-calculator/$VERSION/java-buildpack-memory-calculator-$(echo $VERSION | sed "s|SNAPSHOT|$(date '+%Y%m%d.%H%M%S')|")-linux.tar.gz
 popd
