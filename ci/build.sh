@@ -12,11 +12,29 @@ function build() {
     && echo "Built ${target}.tar.gz"
 }
 
+function upload() {
+  local source=$1
+  local destination=$2
+
+  JFROG_CLI_OFFER_CONFIG=false /usr/local/bin/jfrog rt upload \
+    --url https://repo.spring.io \
+    --user $ARTIFACTORY_USERNAME \
+    --password $ARTIFACTORY_PASSWORD \
+    $1 $2
+}
+
 if [[ $GOPATH == "/go" ]]; then
   GOPATH=$PWD/gopath
 fi
 
 pushd $GOPATH/src/github.com/cloudfoundry/java-buildpack-memory-calculator
-  build linux
   build darwin
+  build linux
+
+  upload \
+    java-buildpack-memory-calculator-darwin.tar.gz \
+    $ARTIFACTORY_REPOSITORY/org/cloudfoundry/memory-calculator/$VERSION/java-buildpack-memory-calculator-$(echo $VERSION | sed "s|SNAPSHOT|$(date '+%Y%m%d.%H%M%S')|")-darwin.tar.gz
+  upload \
+    java-buildpack-memory-calculator-linux.tar.gz \
+    $ARTIFACTORY_REPOSITORY/org/cloudfoundry/memory-calculator/$VERSION/java-buildpack-memory-calculator-$(echo $VERSION | sed "s|SNAPSHOT|$(date '+%Y%m%d.%H%M%S')|")-linux.tar.gz
 popd
