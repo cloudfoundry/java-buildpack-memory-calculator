@@ -65,7 +65,7 @@ provides some rationale for the memory calculator externals.
 
 ## License
 
-The Spring Cloud Services CLI plugin is Open Source software released under the
+The Java Buildpack Memory Calculator is Open Source software released under the
 [Apache 2.0 license][].
 
 [Install Go]: http://golang.org/doc/install
