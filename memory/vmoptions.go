@@ -42,6 +42,7 @@ const (
 	MaxDirectMemorySize
 	ReservedCodeCacheSize
 	CompressedClassSpaceSize
+	MaxPermSize
 )
 
 var switches = map[MemoryType]string{
@@ -51,6 +52,7 @@ var switches = map[MemoryType]string{
 	MaxDirectMemorySize:      "-XX:MaxDirectMemorySize=",
 	ReservedCodeCacheSize:    "-XX:ReservedCodeCacheSize=",
 	CompressedClassSpaceSize: "-XX:CompressedClassSpaceSize=",
+	MaxPermSize:              "-XX:MaxPermSize=",
 }
 
 func NewVmOptions(rawOpts string) (*vmOptions, error) {

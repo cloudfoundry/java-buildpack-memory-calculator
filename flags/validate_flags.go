@@ -30,6 +30,7 @@ const (
 	threadsFlag       = "stackThreads"
 	loadedClassesFlag = "loadedClasses"
 	vmOptionsFlag     = "vmOptions"
+	poolTypeFlag      = "poolType"
 )
 
 func printHelp() {
@@ -55,10 +56,12 @@ var (
 		"an estimate of the number of classes that will be loaded when the application is running")
 	vmOptions = flag.String(vmOptionsFlag, "",
 		"Java VM options, typically the JAVA_OPTS specified by the user")
+	poolType = flag.String(poolTypeFlag, "",
+		"the type of JVM pool used in the calculation. Set this to 'permgen' for Java 7 and to 'metaspace' for Java 8 and later.")
 )
 
 // Validate flags passed on command line; exit(1) if invalid; exit(2) if help printed
-func ValidateFlags() (memSize memory.MemSize, numThreads int, numLoadedClasses int, vmOpts string) {
+func ValidateFlags() (memSize memory.MemSize, numThreads int, numLoadedClasses int, pType string, vmOpts string) {
 
 	flag.Parse() // exit on error
 
@@ -72,9 +75,22 @@ func ValidateFlags() (memSize memory.MemSize, numThreads int, numLoadedClasses i
 	memSize = validateTotMemory(*totMemory)
 	numThreads = validateNumThreads(*stackThreads)
 	numLoadedClasses = validateLoadedClasses(*loadedClasses)
+	pType = validatePoolType(*poolType)
 	vmOpts = *vmOptions
 
 	return
+}
+
+func validatePoolType(poolType string) string {
+	if poolType == "" {
+		fmt.Fprintf(os.Stderr, "-%s must be specified", poolTypeFlag)
+		os.Exit(1)
+	}
+	if poolType != "permgen" && poolType != "metaspace" {
+		fmt.Fprintf(os.Stderr, "Error in -%s flag: must be 'permgen' or 'metaspace'", poolTypeFlag)
+		os.Exit(1)
+	}
+	return poolType
 }
 
 func validateNoArguments() {

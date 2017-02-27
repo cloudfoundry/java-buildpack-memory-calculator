@@ -157,6 +157,48 @@ var _ = Describe("VmOptions", func() {
 		})
 	})
 
+	Context("when the raw options contain maximum permgen size", func() {
+		BeforeEach(func() {
+			rawOpts = "-XX:MaxPermSize=" + testMemSizeString
+		})
+
+		It("should not return an error", func() {
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		It("should omit the raw options from the delta output", func() {
+			Ω(vmOptions.DeltaString()).Should(BeEmpty())
+		})
+
+		It("should capture the value in the correct option", func() {
+			Ω(vmOptions.MemOpt(memory.MaxPermSize)).Should(Equal(testMemSize))
+		})
+	})
+
+	Context("when the raw options do not contain maximum permgen size", func() {
+		BeforeEach(func() {
+			rawOpts = ""
+		})
+
+		It("should not return an error", func() {
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		It("should initially not reproduce the maximum permgen size in the delta output", func() {
+			Ω(vmOptions.DeltaString()).ShouldNot(ContainSubstring("MaxPermSize"))
+		})
+
+		It("should capture the value in the correct option", func() {
+			Ω(vmOptions.MemOpt(memory.MaxPermSize)).Should(Equal(memory.MEMSIZE_ZERO))
+		})
+
+		It("should record any value set", func() {
+			vmOptions.SetMemOpt(memory.MaxPermSize, testMemSize)
+			Ω(vmOptions.MemOpt(memory.MaxPermSize)).Should(Equal(testMemSize))
+			Ω(vmOptions.DeltaString()).Should(ContainSubstring("-XX:MaxPermSize=30M"))
+		})
+	})
+
 	Context("when the raw options contain stack size", func() {
 		BeforeEach(func() {
 			rawOpts = "-Xss" + testMemSizeString

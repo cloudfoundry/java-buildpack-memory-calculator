@@ -30,7 +30,7 @@ const (
 
 func main() {
 	// validateFlags() will exit on error
-	memSize, numThreads, numLoadedClasses, rawVmOptions := flags.ValidateFlags()
+	memSize, numThreads, numLoadedClasses, poolType, rawVmOptions := flags.ValidateFlags()
 
 	// default the number of threads if it was not supplied
 	if numThreads == 0 {
@@ -43,7 +43,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	allocator, err := memory.NewAllocator(vmOptions)
+	allocator, err := memory.NewAllocator(poolType, vmOptions)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Cannot allocate memory: %s", err)
 		os.Exit(1)

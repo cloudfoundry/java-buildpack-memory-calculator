@@ -34,6 +34,7 @@ var _ = Describe("Allocator", func() {
 		testMemOptionSize memory.MemSize
 		vmOptions         *vmoptionsfakes.FakeVmOptions
 		allocator         memory.Allocator
+		poolType          string
 		err               error
 	)
 
@@ -43,10 +44,11 @@ var _ = Describe("Allocator", func() {
 		testMemOptionSize, err = memory.NewMemSizeFromString(testMemOptionString)
 		Ω(err).ShouldNot(HaveOccurred())
 		vmOptions = &vmoptionsfakes.FakeVmOptions{}
+		poolType = "metaspace"
 	})
 
 	JustBeforeEach(func() {
-		allocator, err = memory.NewAllocator(vmOptions)
+		allocator, err = memory.NewAllocator(poolType, vmOptions)
 		Ω(err).ShouldNot(HaveOccurred())
 	})
 
@@ -76,158 +78,296 @@ var _ = Describe("Allocator", func() {
 	})
 
 	Describe("memory size calculations", func() {
-		var (
-			stackThreads int
-
-			expectedCompressedClassSpaceSize memory.MemSize
-			expectedMaxMetaspaceSize         memory.MemSize
-			expectedReservedCodeCacheSize    memory.MemSize
-			expectedMaxDirectMemorySize      memory.MemSize
-
-			options map[memory.MemoryType]memory.MemSize
-		)
-
-		BeforeEach(func() {
-			stackThreads = 10
-
-			expectedCompressedClassSpaceSize = memory.NewMemSize(1450000)
-			expectedMaxMetaspaceSize = memory.NewMemSize(12400000)
-			expectedReservedCodeCacheSize = memory.NewMemSize(240 * 1024 * 1024)
-			expectedMaxDirectMemorySize = memory.NewMemSize(10 * 1024 * 1024)
-
-			options = map[memory.MemoryType]memory.MemSize{}
-			vmOptions.MemOptStub = func(memoryType memory.MemoryType) memory.MemSize {
-				return options[memoryType]
-			}
-
-			vmOptions.SetMemOptStub = func(memoryType memory.MemoryType, size memory.MemSize) {
-				options[memoryType] = size
-			}
-		})
-
-		JustBeforeEach(func() {
-			err = allocator.Calculate(1000, stackThreads, testMemSize)
-		})
-
-		Describe("maximum metaspace size", func() {
-			It("should produce the correct estimate", func() {
-				Ω(options[memory.MaxMetaspaceSize]).Should(Equal(expectedMaxMetaspaceSize))
-				Ω(err).ShouldNot(HaveOccurred())
-			})
-
-			Context("when the value has been set", func() {
-				BeforeEach(func() {
-					options[memory.MaxMetaspaceSize] = testMemOptionSize
-				})
-
-				It("should preserve the set value", func() {
-					Ω(options[memory.MaxMetaspaceSize]).Should(Equal(testMemOptionSize))
-					Ω(err).ShouldNot(HaveOccurred())
-				})
-			})
-		})
-
-		Describe("reserved code cache size", func() {
-			It("should produce the correct default", func() {
-				Ω(options[memory.ReservedCodeCacheSize]).Should(Equal(expectedReservedCodeCacheSize))
-				Ω(err).ShouldNot(HaveOccurred())
-			})
-
-			Context("when the value has been set", func() {
-				BeforeEach(func() {
-					options[memory.ReservedCodeCacheSize] = testMemOptionSize
-				})
-
-				It("should preserve the set value", func() {
-					Ω(options[memory.ReservedCodeCacheSize]).Should(Equal(testMemOptionSize))
-					Ω(err).ShouldNot(HaveOccurred())
-				})
-			})
-		})
-
-		Describe("compressed class space size", func() {
-			It("should produce the correct estimate", func() {
-				Ω(options[memory.CompressedClassSpaceSize]).Should(Equal(expectedCompressedClassSpaceSize))
-				Ω(err).ShouldNot(HaveOccurred())
-			})
-
-			Context("when the value has been set", func() {
-				BeforeEach(func() {
-					options[memory.CompressedClassSpaceSize] = testMemOptionSize
-				})
-
-				It("should preserve the set value", func() {
-					Ω(options[memory.CompressedClassSpaceSize]).Should(Equal(testMemOptionSize))
-					Ω(err).ShouldNot(HaveOccurred())
-				})
-			})
-		})
-
-		Describe("maximum direct memory size", func() {
-			It("should produce the correct estimate", func() {
-				Ω(options[memory.MaxDirectMemorySize]).Should(Equal(expectedMaxDirectMemorySize))
-				Ω(err).ShouldNot(HaveOccurred())
-			})
-
-			Context("when the value has been set", func() {
-				BeforeEach(func() {
-					options[memory.MaxDirectMemorySize] = testMemOptionSize
-				})
-
-				It("should preserve the set value", func() {
-					Ω(options[memory.MaxDirectMemorySize]).Should(Equal(testMemOptionSize))
-					Ω(err).ShouldNot(HaveOccurred())
-				})
-			})
-		})
-
-		Describe("maximum heap size", func() {
-
+		Context("when poolType is metaspace", func() {
 			var (
-				expectedStackSpace      memory.MemSize
-				expectedAllocatedMemory memory.MemSize
+				stackThreads int
+
+				expectedCompressedClassSpaceSize memory.MemSize
+				expectedMaxMetaspaceSize         memory.MemSize
+				expectedReservedCodeCacheSize    memory.MemSize
+				expectedMaxDirectMemorySize      memory.MemSize
+
+				options map[memory.MemoryType]memory.MemSize
 			)
 
 			BeforeEach(func() {
-				expectedStackSpace = memory.NewMemSize(1024 * 1024).Scale(float64(stackThreads))
-				expectedAllocatedMemory = expectedMaxMetaspaceSize.Add(expectedMaxDirectMemorySize).Add(expectedReservedCodeCacheSize).
-					Add(expectedCompressedClassSpaceSize).Add(expectedStackSpace)
+				stackThreads = 10
+
+				expectedCompressedClassSpaceSize = memory.NewMemSize(1450000)
+				expectedMaxMetaspaceSize = memory.NewMemSize(12400000)
+				expectedReservedCodeCacheSize = memory.NewMemSize(240 * 1024 * 1024)
+				expectedMaxDirectMemorySize = memory.NewMemSize(10 * 1024 * 1024)
+
+				options = map[memory.MemoryType]memory.MemSize{}
+				vmOptions.MemOptStub = func(memoryType memory.MemoryType) memory.MemSize {
+					return options[memoryType]
+				}
+
+				vmOptions.SetMemOptStub = func(memoryType memory.MemoryType, size memory.MemSize) {
+					options[memoryType] = size
+				}
 			})
 
-			It("should produce the correct estimate", func() {
-				Ω(options[memory.MaxHeapSize]).Should(Equal(testMemSize.Subtract(expectedAllocatedMemory)))
+			JustBeforeEach(func() {
+				err = allocator.Calculate(1000, stackThreads, testMemSize)
 			})
 
-			Context("when the stack size has been specified", func() {
+			Describe("maximum metaspace size", func() {
+				It("should produce the correct estimate", func() {
+					Ω(options[memory.MaxMetaspaceSize]).Should(Equal(expectedMaxMetaspaceSize))
+					Ω(err).ShouldNot(HaveOccurred())
+				})
+
+				Context("when the value has been set", func() {
+					BeforeEach(func() {
+						options[memory.MaxMetaspaceSize] = testMemOptionSize
+					})
+
+					It("should preserve the set value", func() {
+						Ω(options[memory.MaxMetaspaceSize]).Should(Equal(testMemOptionSize))
+						Ω(err).ShouldNot(HaveOccurred())
+					})
+				})
+			})
+
+			Describe("reserved code cache size", func() {
+				It("should produce the correct default", func() {
+					Ω(options[memory.ReservedCodeCacheSize]).Should(Equal(expectedReservedCodeCacheSize))
+					Ω(err).ShouldNot(HaveOccurred())
+				})
+
+				Context("when the value has been set", func() {
+					BeforeEach(func() {
+						options[memory.ReservedCodeCacheSize] = testMemOptionSize
+					})
+
+					It("should preserve the set value", func() {
+						Ω(options[memory.ReservedCodeCacheSize]).Should(Equal(testMemOptionSize))
+						Ω(err).ShouldNot(HaveOccurred())
+					})
+				})
+			})
+
+			Describe("compressed class space size", func() {
+				It("should produce the correct estimate", func() {
+					Ω(options[memory.CompressedClassSpaceSize]).Should(Equal(expectedCompressedClassSpaceSize))
+					Ω(err).ShouldNot(HaveOccurred())
+				})
+
+				Context("when the value has been set", func() {
+					BeforeEach(func() {
+						options[memory.CompressedClassSpaceSize] = testMemOptionSize
+					})
+
+					It("should preserve the set value", func() {
+						Ω(options[memory.CompressedClassSpaceSize]).Should(Equal(testMemOptionSize))
+						Ω(err).ShouldNot(HaveOccurred())
+					})
+				})
+			})
+
+			Describe("maximum direct memory size", func() {
+				It("should produce the correct estimate", func() {
+					Ω(options[memory.MaxDirectMemorySize]).Should(Equal(expectedMaxDirectMemorySize))
+					Ω(err).ShouldNot(HaveOccurred())
+				})
+
+				Context("when the value has been set", func() {
+					BeforeEach(func() {
+						options[memory.MaxDirectMemorySize] = testMemOptionSize
+					})
+
+					It("should preserve the set value", func() {
+						Ω(options[memory.MaxDirectMemorySize]).Should(Equal(testMemOptionSize))
+						Ω(err).ShouldNot(HaveOccurred())
+					})
+				})
+			})
+
+			Describe("maximum heap size", func() {
+				var (
+					expectedStackSpace      memory.MemSize
+					expectedAllocatedMemory memory.MemSize
+				)
+
 				BeforeEach(func() {
-					options[memory.StackSize] = memory.NewMemSize(2 * 1024 * 1024) // double the default value
+					expectedStackSpace = memory.NewMemSize(1024 * 1024).Scale(float64(stackThreads))
+					expectedAllocatedMemory = expectedMaxMetaspaceSize.Add(expectedMaxDirectMemorySize).Add(expectedReservedCodeCacheSize).
+						Add(expectedCompressedClassSpaceSize).Add(expectedStackSpace)
 				})
 
 				It("should produce the correct estimate", func() {
-					Ω(options[memory.MaxHeapSize]).Should(Equal(testMemSize.Subtract(expectedAllocatedMemory.Add(expectedStackSpace))))
+					Ω(options[memory.MaxHeapSize]).Should(Equal(testMemSize.Subtract(expectedAllocatedMemory)))
+				})
+
+				Context("when the stack size has been specified", func() {
+					BeforeEach(func() {
+						options[memory.StackSize] = memory.NewMemSize(2 * 1024 * 1024) // double the default value
+					})
+
+					It("should produce the correct estimate", func() {
+						Ω(options[memory.MaxHeapSize]).Should(Equal(testMemSize.Subtract(expectedAllocatedMemory.Add(expectedStackSpace))))
+						Ω(err).ShouldNot(HaveOccurred())
+					})
+				})
+
+				Context("when there is insufficient memory remaining", func() {
+					BeforeEach(func() {
+						options[memory.MaxDirectMemorySize] = memory.NewMemSize(500 * 1024 * 1024)
+					})
+
+					It("should return an error", func() {
+						Ω(err).Should(MatchError("insufficient memory remaining for heap (memory limit 500M < allocated memory 781525K)"))
+					})
+
+				})
+
+				Context("when the value has been set", func() {
+					BeforeEach(func() {
+						options[memory.MaxHeapSize] = testMemOptionSize
+					})
+
+					It("should preserve the set value", func() {
+						Ω(options[memory.MaxHeapSize]).Should(Equal(testMemOptionSize))
+						Ω(err).ShouldNot(HaveOccurred())
+					})
+				})
+			})
+		})
+
+		Context("when poolType is permgen", func() {
+			var (
+				stackThreads int
+
+				expectedMaxPermSize           memory.MemSize
+				expectedReservedCodeCacheSize memory.MemSize
+				expectedMaxDirectMemorySize   memory.MemSize
+
+				options map[memory.MemoryType]memory.MemSize
+			)
+
+			BeforeEach(func() {
+				poolType = "permgen"
+				stackThreads = 10
+
+				expectedMaxPermSize = memory.NewMemSize(13000000)
+				expectedReservedCodeCacheSize = memory.NewMemSize(48 * 1024 * 1024)
+				expectedMaxDirectMemorySize = memory.NewMemSize(10 * 1024 * 1024)
+
+				options = map[memory.MemoryType]memory.MemSize{}
+				vmOptions.MemOptStub = func(memoryType memory.MemoryType) memory.MemSize {
+					return options[memoryType]
+				}
+
+				vmOptions.SetMemOptStub = func(memoryType memory.MemoryType, size memory.MemSize) {
+					options[memoryType] = size
+				}
+			})
+
+			JustBeforeEach(func() {
+				err = allocator.Calculate(1000, stackThreads, testMemSize)
+			})
+
+			Describe("maximum metaspace size", func() {
+				It("should produce the correct estimate", func() {
+					Ω(options[memory.MaxPermSize]).Should(Equal(expectedMaxPermSize))
 					Ω(err).ShouldNot(HaveOccurred())
+				})
+
+				Context("when the value has been set", func() {
+					BeforeEach(func() {
+						options[memory.MaxPermSize] = testMemOptionSize
+					})
+
+					It("should preserve the set value", func() {
+						Ω(options[memory.MaxPermSize]).Should(Equal(testMemOptionSize))
+						Ω(err).ShouldNot(HaveOccurred())
+					})
 				})
 			})
 
-			Context("when there is insufficient memory remaining", func() {
-				BeforeEach(func() {
-					options[memory.MaxDirectMemorySize] = memory.NewMemSize(500 * 1024 * 1024)
+			Describe("reserved code cache size", func() {
+				It("should produce the correct default", func() {
+					Ω(options[memory.ReservedCodeCacheSize]).Should(Equal(expectedReservedCodeCacheSize))
+					Ω(err).ShouldNot(HaveOccurred())
 				})
 
-				It("should return an error", func() {
-					Ω(err).Should(MatchError("insufficient memory remaining for heap (memory limit 500M < allocated memory 781525K)"))
-				})
+				Context("when the value has been set", func() {
+					BeforeEach(func() {
+						options[memory.ReservedCodeCacheSize] = testMemOptionSize
+					})
 
+					It("should preserve the set value", func() {
+						Ω(options[memory.ReservedCodeCacheSize]).Should(Equal(testMemOptionSize))
+						Ω(err).ShouldNot(HaveOccurred())
+					})
+				})
 			})
 
-			Context("when the value has been set", func() {
-				BeforeEach(func() {
-					options[memory.MaxHeapSize] = testMemOptionSize
+			Describe("maximum direct memory size", func() {
+				It("should produce the correct estimate", func() {
+					Ω(options[memory.MaxDirectMemorySize]).Should(Equal(expectedMaxDirectMemorySize))
+					Ω(err).ShouldNot(HaveOccurred())
 				})
 
-				It("should preserve the set value", func() {
-					Ω(options[memory.MaxHeapSize]).Should(Equal(testMemOptionSize))
-					Ω(err).ShouldNot(HaveOccurred())
+				Context("when the value has been set", func() {
+					BeforeEach(func() {
+						options[memory.MaxDirectMemorySize] = testMemOptionSize
+					})
+
+					It("should preserve the set value", func() {
+						Ω(options[memory.MaxDirectMemorySize]).Should(Equal(testMemOptionSize))
+						Ω(err).ShouldNot(HaveOccurred())
+					})
+				})
+			})
+
+			Describe("maximum heap size", func() {
+				var (
+					expectedStackSpace      memory.MemSize
+					expectedAllocatedMemory memory.MemSize
+				)
+
+				BeforeEach(func() {
+					expectedStackSpace = memory.NewMemSize(1024 * 1024).Scale(float64(stackThreads))
+					expectedAllocatedMemory = expectedMaxPermSize.Add(expectedMaxDirectMemorySize).Add(expectedReservedCodeCacheSize).Add(expectedStackSpace)
+				})
+
+				It("should produce the correct estimate", func() {
+					Ω(options[memory.MaxHeapSize]).Should(Equal(testMemSize.Subtract(expectedAllocatedMemory)))
+				})
+
+				Context("when the stack size has been specified", func() {
+					BeforeEach(func() {
+						options[memory.StackSize] = memory.NewMemSize(2 * 1024 * 1024) // double the default value
+					})
+
+					It("should produce the correct estimate", func() {
+						Ω(options[memory.MaxHeapSize]).Should(Equal(testMemSize.Subtract(expectedAllocatedMemory.Add(expectedStackSpace))))
+						Ω(err).ShouldNot(HaveOccurred())
+					})
+				})
+
+				Context("when there is insufficient memory remaining", func() {
+					BeforeEach(func() {
+						options[memory.MaxDirectMemorySize] = memory.NewMemSize(500 * 1024 * 1024)
+					})
+
+					It("should return an error", func() {
+						Ω(err).Should(MatchError("insufficient memory remaining for heap (memory limit 500M < allocated memory 584087K)"))
+					})
+
+				})
+
+				Context("when the value has been set", func() {
+					BeforeEach(func() {
+						options[memory.MaxHeapSize] = testMemOptionSize
+					})
+
+					It("should preserve the set value", func() {
+						Ω(options[memory.MaxHeapSize]).Should(Equal(testMemOptionSize))
+						Ω(err).ShouldNot(HaveOccurred())
+					})
 				})
 			})
 		})

@@ -24,13 +24,22 @@ type Allocator interface {
 }
 
 type allocator struct {
-	vmOptions VmOptions
+	vmOptions  VmOptions
+	estimators map[MemoryType]func(int) MemSize
 }
 
-func NewAllocator(vmOptions VmOptions) (*allocator, error) {
-	return &allocator{
-		vmOptions: vmOptions,
-	}, nil
+func NewAllocator(poolType string, vmOptions VmOptions) (*allocator, error) {
+	if poolType == "metaspace" {
+		return &allocator{
+			vmOptions:  vmOptions,
+			estimators: estimators,
+		}, nil
+	} else {
+		return &allocator{
+			vmOptions:  vmOptions,
+			estimators: permgenEstimators,
+		}, nil
+	}
 }
 
 const (
@@ -54,12 +63,26 @@ var estimators = map[MemoryType]func(int) MemSize{
 	},
 }
 
+const DEFAULT_CODE_CACHE_JAVA_7 int64 = 48 * 1024 * 1024
+
+var permgenEstimators = map[MemoryType]func(int) MemSize{
+	MaxDirectMemorySize: func(loadedClasses int) MemSize {
+		return NewMemSize(DEFAULT_MAX_DIRECT_MEMORY_SIZE)
+	},
+	MaxPermSize: func(loadedClasses int) MemSize {
+		return NewMemSize(6000).Scale(float64(loadedClasses)).Add(NewMemSize(7000000))
+	},
+	ReservedCodeCacheSize: func(loadedClasses int) MemSize {
+		return NewMemSize(DEFAULT_CODE_CACHE_JAVA_7)
+	},
+}
+
 func (a *allocator) Calculate(loadedClasses int, stackThreads int, memLimit MemSize) error {
 	if memLimit.LessThan(MemSize(kILO)) {
 		return fmt.Errorf("Too little memory to allocate: %s", memLimit)
 	}
 
-	for memoryType, estimator := range estimators {
+	for memoryType, estimator := range a.estimators {
 		if !a.present(memoryType) {
 			a.vmOptions.SetMemOpt(memoryType, estimator(loadedClasses))
 		}
@@ -96,7 +119,7 @@ func (a *allocator) calculateMaxHeapSize(stackThreads int, memLimit MemSize) (Me
 
 func (a *allocator) estimatedMemory() MemSize {
 	est := NewMemSize(0)
-	for memoryType, _ := range estimators {
+	for memoryType, _ := range a.estimators {
 		est = est.Add(a.vmOptions.MemOpt(memoryType))
 	}
 	return est
