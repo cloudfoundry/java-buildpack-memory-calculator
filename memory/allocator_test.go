@@ -92,7 +92,7 @@ var _ = Describe("Allocator", func() {
 
 			expectedCompressedClassSpaceSize = memory.NewMemSize(1450000)
 			expectedMaxMetaspaceSize = memory.NewMemSize(12400000)
-			expectedReservedCodeCacheSize = memory.NewMemSize(6500000)
+			expectedReservedCodeCacheSize = memory.NewMemSize(240 * 1024 * 1024)
 			expectedMaxDirectMemorySize = memory.NewMemSize(10 * 1024 * 1024)
 
 			options = map[memory.MemoryType]memory.MemSize{}
@@ -128,7 +128,7 @@ var _ = Describe("Allocator", func() {
 		})
 
 		Describe("reserved code cache size", func() {
-			It("should produce the correct estimate", func() {
+			It("should produce the correct default", func() {
 				Ω(options[memory.ReservedCodeCacheSize]).Should(Equal(expectedReservedCodeCacheSize))
 				Ω(err).ShouldNot(HaveOccurred())
 			})
@@ -215,7 +215,7 @@ var _ = Describe("Allocator", func() {
 				})
 
 				It("should return an error", func() {
-					Ω(err).Should(MatchError("insufficient memory remaining for heap (memory limit 500M < allocated memory 542113K)"))
+					Ω(err).Should(MatchError("insufficient memory remaining for heap (memory limit 500M < allocated memory 781525K)"))
 				})
 
 			})

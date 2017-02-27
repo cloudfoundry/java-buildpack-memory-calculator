@@ -36,6 +36,7 @@ func NewAllocator(vmOptions VmOptions) (*allocator, error) {
 const (
 	DEFAULT_MAX_DIRECT_MEMORY_SIZE int64 = 10 * 1024 * 1024
 	DEFAULT_STACK_SIZE             int64 = 1024 * 1024
+	DEFAULT_CODE_CACHE_JAVA_8      int64 = 240 * 1024 * 1024
 )
 
 var estimators = map[MemoryType]func(int) MemSize{
@@ -46,7 +47,7 @@ var estimators = map[MemoryType]func(int) MemSize{
 		return NewMemSize(5400).Scale(float64(loadedClasses)).Add(NewMemSize(7000000))
 	},
 	ReservedCodeCacheSize: func(loadedClasses int) MemSize {
-		return NewMemSize(1500).Scale(float64(loadedClasses)).Add(NewMemSize(5000000))
+		return NewMemSize(DEFAULT_CODE_CACHE_JAVA_8)
 	},
 	CompressedClassSpaceSize: func(loadedClasses int) MemSize {
 		return NewMemSize(700).Scale(float64(loadedClasses)).Add(NewMemSize(750000))
