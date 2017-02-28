@@ -14,12 +14,27 @@ type FakeVmOptions struct {
 	deltaStringReturns     struct {
 		result1 string
 	}
+	deltaStringReturnsOnCall map[int]struct {
+		result1 string
+	}
+	StringStub        func() string
+	stringMutex       sync.RWMutex
+	stringArgsForCall []struct{}
+	stringReturns     struct {
+		result1 string
+	}
+	stringReturnsOnCall map[int]struct {
+		result1 string
+	}
 	MemOptStub        func(memoryType memory.MemoryType) memory.MemSize
 	memOptMutex       sync.RWMutex
 	memOptArgsForCall []struct {
 		memoryType memory.MemoryType
 	}
 	memOptReturns struct {
+		result1 memory.MemSize
+	}
+	memOptReturnsOnCall map[int]struct {
 		result1 memory.MemSize
 	}
 	SetMemOptStub        func(memoryType memory.MemoryType, size memory.MemSize)
@@ -34,14 +49,17 @@ type FakeVmOptions struct {
 
 func (fake *FakeVmOptions) DeltaString() string {
 	fake.deltaStringMutex.Lock()
+	ret, specificReturn := fake.deltaStringReturnsOnCall[len(fake.deltaStringArgsForCall)]
 	fake.deltaStringArgsForCall = append(fake.deltaStringArgsForCall, struct{}{})
 	fake.recordInvocation("DeltaString", []interface{}{})
 	fake.deltaStringMutex.Unlock()
 	if fake.DeltaStringStub != nil {
 		return fake.DeltaStringStub()
-	} else {
-		return fake.deltaStringReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.deltaStringReturns.result1
 }
 
 func (fake *FakeVmOptions) DeltaStringCallCount() int {
@@ -57,8 +75,61 @@ func (fake *FakeVmOptions) DeltaStringReturns(result1 string) {
 	}{result1}
 }
 
+func (fake *FakeVmOptions) DeltaStringReturnsOnCall(i int, result1 string) {
+	fake.DeltaStringStub = nil
+	if fake.deltaStringReturnsOnCall == nil {
+		fake.deltaStringReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.deltaStringReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeVmOptions) String() string {
+	fake.stringMutex.Lock()
+	ret, specificReturn := fake.stringReturnsOnCall[len(fake.stringArgsForCall)]
+	fake.stringArgsForCall = append(fake.stringArgsForCall, struct{}{})
+	fake.recordInvocation("String", []interface{}{})
+	fake.stringMutex.Unlock()
+	if fake.StringStub != nil {
+		return fake.StringStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.stringReturns.result1
+}
+
+func (fake *FakeVmOptions) StringCallCount() int {
+	fake.stringMutex.RLock()
+	defer fake.stringMutex.RUnlock()
+	return len(fake.stringArgsForCall)
+}
+
+func (fake *FakeVmOptions) StringReturns(result1 string) {
+	fake.StringStub = nil
+	fake.stringReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeVmOptions) StringReturnsOnCall(i int, result1 string) {
+	fake.StringStub = nil
+	if fake.stringReturnsOnCall == nil {
+		fake.stringReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.stringReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeVmOptions) MemOpt(memoryType memory.MemoryType) memory.MemSize {
 	fake.memOptMutex.Lock()
+	ret, specificReturn := fake.memOptReturnsOnCall[len(fake.memOptArgsForCall)]
 	fake.memOptArgsForCall = append(fake.memOptArgsForCall, struct {
 		memoryType memory.MemoryType
 	}{memoryType})
@@ -66,9 +137,11 @@ func (fake *FakeVmOptions) MemOpt(memoryType memory.MemoryType) memory.MemSize {
 	fake.memOptMutex.Unlock()
 	if fake.MemOptStub != nil {
 		return fake.MemOptStub(memoryType)
-	} else {
-		return fake.memOptReturns.result1
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.memOptReturns.result1
 }
 
 func (fake *FakeVmOptions) MemOptCallCount() int {
@@ -86,6 +159,18 @@ func (fake *FakeVmOptions) MemOptArgsForCall(i int) memory.MemoryType {
 func (fake *FakeVmOptions) MemOptReturns(result1 memory.MemSize) {
 	fake.MemOptStub = nil
 	fake.memOptReturns = struct {
+		result1 memory.MemSize
+	}{result1}
+}
+
+func (fake *FakeVmOptions) MemOptReturnsOnCall(i int, result1 memory.MemSize) {
+	fake.MemOptStub = nil
+	if fake.memOptReturnsOnCall == nil {
+		fake.memOptReturnsOnCall = make(map[int]struct {
+			result1 memory.MemSize
+		})
+	}
+	fake.memOptReturnsOnCall[i] = struct {
 		result1 memory.MemSize
 	}{result1}
 }
@@ -120,6 +205,8 @@ func (fake *FakeVmOptions) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.deltaStringMutex.RLock()
 	defer fake.deltaStringMutex.RUnlock()
+	fake.stringMutex.RLock()
+	defer fake.stringMutex.RUnlock()
 	fake.memOptMutex.RLock()
 	defer fake.memOptMutex.RUnlock()
 	fake.setMemOptMutex.RLock()

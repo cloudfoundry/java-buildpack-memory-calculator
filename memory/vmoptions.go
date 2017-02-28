@@ -17,12 +17,14 @@ package memory
 
 import (
 	"bytes"
+	"strconv"
 	"strings"
 )
 
 //go:generate counterfeiter -o vmoptionsfakes/fake_vmoptions.go . VmOptions
 type VmOptions interface {
 	DeltaString() string
+	String() string
 	MemOpt(memoryType MemoryType) MemSize
 	SetMemOpt(memoryType MemoryType, size MemSize)
 }
@@ -44,6 +46,27 @@ const (
 	CompressedClassSpaceSize
 	MaxPermSize
 )
+
+func (t MemoryType) String() string {
+	switch t {
+	case MaxHeapSize:
+		return "MaxHeap"
+	case MaxMetaspaceSize:
+		return "MaxMetaspaceSize"
+	case StackSize:
+		return "StackSize"
+	case MaxDirectMemorySize:
+		return "MaxDirectMemorySize"
+	case ReservedCodeCacheSize:
+		return "ReservedCodeCacheSize"
+	case CompressedClassSpaceSize:
+		return "CompressedClassSpaceSize"
+	case MaxPermSize:
+		return "MaxPermSize"
+	default:
+		panic("Invalid MemoryType value: " + strconv.Itoa(int(t)))
+	}
+}
 
 var switches = map[MemoryType]string{
 	MaxHeapSize:              "-Xmx",
@@ -87,6 +110,21 @@ func (vm *vmOptions) DeltaString() string {
 		if vm.memOptWasRaw[k] {
 			continue
 		}
+		if !first {
+			bb.WriteString(" ")
+		}
+		bb.WriteString(switches[k] + v.String())
+		first = false
+	}
+
+	return bb.String()
+}
+
+func (vm *vmOptions) String() string {
+	var bb bytes.Buffer
+
+	first := true
+	for k, v := range vm.memOpts {
 		if !first {
 			bb.WriteString(" ")
 		}

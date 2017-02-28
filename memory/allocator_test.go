@@ -214,10 +214,11 @@ var _ = Describe("Allocator", func() {
 				Context("when there is insufficient memory remaining", func() {
 					BeforeEach(func() {
 						options[memory.MaxDirectMemorySize] = memory.NewMemSize(500 * 1024 * 1024)
+						vmOptions.StringReturns("vmoptions-output")
 					})
 
 					It("should return an error", func() {
-						Ω(err).Should(MatchError("insufficient memory remaining for heap (memory limit 500M < allocated memory 781525K)"))
+						Ω(err).Should(MatchError("insufficient memory remaining for heap (memory limit 500M < allocated memory 781525K): vmoptions-output -Xss1M"))
 					})
 
 				})
@@ -351,10 +352,11 @@ var _ = Describe("Allocator", func() {
 				Context("when there is insufficient memory remaining", func() {
 					BeforeEach(func() {
 						options[memory.MaxDirectMemorySize] = memory.NewMemSize(500 * 1024 * 1024)
+						vmOptions.StringReturns("vmoptions-output")
 					})
 
 					It("should return an error", func() {
-						Ω(err).Should(MatchError("insufficient memory remaining for heap (memory limit 500M < allocated memory 584087K)"))
+						Ω(err).Should(MatchError("insufficient memory remaining for heap (memory limit 500M < allocated memory 584087K): vmoptions-output -Xss1M"))
 					})
 
 				})

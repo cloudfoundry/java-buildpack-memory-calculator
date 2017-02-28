@@ -111,7 +111,11 @@ func (a *allocator) calculateMaxHeapSize(stackThreads int, memLimit MemSize) (Me
 
 	maxHeapSize := memLimit.Subtract(allocatedMemory)
 	if maxHeapSize.LessThan(MEMSIZE_ZERO) {
-		return MEMSIZE_ZERO, fmt.Errorf("insufficient memory remaining for heap (memory limit %s < allocated memory %s)", memLimit, allocatedMemory)
+		ss := ""
+		if !a.present(StackSize) {
+			ss = fmt.Sprintf(" %s%s", switches[StackSize], stackSize.String())
+		}
+		return MEMSIZE_ZERO, fmt.Errorf("insufficient memory remaining for heap (memory limit %s < allocated memory %s): %s%s", memLimit, allocatedMemory, a.vmOptions.String(), ss)
 	}
 
 	return maxHeapSize, nil

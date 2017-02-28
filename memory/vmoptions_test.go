@@ -367,4 +367,18 @@ var _ = Describe("VmOptions", func() {
 		})
 	})
 
+	Describe("String() behaviour", func() {
+		BeforeEach(func() {
+			rawOpts = "-XX:CompressedClassSpaceSize=" + testMemSizeString
+		})
+
+		It("should record any value set", func() {
+			metaSpaceSize, err := memory.NewMemSizeFromString("45M")
+			Ω(err).ShouldNot(HaveOccurred())
+			vmOptions.SetMemOpt(memory.MaxMetaspaceSize, metaSpaceSize)
+
+			Ω(vmOptions.DeltaString()).Should(Equal("-XX:MaxMetaspaceSize=45M"))
+			Ω(vmOptions.String()).Should(Equal("-XX:CompressedClassSpaceSize=30M -XX:MaxMetaspaceSize=45M"))
+		})
+	})
 })
