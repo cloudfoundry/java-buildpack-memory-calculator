@@ -367,4 +367,67 @@ var _ = Describe("VmOptions", func() {
 		})
 	})
 
+	Describe("Copy", func() {
+		BeforeEach(func() {
+			rawOpts = "-XX:CompressedClassSpaceSize=" + testMemSizeString
+		})
+
+		It("should copy raw and set options", func() {
+			metaSpaceSize, err := memory.NewMemSizeFromString("45M")
+			Ω(err).ShouldNot(HaveOccurred())
+			vmOptions.SetMemOpt(memory.MaxMetaspaceSize, metaSpaceSize)
+
+			vmOptionsCopy := vmOptions.Copy()
+
+			Ω(vmOptionsCopy.DeltaString()).Should(Equal("-XX:MaxMetaspaceSize=45M"))
+			Ω(vmOptionsCopy.String()).Should(Equal("-XX:MaxMetaspaceSize=45M, -XX:CompressedClassSpaceSize=30M"))
+		})
+	})
+
+	Describe("ClearMemOpt", func() {
+		BeforeEach(func() {
+			rawOpts = "-XX:CompressedClassSpaceSize=" + testMemSizeString
+		})
+
+		It("should clear options which have been set", func() {
+			metaSpaceSize, err := memory.NewMemSizeFromString("45M")
+			Ω(err).ShouldNot(HaveOccurred())
+			vmOptions.SetMemOpt(memory.MaxMetaspaceSize, metaSpaceSize)
+
+			Ω(vmOptions.DeltaString()).Should(Equal("-XX:MaxMetaspaceSize=45M"))
+			Ω(vmOptions.String()).Should(Equal("-XX:MaxMetaspaceSize=45M, -XX:CompressedClassSpaceSize=30M"))
+
+			vmOptions.ClearMemOpt(memory.MaxMetaspaceSize)
+
+			Ω(vmOptions.DeltaString()).Should(Equal(""))
+			Ω(vmOptions.String()).Should(Equal("-XX:CompressedClassSpaceSize=30M"))
+		})
+
+		It("should clear raw options", func() {
+			metaSpaceSize, err := memory.NewMemSizeFromString("45M")
+			Ω(err).ShouldNot(HaveOccurred())
+			vmOptions.SetMemOpt(memory.MaxMetaspaceSize, metaSpaceSize)
+
+			Ω(vmOptions.String()).Should(Equal("-XX:MaxMetaspaceSize=45M, -XX:CompressedClassSpaceSize=30M"))
+
+			vmOptions.ClearMemOpt(memory.CompressedClassSpaceSize)
+
+			Ω(vmOptions.String()).Should(Equal("-XX:MaxMetaspaceSize=45M"))
+		})
+	})
+
+	Describe("String", func() {
+		BeforeEach(func() {
+			rawOpts = "-XX:CompressedClassSpaceSize=" + testMemSizeString
+		})
+
+		It("should record any value set", func() {
+			metaSpaceSize, err := memory.NewMemSizeFromString("45M")
+			Ω(err).ShouldNot(HaveOccurred())
+			vmOptions.SetMemOpt(memory.MaxMetaspaceSize, metaSpaceSize)
+
+			Ω(vmOptions.DeltaString()).Should(Equal("-XX:MaxMetaspaceSize=45M"))
+			Ω(vmOptions.String()).Should(Equal("-XX:MaxMetaspaceSize=45M, -XX:CompressedClassSpaceSize=30M"))
+		})
+	})
 })

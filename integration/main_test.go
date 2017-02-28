@@ -31,119 +31,121 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 		poolType = "metaspace"
 	})
 
-	It("executes with help and usage on no parms", func() {
-		co, err := runOutput()
-		Ω(err).Should(HaveOccurred(), jbmcExec)
-		Ω(co).Should(ContainSubstring("\njava-buildpack-memory-calculator\n"), "announce name")
-		Ω(co).Should(ContainSubstring("-help\n"), "flag prompts")
-		Ω(co).Should(ContainSubstring("\nUsage of "), "Usage prefix")
+	Context("with invalid parameters", func() {
+		It("executes with help and usage on no parms", func() {
+			co, err := runOutput()
+			Ω(err).Should(HaveOccurred(), jbmcExec)
+			Ω(co).Should(ContainSubstring("\njava-buildpack-memory-calculator\n"), "announce name")
+			Ω(co).Should(ContainSubstring("-help\n"), "flag prompts")
+			Ω(co).Should(ContainSubstring("\nUsage of "), "Usage prefix")
+		})
+
+		It("executes with usage but no help on bad flag", func() {
+			co, err := runOutput("-unknownFlag")
+			Ω(err).Should(HaveOccurred(), jbmcExec)
+			Ω(co).ShouldNot(ContainSubstring("\njava-buildpack-memory-calculator\n"), "announce name")
+			Ω(co).Should(ContainSubstring("flag provided but not defined: "), "flag prompts")
+			Ω(co).Should(ContainSubstring("-help\n"), "flag prompts")
+			Ω(co).Should(ContainSubstring("\nUsage of "), "Usage prefix")
+		})
+
+		It("executes with error on unexpected argument", func() {
+			unexpectedArgument := []string{"-totMemory=128m", "-spanishInquisition=surprise"}
+			so, se, err := runOutAndErr(unexpectedArgument...)
+			Ω(err).Should(HaveOccurred(), unexpectedArgument[1])
+
+			Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+unexpectedArgument[1])
+			Ω(se).Should(ContainSubstring("flag provided but not defined: -spanishInquisition"), "stderr incorrect for "+unexpectedArgument[1])
+		})
+
+		It("executes with error when no total memory is supplied", func() {
+			badFlags := []string{"-stackThreads=50", "-loadedClasses=100", "-vmOptions=-verbose:gc", "-poolType=" + poolType}
+			so, se, err := runOutAndErr(badFlags...)
+			Ω(err).Should(HaveOccurred(), "no -totMemory flag")
+
+			Ω(string(so)).Should(BeEmpty(), "stdout not empty when no -totMemory flag")
+			Ω(string(se)).Should(ContainSubstring("-totMemory must be specified"), "stderr incorrect when no -totMemory flag")
+		})
+
+		It("executes with error on bad total memory syntax", func() {
+			badFlags := []string{"-totMemory=badmem"}
+			so, se, err := runOutAndErr(badFlags...)
+			Ω(err).Should(HaveOccurred(), badFlags[0])
+
+			Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
+			Ω(string(se)).Should(ContainSubstring("Error in -totMemory flag: "), "stderr incorrect for "+badFlags[0])
+		})
+
+		It("executes with error when too little total memory is supplied", func() {
+			badFlags := []string{"-totMemory=1023b"}
+			so, se, err := runOutAndErr(badFlags...)
+			Ω(err).Should(HaveOccurred(), badFlags[0])
+
+			Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
+			Ω(string(se)).Should(ContainSubstring("Total memory (-totMemory flag) is less than 1K"), "stderr incorrect for "+badFlags[0])
+		})
+
+		It("executes with error when stackThreads is not supplied", func() {
+			badFlags := []string{"-totMemory=128m", "-loadedClasses=100", "-poolType=" + poolType}
+			so, se, err := runOutAndErr(badFlags...)
+			Ω(err).Should(HaveOccurred(), "no -stackThreads flag")
+
+			Ω(string(so)).Should(BeEmpty(), "stdout not empty when no -stackThreads flag")
+			Ω(string(se)).Should(ContainSubstring("-stackThreads must be specified"), "stderr incorrect when no -stackThreads flag")
+		})
+
+		It("executes with error when stackThreads is negative", func() {
+			badFlags :=
+				[]string{"-totMemory=2G", "-stackThreads=-1", "-poolType=" + poolType}
+			so, se, err := runOutAndErr(badFlags...)
+			Ω(err).Should(HaveOccurred(), badFlags[0])
+
+			Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
+			Ω(string(se)).Should(ContainSubstring("Error in -stackThreads flag; value must be positive"), "stderr incorrect for "+badFlags[0])
+		})
+
+		It("executes with error when loadedClasses is not supplied", func() {
+			badFlags := []string{"-totMemory=128m", "-stackThreads=10", "-poolType=" + poolType}
+			so, se, err := runOutAndErr(badFlags...)
+			Ω(err).Should(HaveOccurred(), "no -loadedClasses flag")
+
+			Ω(string(so)).Should(BeEmpty(), "stdout not empty when no -loadedClasses flag")
+			Ω(string(se)).Should(ContainSubstring("-loadedClasses must be specified"), "stderr incorrect when no -loadedClasses flag")
+		})
+
+		It("executes with error when loadedClasses is negative", func() {
+			badFlags :=
+				[]string{"-totMemory=2G", "-stackThreads=10", "-loadedClasses=-1", "-poolType=" + poolType}
+			so, se, err := runOutAndErr(badFlags...)
+			Ω(err).Should(HaveOccurred(), badFlags[0])
+
+			Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
+			Ω(string(se)).Should(ContainSubstring("Error in -loadedClasses flag; value must be positive"), "stderr incorrect for "+badFlags[0])
+		})
+
+		It("executes with error when poolType is not supplied", func() {
+			badFlags :=
+				[]string{"-totMemory=2G", "-stackThreads=10", "-loadedClasses=1"}
+			so, se, err := runOutAndErr(badFlags...)
+			Ω(err).Should(HaveOccurred(), badFlags[0])
+
+			Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
+			Ω(string(se)).Should(ContainSubstring("-poolType must be specified"), "stderr incorrect when no -poolType flag")
+		})
+
+		It("executes with error when poolType is invalid", func() {
+			badFlags :=
+				[]string{"-totMemory=2G", "-stackThreads=10", "-loadedClasses=1", "-poolType=antique"}
+			so, se, err := runOutAndErr(badFlags...)
+			Ω(err).Should(HaveOccurred(), badFlags[0])
+
+			Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
+			Ω(string(se)).Should(ContainSubstring("Error in -poolType flag: must be 'permgen' or 'metaspace'"), "stderr incorrect for "+badFlags[0])
+		})
 	})
 
-	It("executes with usage but no help on bad flag", func() {
-		co, err := runOutput("-unknownFlag")
-		Ω(err).Should(HaveOccurred(), jbmcExec)
-		Ω(co).ShouldNot(ContainSubstring("\njava-buildpack-memory-calculator\n"), "announce name")
-		Ω(co).Should(ContainSubstring("flag provided but not defined: "), "flag prompts")
-		Ω(co).Should(ContainSubstring("-help\n"), "flag prompts")
-		Ω(co).Should(ContainSubstring("\nUsage of "), "Usage prefix")
-	})
-
-	It("executes with error on unexpected argument", func() {
-		unexpectedArgument := []string{"-totMemory=128m", "-spanishInquisition=surprise"}
-		so, se, err := runOutAndErr(unexpectedArgument...)
-		Ω(err).Should(HaveOccurred(), unexpectedArgument[1])
-
-		Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+unexpectedArgument[1])
-		Ω(se).Should(ContainSubstring("flag provided but not defined: -spanishInquisition"), "stderr incorrect for "+unexpectedArgument[1])
-	})
-
-	It("executes with error when no total memory is supplied", func() {
-		badFlags := []string{"-stackThreads=50", "-loadedClasses=100", "-vmOptions=-verbose:gc", "-poolType=" + poolType}
-		so, se, err := runOutAndErr(badFlags...)
-		Ω(err).Should(HaveOccurred(), "no -totMemory flag")
-
-		Ω(string(so)).Should(BeEmpty(), "stdout not empty when no -totMemory flag")
-		Ω(string(se)).Should(ContainSubstring("-totMemory must be specified"), "stderr incorrect when no -totMemory flag")
-	})
-
-	It("executes with error on bad total memory syntax", func() {
-		badFlags := []string{"-totMemory=badmem"}
-		so, se, err := runOutAndErr(badFlags...)
-		Ω(err).Should(HaveOccurred(), badFlags[0])
-
-		Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
-		Ω(string(se)).Should(ContainSubstring("Error in -totMemory flag: "), "stderr incorrect for "+badFlags[0])
-	})
-
-	It("executes with error when too little total memory is supplied", func() {
-		badFlags := []string{"-totMemory=1023b"}
-		so, se, err := runOutAndErr(badFlags...)
-		Ω(err).Should(HaveOccurred(), badFlags[0])
-
-		Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
-		Ω(string(se)).Should(ContainSubstring("Total memory (-totMemory flag) is less than 1K"), "stderr incorrect for "+badFlags[0])
-	})
-
-	It("executes with error when stackThreads is not supplied", func() {
-		badFlags := []string{"-totMemory=128m", "-loadedClasses=100", "-poolType=" + poolType}
-		so, se, err := runOutAndErr(badFlags...)
-		Ω(err).Should(HaveOccurred(), "no -stackThreads flag")
-
-		Ω(string(so)).Should(BeEmpty(), "stdout not empty when no -stackThreads flag")
-		Ω(string(se)).Should(ContainSubstring("-stackThreads must be specified"), "stderr incorrect when no -stackThreads flag")
-	})
-
-	It("executes with error when stackThreads is negative", func() {
-		badFlags :=
-			[]string{"-totMemory=2G", "-stackThreads=-1", "-poolType=" + poolType}
-		so, se, err := runOutAndErr(badFlags...)
-		Ω(err).Should(HaveOccurred(), badFlags[0])
-
-		Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
-		Ω(string(se)).Should(ContainSubstring("Error in -stackThreads flag; value must be positive"), "stderr incorrect for "+badFlags[0])
-	})
-
-	It("executes with error when loadedClasses is not supplied", func() {
-		badFlags := []string{"-totMemory=128m", "-stackThreads=10", "-poolType=" + poolType}
-		so, se, err := runOutAndErr(badFlags...)
-		Ω(err).Should(HaveOccurred(), "no -loadedClasses flag")
-
-		Ω(string(so)).Should(BeEmpty(), "stdout not empty when no -loadedClasses flag")
-		Ω(string(se)).Should(ContainSubstring("-loadedClasses must be specified"), "stderr incorrect when no -loadedClasses flag")
-	})
-
-	It("executes with error when loadedClasses is negative", func() {
-		badFlags :=
-			[]string{"-totMemory=2G", "-stackThreads=10", "-loadedClasses=-1", "-poolType=" + poolType}
-		so, se, err := runOutAndErr(badFlags...)
-		Ω(err).Should(HaveOccurred(), badFlags[0])
-
-		Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
-		Ω(string(se)).Should(ContainSubstring("Error in -loadedClasses flag; value must be positive"), "stderr incorrect for "+badFlags[0])
-	})
-
-	It("executes with error when poolType is not supplied", func() {
-		badFlags :=
-			[]string{"-totMemory=2G", "-stackThreads=10", "-loadedClasses=1"}
-		so, se, err := runOutAndErr(badFlags...)
-		Ω(err).Should(HaveOccurred(), badFlags[0])
-
-		Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
-		Ω(string(se)).Should(ContainSubstring("-poolType must be specified"), "stderr incorrect when no -poolType flag")
-	})
-
-	It("executes with error when poolType is invalid", func() {
-		badFlags :=
-			[]string{"-totMemory=2G", "-stackThreads=10", "-loadedClasses=1", "-poolType=antique"}
-		so, se, err := runOutAndErr(badFlags...)
-		Ω(err).Should(HaveOccurred(), badFlags[0])
-
-		Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
-		Ω(string(se)).Should(ContainSubstring("Error in -poolType flag: must be 'permgen' or 'metaspace'"), "stderr incorrect for "+badFlags[0])
-	})
-
-	Context("when poolType is metaspace", func() {
-		Context("with valid parameters", func() {
+	Context("with valid parameters", func() {
+		Context("when poolType is metaspace", func() {
 			var (
 				totMemFlag string
 				sOut, sErr []byte
@@ -179,25 +181,25 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 
 				It("fails with an error", func() {
 					Ω(cmdErr).Should(HaveOccurred(), "exit status")
-					Ω(string(sErr)).Should(ContainSubstring("Cannot calculate memory: insufficient memory remaining for heap (memory limit 32M < allocated memory 274404K)"),
+					Ω(string(sErr)).Should(ContainSubstring("Cannot calculate memory: insufficient memory remaining for heap."+
+						" Memory limit 32M < allocated memory 274404K (-XX:ReservedCodeCacheSize=240M, -XX:MaxDirectMemorySize=10M,"+
+						" -XX:MaxMetaspaceSize=7363K, -XX:CompressedClassSpaceSize=800K, -Xss1M * 10 threads)"),
 						"stderr")
 					Ω(string(sOut)).Should(Equal(""), "stdout")
 				})
 			})
 		})
-	})
 
-	Context("when poolType is permgen", func() {
-		BeforeEach(func() {
-			poolType = "permgen"
-		})
-
-		Context("with valid parameters", func() {
+		Context("when poolType is permgen", func() {
 			var (
 				totMemFlag string
 				sOut, sErr []byte
 				cmdErr     error
 			)
+
+			BeforeEach(func() {
+				poolType = "permgen"
+			})
 
 			JustBeforeEach(func() {
 				sOut, sErr, cmdErr = runOutAndErr(totMemFlag, "-stackThreads=10", "-loadedClasses=100", "-poolType="+poolType)
@@ -227,7 +229,36 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 
 				It("fails with an error", func() {
 					Ω(cmdErr).Should(HaveOccurred(), "exit status")
-					Ω(string(sErr)).Should(ContainSubstring("Cannot calculate memory: insufficient memory remaining for heap (memory limit 32M < allocated memory 77053K)"),
+					Ω(string(sErr)).Should(ContainSubstring("Cannot calculate memory: insufficient memory remaining for heap."+
+						" Memory limit 32M < allocated memory 77053K (-XX:ReservedCodeCacheSize=48M, -XX:MaxDirectMemorySize=10M,"+
+						" -XX:MaxPermSize=7421K, -Xss1M * 10 threads)"),
+						"stderr")
+					Ω(string(sOut)).Should(Equal(""), "stdout")
+				})
+			})
+		})
+
+		Context("when stacksize is specified", func() {
+			var (
+				totMemFlag string
+				sOut, sErr []byte
+				cmdErr     error
+			)
+
+			JustBeforeEach(func() {
+				sOut, sErr, cmdErr = runOutAndErr(totMemFlag, "-stackThreads=10", "-loadedClasses=100", "-poolType="+poolType, "-vmOptions=-Xss2M")
+			})
+
+			Context("when there is insufficient total memory", func() {
+				BeforeEach(func() {
+					totMemFlag = "-totMemory=32m"
+				})
+
+				It("fails with an error", func() {
+					Ω(cmdErr).Should(HaveOccurred(), "exit status")
+					Ω(string(sErr)).Should(ContainSubstring("Cannot calculate memory: insufficient memory remaining for heap."+
+						" Memory limit 32M < allocated memory 284644K (-XX:ReservedCodeCacheSize=240M, -XX:MaxDirectMemorySize=10M,"+
+						" -XX:MaxMetaspaceSize=7363K, -XX:CompressedClassSpaceSize=800K, -Xss2M * 10 threads)"),
 						"stderr")
 					Ω(string(sOut)).Should(Equal(""), "stdout")
 				})

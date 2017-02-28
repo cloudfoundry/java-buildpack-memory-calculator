@@ -23,26 +23,29 @@ import (
 //go:generate counterfeiter -o vmoptionsfakes/fake_vmoptions.go . VmOptions
 type VmOptions interface {
 	DeltaString() string
+	Copy() VmOptions
+	String() string
 	MemOpt(memoryType MemoryType) MemSize
 	SetMemOpt(memoryType MemoryType, size MemSize)
+	ClearMemOpt(memoryType MemoryType) // forgets a memory type, raw or not
 }
 
 type vmOptions struct {
-	rawOpts      string
-	memOptWasRaw map[MemoryType]bool
 	memOpts      map[MemoryType]MemSize
+	memOptWasRaw map[MemoryType]bool
 }
 
 type MemoryType int
 
 const (
 	MaxHeapSize MemoryType = iota
-	MaxMetaspaceSize
 	StackSize
-	MaxDirectMemorySize
 	ReservedCodeCacheSize
+	MaxDirectMemorySize
+	MaxMetaspaceSize
 	CompressedClassSpaceSize
 	MaxPermSize
+	MemoryTypeLimit // not an actual memory type, used for enumerating the valid memory types
 )
 
 var switches = map[MemoryType]string{
@@ -73,10 +76,25 @@ func NewVmOptions(rawOpts string) (*vmOptions, error) {
 	}
 
 	return &vmOptions{
-		rawOpts:      rawOpts,
 		memOptWasRaw: mowr,
 		memOpts:      mo,
 	}, nil
+}
+
+func (vm *vmOptions) Copy() VmOptions {
+	copy := &vmOptions{}
+
+	copy.memOpts = map[MemoryType]MemSize{}
+	for k, v := range vm.memOpts {
+		copy.memOpts[k] = v
+	}
+
+	copy.memOptWasRaw = map[MemoryType]bool{}
+	for k, v := range vm.memOptWasRaw {
+		copy.memOptWasRaw[k] = v
+	}
+
+	return copy
 }
 
 func (vm *vmOptions) DeltaString() string {
@@ -97,12 +115,37 @@ func (vm *vmOptions) DeltaString() string {
 	return bb.String()
 }
 
+// Human readable form of the VM options with a fixed order.
+func (vm *vmOptions) String() string {
+	var bb bytes.Buffer
+
+	first := true
+	for k := MemoryType(0); k < MemoryTypeLimit; k++ {
+		v, ok := vm.memOpts[k]
+		if !ok {
+			continue
+		}
+		if !first {
+			bb.WriteString(", ")
+		}
+		bb.WriteString(switches[k] + v.String())
+		first = false
+	}
+
+	return bb.String()
+}
+
 func (vm *vmOptions) MemOpt(memoryType MemoryType) MemSize {
 	return vm.memOpts[memoryType]
 }
 
 func (vm *vmOptions) SetMemOpt(memoryType MemoryType, size MemSize) {
 	vm.memOpts[memoryType] = size
+}
+
+func (vm *vmOptions) ClearMemOpt(memoryType MemoryType) {
+	delete(vm.memOpts, memoryType)
+	delete(vm.memOptWasRaw, memoryType)
 }
 
 func parseOpt(rawOpts string, sw string) (MemSize, error) {

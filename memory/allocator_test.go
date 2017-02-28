@@ -88,6 +88,8 @@ var _ = Describe("Allocator", func() {
 				expectedMaxDirectMemorySize      memory.MemSize
 
 				options map[memory.MemoryType]memory.MemSize
+
+				vmOptionsCopy *vmoptionsfakes.FakeVmOptions
 			)
 
 			BeforeEach(func() {
@@ -105,6 +107,14 @@ var _ = Describe("Allocator", func() {
 
 				vmOptions.SetMemOptStub = func(memoryType memory.MemoryType, size memory.MemSize) {
 					options[memoryType] = size
+				}
+
+				vmOptionsCopy = &vmoptionsfakes.FakeVmOptions{}
+
+				vmOptionsCopy.StringReturns("vmoptions-copy-output")
+
+				vmOptions.CopyStub = func() memory.VmOptions {
+					return vmOptionsCopy
 				}
 			})
 
@@ -214,10 +224,11 @@ var _ = Describe("Allocator", func() {
 				Context("when there is insufficient memory remaining", func() {
 					BeforeEach(func() {
 						options[memory.MaxDirectMemorySize] = memory.NewMemSize(500 * 1024 * 1024)
+						vmOptions.StringReturns("vmoptions-output")
 					})
 
 					It("should return an error", func() {
-						Ω(err).Should(MatchError("insufficient memory remaining for heap (memory limit 500M < allocated memory 781525K)"))
+						Ω(err).Should(MatchError("insufficient memory remaining for heap. Memory limit 500M < allocated memory 781525K (vmoptions-copy-output, -Xss1M * 10 threads)"))
 					})
 
 				})
@@ -244,6 +255,8 @@ var _ = Describe("Allocator", func() {
 				expectedMaxDirectMemorySize   memory.MemSize
 
 				options map[memory.MemoryType]memory.MemSize
+
+				vmOptionsCopy *vmoptionsfakes.FakeVmOptions
 			)
 
 			BeforeEach(func() {
@@ -261,6 +274,14 @@ var _ = Describe("Allocator", func() {
 
 				vmOptions.SetMemOptStub = func(memoryType memory.MemoryType, size memory.MemSize) {
 					options[memoryType] = size
+				}
+
+				vmOptionsCopy = &vmoptionsfakes.FakeVmOptions{}
+
+				vmOptionsCopy.StringReturns("vmoptions-copy-output")
+
+				vmOptions.CopyStub = func() memory.VmOptions {
+					return vmOptionsCopy
 				}
 			})
 
@@ -351,10 +372,11 @@ var _ = Describe("Allocator", func() {
 				Context("when there is insufficient memory remaining", func() {
 					BeforeEach(func() {
 						options[memory.MaxDirectMemorySize] = memory.NewMemSize(500 * 1024 * 1024)
+						vmOptions.StringReturns("vmoptions-output")
 					})
 
 					It("should return an error", func() {
-						Ω(err).Should(MatchError("insufficient memory remaining for heap (memory limit 500M < allocated memory 584087K)"))
+						Ω(err).Should(MatchError("insufficient memory remaining for heap. Memory limit 500M < allocated memory 584087K (vmoptions-copy-output, -Xss1M * 10 threads)"))
 					})
 
 				})
