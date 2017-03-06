@@ -53,13 +53,13 @@ var estimators = map[MemoryType]func(int) MemSize{
 		return NewMemSize(DEFAULT_MAX_DIRECT_MEMORY_SIZE)
 	},
 	MaxMetaspaceSize: func(loadedClasses int) MemSize {
-		return NewMemSize(5400).Scale(float64(loadedClasses)).Add(NewMemSize(7000000))
+		return NewMemSize(5800).Scale(float64(loadedClasses)).Add(NewMemSize(14000000))
 	},
 	ReservedCodeCacheSize: func(loadedClasses int) MemSize {
 		return NewMemSize(DEFAULT_CODE_CACHE_JAVA_8)
 	},
 	CompressedClassSpaceSize: func(loadedClasses int) MemSize {
-		return NewMemSize(700).Scale(float64(loadedClasses)).Add(NewMemSize(750000))
+		return NewMemSize(700).Scale(float64(loadedClasses)).Add(NewMemSize(8000000))
 	},
 }
 

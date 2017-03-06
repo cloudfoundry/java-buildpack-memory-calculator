@@ -95,8 +95,8 @@ var _ = Describe("Allocator", func() {
 			BeforeEach(func() {
 				stackThreads = 10
 
-				expectedCompressedClassSpaceSize = memory.NewMemSize(1450000)
-				expectedMaxMetaspaceSize = memory.NewMemSize(12400000)
+				expectedCompressedClassSpaceSize = memory.NewMemSize(8700000)
+				expectedMaxMetaspaceSize = memory.NewMemSize(19800000)
 				expectedReservedCodeCacheSize = memory.NewMemSize(240 * 1024 * 1024)
 				expectedMaxDirectMemorySize = memory.NewMemSize(10 * 1024 * 1024)
 
@@ -228,7 +228,7 @@ var _ = Describe("Allocator", func() {
 					})
 
 					It("should return an error", func() {
-						Ω(err).Should(MatchError("insufficient memory remaining for heap. Memory limit 500M < allocated memory 781525K (vmoptions-copy-output, -Xss1M * 10 threads)"))
+						Ω(err).Should(MatchError("insufficient memory remaining for heap. Memory limit 500M < allocated memory 795832K (vmoptions-copy-output, -Xss1M * 10 threads)"))
 					})
 
 				})

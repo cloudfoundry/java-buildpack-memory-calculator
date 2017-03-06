@@ -166,9 +166,9 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 					Ω(string(sErr)).Should(Equal(""), "stderr")
 					Ω(strings.Split(string(sOut), " ")).Should(ConsistOf(
 						"-XX:ReservedCodeCacheSize=240M",
-						"-XX:CompressedClassSpaceSize=800K",
-						"-Xmx3919899K",
-						"-XX:MaxMetaspaceSize=7363K",
+						"-XX:CompressedClassSpaceSize=7880K",
+						"-Xmx3905944K",
+						"-XX:MaxMetaspaceSize=14238K",
 						"-XX:MaxDirectMemorySize=10M",
 					), "stdout")
 				})
@@ -182,8 +182,8 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 				It("fails with an error", func() {
 					Ω(cmdErr).Should(HaveOccurred(), "exit status")
 					Ω(string(sErr)).Should(ContainSubstring("Cannot calculate memory: insufficient memory remaining for heap."+
-						" Memory limit 32M < allocated memory 274404K (-XX:ReservedCodeCacheSize=240M, -XX:MaxDirectMemorySize=10M,"+
-						" -XX:MaxMetaspaceSize=7363K, -XX:CompressedClassSpaceSize=800K, -Xss1M * 10 threads)"),
+						" Memory limit 32M < allocated memory 288359K (-XX:ReservedCodeCacheSize=240M, -XX:MaxDirectMemorySize=10M,"+
+						" -XX:MaxMetaspaceSize=14238K, -XX:CompressedClassSpaceSize=7880K, -Xss1M * 10 threads)"),
 						"stderr")
 					Ω(string(sOut)).Should(Equal(""), "stdout")
 				})
@@ -257,8 +257,8 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 				It("fails with an error", func() {
 					Ω(cmdErr).Should(HaveOccurred(), "exit status")
 					Ω(string(sErr)).Should(ContainSubstring("Cannot calculate memory: insufficient memory remaining for heap."+
-						" Memory limit 32M < allocated memory 284644K (-XX:ReservedCodeCacheSize=240M, -XX:MaxDirectMemorySize=10M,"+
-						" -XX:MaxMetaspaceSize=7363K, -XX:CompressedClassSpaceSize=800K, -Xss2M * 10 threads)"),
+						" Memory limit 32M < allocated memory 298599K (-XX:ReservedCodeCacheSize=240M, -XX:MaxDirectMemorySize=10M,"+
+						" -XX:MaxMetaspaceSize=14238K, -XX:CompressedClassSpaceSize=7880K, -Xss2M * 10 threads)"),
 						"stderr")
 					Ω(string(sOut)).Should(Equal(""), "stdout")
 				})
