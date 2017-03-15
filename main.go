@@ -39,22 +39,22 @@ func main() {
 
 	vmOptions, err := memory.NewVmOptions(rawVmOptions)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Problem with vmOptions: %s", err)
+		fmt.Fprintf(os.Stderr, "Problem with vmOptions: %s\n", err)
 		os.Exit(1)
 	}
 
 	allocator, err := memory.NewAllocator(poolType, vmOptions)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Cannot allocate memory: %s", err)
+		fmt.Fprintf(os.Stderr, "Cannot allocate memory: %s\n", err)
 		os.Exit(1)
 	}
 
 	if err = allocator.Calculate(numLoadedClasses, numThreads, memSize); err != nil {
-		fmt.Fprintf(os.Stderr, "Cannot calculate memory: %s", err)
+		fmt.Fprintf(os.Stderr, "Cannot calculate memory: %s\n", err)
 		os.Exit(1)
 	}
 
 	// Print outputs to standard output and standard error so they appear in logs.
-	fmt.Fprint(os.Stdout, allocator.String())
-	fmt.Fprint(os.Stderr, allocator.String())
+	fmt.Fprintln(os.Stdout, allocator.String())
+	fmt.Fprintln(os.Stderr, allocator.String())
 }

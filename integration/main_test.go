@@ -163,14 +163,14 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 
 				It("succeeds", func() {
 					Ω(cmdErr).ShouldNot(HaveOccurred(), "exit status")
-					Ω(strings.Split(string(sErr), " ")).Should(ConsistOf(
+					Ω(strings.Split(removeNewline(sErr), " ")).Should(ConsistOf(
 						"-XX:ReservedCodeCacheSize=240M",
 						"-XX:CompressedClassSpaceSize=7880K",
 						"-Xmx3905944K",
 						"-XX:MaxMetaspaceSize=14238K",
 						"-XX:MaxDirectMemorySize=10M",
 					), "stderr")
-					Ω(strings.Split(string(sOut), " ")).Should(ConsistOf(
+					Ω(strings.Split(removeNewline(sOut), " ")).Should(ConsistOf(
 						"-XX:ReservedCodeCacheSize=240M",
 						"-XX:CompressedClassSpaceSize=7880K",
 						"-Xmx3905944K",
@@ -218,13 +218,13 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 
 				It("succeeds", func() {
 					Ω(cmdErr).ShouldNot(HaveOccurred(), "exit status")
-					Ω(strings.Split(string(sErr), " ")).Should(ConsistOf(
+					Ω(strings.Split(removeNewline(sErr), " ")).Should(ConsistOf(
 						"-XX:ReservedCodeCacheSize=48M",
 						"-Xmx4117250K",
 						"-XX:MaxPermSize=7421K",
 						"-XX:MaxDirectMemorySize=10M",
 					), "stderr")
-					Ω(strings.Split(string(sOut), " ")).Should(ConsistOf(
+					Ω(strings.Split(removeNewline(sOut), " ")).Should(ConsistOf(
 						"-XX:ReservedCodeCacheSize=48M",
 						"-Xmx4117250K",
 						"-XX:MaxPermSize=7421K",
@@ -242,7 +242,7 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 					Ω(cmdErr).Should(HaveOccurred(), "exit status")
 					Ω(string(sErr)).Should(ContainSubstring("Cannot calculate memory: insufficient memory remaining for heap."+
 						" Memory limit 32M < allocated memory 77053K (-XX:ReservedCodeCacheSize=48M, -XX:MaxDirectMemorySize=10M,"+
-						" -XX:MaxPermSize=7421K, -Xss1M * 10 threads)"),
+						" -XX:MaxPermSize=7421K, -Xss1M * 10 threads)\n"),
 						"stderr")
 					Ω(string(sOut)).Should(Equal(""), "stdout")
 				})
@@ -269,7 +269,7 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 					Ω(cmdErr).Should(HaveOccurred(), "exit status")
 					Ω(string(sErr)).Should(ContainSubstring("Cannot calculate memory: insufficient memory remaining for heap."+
 						" Memory limit 32M < allocated memory 298599K (-XX:ReservedCodeCacheSize=240M, -XX:MaxDirectMemorySize=10M,"+
-						" -XX:MaxMetaspaceSize=14238K, -XX:CompressedClassSpaceSize=7880K, -Xss2M * 10 threads)"),
+						" -XX:MaxMetaspaceSize=14238K, -XX:CompressedClassSpaceSize=7880K, -Xss2M * 10 threads)\n"),
 						"stderr")
 					Ω(string(sOut)).Should(Equal(""), "stdout")
 				})
@@ -290,4 +290,12 @@ func runOutAndErr(args ...string) ([]byte, []byte, error) {
 	cmd.Stdout, cmd.Stderr = stdout, stderr
 	err := cmd.Run()
 	return stdout.Bytes(), stderr.Bytes(), err
+}
+
+func removeNewline(b []byte) string {
+	str := string(b)
+	Ω(len(str)).ShouldNot(Equal(0))
+	front, last := str[0:len(str)-1], str[len(str)-1:]
+	Ω(last).Should(Equal("\n"))
+	return front
 }
