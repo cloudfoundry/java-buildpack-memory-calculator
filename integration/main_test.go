@@ -170,7 +170,7 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 						"-XX:MaxMetaspaceSize=14238K",
 						"-XX:MaxDirectMemorySize=10M",
 					), "stderr")
-					Ω(strings.Split(removeNewline(sOut), " ")).Should(ConsistOf(
+					Ω(strings.Split(string(sOut), " ")).Should(ConsistOf(
 						"-XX:ReservedCodeCacheSize=240M",
 						"-XX:CompressedClassSpaceSize=7880K",
 						"-Xmx3905944K",
@@ -224,7 +224,7 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 						"-XX:MaxPermSize=7421K",
 						"-XX:MaxDirectMemorySize=10M",
 					), "stderr")
-					Ω(strings.Split(removeNewline(sOut), " ")).Should(ConsistOf(
+					Ω(strings.Split(string(sOut), " ")).Should(ConsistOf(
 						"-XX:ReservedCodeCacheSize=48M",
 						"-Xmx4117250K",
 						"-XX:MaxPermSize=7421K",

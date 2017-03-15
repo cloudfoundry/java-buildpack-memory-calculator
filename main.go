@@ -54,7 +54,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Print outputs to standard output and standard error so they appear in logs.
-	fmt.Fprintln(os.Stdout, allocator.String())
+	// Print outputs to standard output for consumption by the caller
+	fmt.Fprint(os.Stdout, allocator.String())
+
+	//  Print outputs to standard error so they appear in logs
 	fmt.Fprintln(os.Stderr, allocator.String())
 }
