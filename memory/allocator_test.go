@@ -228,7 +228,7 @@ var _ = Describe("Allocator", func() {
 					})
 
 					It("should return an error", func() {
-						Ω(err).Should(MatchError("insufficient memory remaining for heap. Memory limit 500M < allocated memory 795832K (vmoptions-copy-output, -Xss1M * 10 threads)"))
+						Ω(err).Should(MatchError("There is insufficient memory remaining for heap. Memory limit 500M is less than allocated memory 795832K (vmoptions-copy-output, -Xss1M * 10 threads)"))
 					})
 
 				})
@@ -376,7 +376,7 @@ var _ = Describe("Allocator", func() {
 					})
 
 					It("should return an error", func() {
-						Ω(err).Should(MatchError("insufficient memory remaining for heap. Memory limit 500M < allocated memory 584087K (vmoptions-copy-output, -Xss1M * 10 threads)"))
+						Ω(err).Should(MatchError("There is insufficient memory remaining for heap. Memory limit 500M is less than allocated memory 584087K (vmoptions-copy-output, -Xss1M * 10 threads)"))
 					})
 
 				})

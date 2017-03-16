@@ -45,12 +45,12 @@ func main() {
 
 	allocator, err := memory.NewAllocator(poolType, vmOptions)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Cannot allocate memory: %s\n", err)
+		fmt.Fprintf(os.Stderr, "Cannot allocate JVM memory configuration: %s\n", err)
 		os.Exit(1)
 	}
 
 	if err = allocator.Calculate(numLoadedClasses, numThreads, memSize); err != nil {
-		fmt.Fprintf(os.Stderr, "Cannot calculate memory: %s\n", err)
+		fmt.Fprintf(os.Stderr, "Cannot calculate JVM memory configuration: %s\n", err)
 		os.Exit(1)
 	}
 
@@ -58,5 +58,5 @@ func main() {
 	fmt.Fprint(os.Stdout, allocator.String())
 
 	//  Print outputs to standard error so they appear in logs
-	fmt.Fprintln(os.Stderr, allocator.String())
+	fmt.Fprintf(os.Stderr, "JVM Memory Configuration: %s\n", allocator.String())
 }

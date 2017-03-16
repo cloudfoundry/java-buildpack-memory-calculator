@@ -164,6 +164,9 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 				It("succeeds", func() {
 					Ω(cmdErr).ShouldNot(HaveOccurred(), "exit status")
 					Ω(strings.Split(removeNewline(sErr), " ")).Should(ConsistOf(
+						"JVM",
+						"Memory",
+						"Configuration:",
 						"-XX:ReservedCodeCacheSize=240M",
 						"-XX:CompressedClassSpaceSize=7880K",
 						"-Xmx3905944K",
@@ -187,8 +190,8 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 
 				It("fails with an error", func() {
 					Ω(cmdErr).Should(HaveOccurred(), "exit status")
-					Ω(string(sErr)).Should(ContainSubstring("Cannot calculate memory: insufficient memory remaining for heap."+
-						" Memory limit 32M < allocated memory 288359K (-XX:ReservedCodeCacheSize=240M, -XX:MaxDirectMemorySize=10M,"+
+					Ω(string(sErr)).Should(ContainSubstring("Cannot calculate JVM memory configuration: There is insufficient memory remaining for heap."+
+						" Memory limit 32M is less than allocated memory 288359K (-XX:ReservedCodeCacheSize=240M, -XX:MaxDirectMemorySize=10M,"+
 						" -XX:MaxMetaspaceSize=14238K, -XX:CompressedClassSpaceSize=7880K, -Xss1M * 10 threads)"),
 						"stderr")
 					Ω(string(sOut)).Should(Equal(""), "stdout")
@@ -219,6 +222,9 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 				It("succeeds", func() {
 					Ω(cmdErr).ShouldNot(HaveOccurred(), "exit status")
 					Ω(strings.Split(removeNewline(sErr), " ")).Should(ConsistOf(
+						"JVM",
+						"Memory",
+						"Configuration:",
 						"-XX:ReservedCodeCacheSize=48M",
 						"-Xmx4117250K",
 						"-XX:MaxPermSize=7421K",
@@ -240,8 +246,8 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 
 				It("fails with an error", func() {
 					Ω(cmdErr).Should(HaveOccurred(), "exit status")
-					Ω(string(sErr)).Should(ContainSubstring("Cannot calculate memory: insufficient memory remaining for heap."+
-						" Memory limit 32M < allocated memory 77053K (-XX:ReservedCodeCacheSize=48M, -XX:MaxDirectMemorySize=10M,"+
+					Ω(string(sErr)).Should(ContainSubstring("Cannot calculate JVM memory configuration: There is insufficient memory remaining for heap."+
+						" Memory limit 32M is less than allocated memory 77053K (-XX:ReservedCodeCacheSize=48M, -XX:MaxDirectMemorySize=10M,"+
 						" -XX:MaxPermSize=7421K, -Xss1M * 10 threads)\n"),
 						"stderr")
 					Ω(string(sOut)).Should(Equal(""), "stdout")
@@ -267,8 +273,8 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 
 				It("fails with an error", func() {
 					Ω(cmdErr).Should(HaveOccurred(), "exit status")
-					Ω(string(sErr)).Should(ContainSubstring("Cannot calculate memory: insufficient memory remaining for heap."+
-						" Memory limit 32M < allocated memory 298599K (-XX:ReservedCodeCacheSize=240M, -XX:MaxDirectMemorySize=10M,"+
+					Ω(string(sErr)).Should(ContainSubstring("Cannot calculate JVM memory configuration: There is insufficient memory remaining for heap."+
+						" Memory limit 32M is less than allocated memory 298599K (-XX:ReservedCodeCacheSize=240M, -XX:MaxDirectMemorySize=10M,"+
 						" -XX:MaxMetaspaceSize=14238K, -XX:CompressedClassSpaceSize=7880K, -Xss2M * 10 threads)\n"),
 						"stderr")
 					Ω(string(sOut)).Should(Equal(""), "stdout")
