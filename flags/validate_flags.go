@@ -40,7 +40,7 @@ func printHelp() {
 		"The output consists of any calculated memory switches.\n\n"+
 		"If a calculated memory switch value is unsuitable, it can be set in the JVM options provided as input and will no longer be calculated.\n\n"+
 		"Example invocation from a shell:\n"+
-		"$ %s -loadedClasses=1000 -stackThreads=10 -totMemory=1g -vmOptions=-XX:MaxDirectMemorySize=100M\\ -verbose:gc\n\n", executableName)
+		"$ %s -loadedClasses=1000 -stackThreads=10 -totMemory=1g -poolType=metaspace -vmOptions=-XX:MaxDirectMemorySize=100M\\ -verbose:gc\n\n", executableName)
 	flag.Usage()
 }
 
