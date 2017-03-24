@@ -56,7 +56,4 @@ func main() {
 
 	// Print outputs to standard output for consumption by the caller
 	fmt.Fprint(os.Stdout, allocator.String())
-
-	//  Print outputs to standard error so they appear in logs
-	fmt.Fprintf(os.Stderr, "JVM Memory Configuration: %s\n", allocator.String())
 }

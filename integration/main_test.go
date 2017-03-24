@@ -163,16 +163,6 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 
 				It("succeeds", func() {
 					Ω(cmdErr).ShouldNot(HaveOccurred(), "exit status")
-					Ω(strings.Split(removeNewline(sErr), " ")).Should(ConsistOf(
-						"JVM",
-						"Memory",
-						"Configuration:",
-						"-XX:ReservedCodeCacheSize=240M",
-						"-XX:CompressedClassSpaceSize=7880K",
-						"-Xmx3905944K",
-						"-XX:MaxMetaspaceSize=14238K",
-						"-XX:MaxDirectMemorySize=10M",
-					), "stderr")
 					Ω(strings.Split(string(sOut), " ")).Should(ConsistOf(
 						"-XX:ReservedCodeCacheSize=240M",
 						"-XX:CompressedClassSpaceSize=7880K",
@@ -221,15 +211,6 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 
 				It("succeeds", func() {
 					Ω(cmdErr).ShouldNot(HaveOccurred(), "exit status")
-					Ω(strings.Split(removeNewline(sErr), " ")).Should(ConsistOf(
-						"JVM",
-						"Memory",
-						"Configuration:",
-						"-XX:ReservedCodeCacheSize=48M",
-						"-Xmx4117250K",
-						"-XX:MaxPermSize=7421K",
-						"-XX:MaxDirectMemorySize=10M",
-					), "stderr")
 					Ω(strings.Split(string(sOut), " ")).Should(ConsistOf(
 						"-XX:ReservedCodeCacheSize=48M",
 						"-Xmx4117250K",
