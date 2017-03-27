@@ -105,6 +105,7 @@ func (a *allocator) calculateMaxHeapSize(stackThreads int, memLimit MemSize) (Me
 		stackSize = a.vmOptions.MemOpt(StackSize)
 	} else {
 		stackSize = NewMemSize(DEFAULT_STACK_SIZE)
+		a.vmOptions.SetMemOpt(StackSize, stackSize) // Avoid depending on the JVM's default stack size
 	}
 
 	allocatedMemory := stackSize.Scale(float64(stackThreads)).Add(a.estimatedMemory())

@@ -210,6 +210,10 @@ var _ = Describe("Allocator", func() {
 					Ω(options[memory.MaxHeapSize]).Should(Equal(testMemSize.Subtract(expectedAllocatedMemory)))
 				})
 
+				It("should set the stack size to a default value", func() {
+					Ω(options[memory.StackSize]).Should(Equal(memory.NewMemSize(1024 * 1024)))
+				})
+
 				Context("when the stack size has been specified", func() {
 					BeforeEach(func() {
 						options[memory.StackSize] = memory.NewMemSize(2 * 1024 * 1024) // double the default value
@@ -218,6 +222,10 @@ var _ = Describe("Allocator", func() {
 					It("should produce the correct estimate", func() {
 						Ω(options[memory.MaxHeapSize]).Should(Equal(testMemSize.Subtract(expectedAllocatedMemory.Add(expectedStackSpace))))
 						Ω(err).ShouldNot(HaveOccurred())
+					})
+
+					It("should preserve the specified stack size", func() {
+						Ω(options[memory.StackSize]).Should(Equal(memory.NewMemSize(2 * 1024 * 1024)))
 					})
 				})
 
@@ -241,6 +249,11 @@ var _ = Describe("Allocator", func() {
 					It("should preserve the set value", func() {
 						Ω(options[memory.MaxHeapSize]).Should(Equal(testMemOptionSize))
 						Ω(err).ShouldNot(HaveOccurred())
+					})
+
+					It("should not set the stack size", func() {
+						_, ok := options[memory.StackSize]
+						Ω(ok).Should(BeFalse())
 					})
 				})
 			})
@@ -358,6 +371,10 @@ var _ = Describe("Allocator", func() {
 					Ω(options[memory.MaxHeapSize]).Should(Equal(testMemSize.Subtract(expectedAllocatedMemory)))
 				})
 
+				It("should set the stack size to a default value", func() {
+					Ω(options[memory.StackSize]).Should(Equal(memory.NewMemSize(1024 * 1024)))
+				})
+
 				Context("when the stack size has been specified", func() {
 					BeforeEach(func() {
 						options[memory.StackSize] = memory.NewMemSize(2 * 1024 * 1024) // double the default value
@@ -366,6 +383,10 @@ var _ = Describe("Allocator", func() {
 					It("should produce the correct estimate", func() {
 						Ω(options[memory.MaxHeapSize]).Should(Equal(testMemSize.Subtract(expectedAllocatedMemory.Add(expectedStackSpace))))
 						Ω(err).ShouldNot(HaveOccurred())
+					})
+
+					It("should preserve the specified stack size", func() {
+						Ω(options[memory.StackSize]).Should(Equal(memory.NewMemSize(2 * 1024 * 1024)))
 					})
 				})
 
@@ -389,6 +410,11 @@ var _ = Describe("Allocator", func() {
 					It("should preserve the set value", func() {
 						Ω(options[memory.MaxHeapSize]).Should(Equal(testMemOptionSize))
 						Ω(err).ShouldNot(HaveOccurred())
+					})
+
+					It("should not set the stack size", func() {
+						_, ok := options[memory.StackSize]
+						Ω(ok).Should(BeFalse())
 					})
 				})
 			})

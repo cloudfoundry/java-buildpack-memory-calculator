@@ -169,6 +169,7 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 						"-Xmx3905944K",
 						"-XX:MaxMetaspaceSize=14238K",
 						"-XX:MaxDirectMemorySize=10M",
+						"-Xss1M",
 					), "stdout")
 				})
 			})
@@ -216,6 +217,7 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 						"-Xmx4117250K",
 						"-XX:MaxPermSize=7421K",
 						"-XX:MaxDirectMemorySize=10M",
+						"-Xss1M",
 					), "stdout")
 				})
 			})
