@@ -49,15 +49,18 @@ and the number of loaded classes can be modified as in the following example:
 $ cf set-env my-application JBP_CONFIG_OPEN_JDK_JRE '{ memory_calculator: { class_count: 1000 } }'
 ```
 
-Please consult the [Java Buildpack][] documentation for up to date configuration information.
+Please consult the [Java Buildpack](https://github.com/cloudfoundry/java-buildpack)
+documentation for up to date configuration information.
 
-The document [Java Buildpack Memory Calculator v3][] provides some rationale for the memory calculator externals.
+The document [Java Buildpack Memory Calculator v3](https://docs.google.com/document/d/1vlXBiwRIjwiVcbvUGYMrxx2Aw1RVAtxq3iuZ3UK2vXA/edit?usp=sharing)
+provides some rationale for the memory calculator externals.
 
 ### Getting started
 
-[Install Go][] and then `get` the memory calculator (in the Go source tree).
+[Install Go](http://golang.org/doc/install) and then `get` the memory calculator (in the Go source tree).
 
-We run our tests with [Ginkgo/Gomega][] and manage dependencies with [Godep][].
+We run our tests with [Ginkgo](http://github.com/onsi/ginkgo)/[Gomega](http://github.com/onsi/gomega) and
+manage dependencies with [Godep](http://github.com/tools/godep).
 Ginkgo is one of the dependencies we manage, so get Godep before starting work:
 
 ```shell
@@ -114,11 +117,4 @@ ensure Go is installed with cross-compiler support.
 ## License
 
 The Java Buildpack Memory Calculator is Open Source software released under the
-[Apache 2.0 license][].
-
-[Java Buildpack] https://github.com/cloudfoundry/java-buildpack
-[Java Buildpack Memory Calculator v3] https://docs.google.com/document/d/1vlXBiwRIjwiVcbvUGYMrxx2Aw1RVAtxq3iuZ3UK2vXA/edit?usp=sharing
-[Install Go]: http://golang.org/doc/install
-[Godep]: http://github.com/tools/godep
-[Ginkgo/Gomega]: http://github.com/onsi/ginkgo
-[Apache 2.0 license]: http://www.apache.org/licenses/LICENSE-2.0.html
+[Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
