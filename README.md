@@ -86,10 +86,10 @@ This will not work if the Go installation doesn't support all these platforms, s
 ## License
 The Java Buildpack Memory Calculator is Open Source software released under the [Apache 2.0 license][].
 
+[Apache 2.0 license]: http://www.apache.org/licenses/LICENSE-2.0.html
 [Ginkgo]: http://github.com/onsi/ginkgo
+[Godep]: http://github.com/tools/godep
+[Gomega]: http://github.com/onsi/gomega
+[Install Go]: http://golang.org/doc/install
 [Java Buildpack Memory Calculator v3]: https://docs.google.com/document/d/1vlXBiwRIjwiVcbvUGYMrxx2Aw1RVAtxq3iuZ3UK2vXA/edit?usp=sharing
 [Java Buildpack]: https://github.com/cloudfoundry/java-buildpack
-[Apache 2.0 license]: http://www.apache.org/licenses/LICENSE-2.0.html
-[Install Go]: http://golang.org/doc/install
-[Gomega]: http://github.com/onsi/gomega
-[Godep]: http://github.com/tools/godep
