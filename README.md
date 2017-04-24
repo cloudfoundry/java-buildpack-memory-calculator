@@ -93,3 +93,15 @@ The Java Buildpack Memory Calculator is Open Source software released under the 
 [Install Go]: http://golang.org/doc/install
 [Java Buildpack Memory Calculator v3]: https://docs.google.com/document/d/1vlXBiwRIjwiVcbvUGYMrxx2Aw1RVAtxq3iuZ3UK2vXA/edit?usp=sharing
 [Java Buildpack]: https://github.com/cloudfoundry/java-buildpack
+
+## Contributing
+
+Please refer to the [Contributors' Guide][].
+
+[Contributors' Guide]: CONTRIBUTING.md
+
+## Community
+
+Others involved in Java buildpack memory calculator development use the `#java-buildpack` channel of the  [Cloud Foundry slack organisation][] for discussion.
+
+[Cloud Foundry slack organisation]: https://cloudfoundry.slack.com

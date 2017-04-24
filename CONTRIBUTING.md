@@ -1,4 +1,4 @@
-_Have something you’d like to contribute to the buildpack? We welcome pull requests, but ask that you carefully read this document first to understand how best to submit them; what kind of changes are likely to be accepted; and what to expect from the Cloud Foundry Java Experience team when evaluating your submission._
+_Have something you’d like to contribute to the Java buildpack memory calculator? We welcome pull requests, but ask that you carefully read this document first to understand how best to submit them; what kind of changes are likely to be accepted; and what to expect from the Cloud Foundry Java Experience team when evaluating your submission._
 
 _Please refer back to this document as a checklist before issuing any pull request; this will save time for everyone!_
 
@@ -29,49 +29,49 @@ Branches used when submitting pull requests should preferably using succinct, lo
 ## Mind the whitespace
 Please carefully follow the whitespace and formatting conventions already present in the code.
 
-1. Space, not tabs
+1. Tabs, not spaces
 1. Unix (LF), not DOS (CRLF) line endings
 1. Eliminate all trailing whitespace
-1. Wrap RubyDoc at 120 characters
 1. Aim to wrap code at 120 characters, but favor readability over wrapping
 1. Preserve existing formatting; i.e. do not reformat code for its own sake
 1. Search the codebase using `git grep` and other tools to discover common naming conventions, etc.
 1. Latin-1 (ISO-8859-1) encoding for sources; use `native2ascii` to convert if necessary
 
-## Add Apache license header to all new classes
-```ruby
-# Cloud Foundry Java Buildpack Dependency Calculator
-# Copyright 2015 the original author or authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+## Add Apache license header to all new files
+```go
+// Encoding: utf-8
+// Cloud Foundry Java Buildpack
+// Copyright (c) 2015-2017 the original author or authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-require ...;
+package ...
 ```
 ## Update Apache license header to modified files as necessary
-Always check the date range in the license header. For example, if you've modified a file in 2015 whose header still reads
+Always check the date range in the license header. For example, if you've modified a file in 2017 whose header still reads
 
-```ruby
- # Copyright 2013 the original author or authors.
+```go
+// Copyright (c) 2016 the original author or authors.
 ```
 
-then be sure to update it to 2015 appropriately
+then be sure to update it to 2017 appropriately
 
-```ruby
- # Copyright 2013-2015 the original author or authors.
+```go
+// Copyright (c) 2016-2017 the original author or authors.
 ```
 
-## Submit RSpec test cases for all behavior changes
-Search the codebase to find related unit tests and add additional test specs within.
+## Submit test cases for all behavior changes
+Search the codebase to find related unit tests and add additional tests within.
 
 ## Squash commits
 Use `git rebase --interactive`, `git add --patch` and other tools to "squash"multiple commits into atomic changes. In addition to the man pages for git, there are many resources online to help you understand how these tools work. Here is one: <http://book.git-scm.com/4_interactive_rebasing.html>.
@@ -131,7 +131,7 @@ Further paragraphs come after blank lines.
 Issue: #10, #11
 ```
 
-1. Use imperative statements in the subject line, e.g. "Fix broken RubyDoc link"
+1. Use imperative statements in the subject line, e.g. "Fix broken link"
 1. Begin the subject line sentence with a capitalized verb, e.g. "Add, Prune, Fix, Introduce, Avoid, etc."
 1. Do not end the subject line with a period
 1. Keep the subject line to 50 characters or less if possible
@@ -142,9 +142,9 @@ Issue: #10, #11
 [commit guidelines section of Pro Git]: http://progit.org/book/ch5-2.html#commit_guidelines
 
 ## Run all tests prior to submission
-See the [Running Tests][] section of the README for instructions. Make sure that all tests pass prior to submitting your pull request.
+See the [README][] for instructions. Make sure that all tests pass prior to submitting your pull request.
 
-[Running Tests]: README.md#running-tests
+[README]: README.md
 
 # Submit your pull request
 Subject line:
