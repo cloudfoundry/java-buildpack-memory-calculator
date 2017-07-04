@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -e -u
 
 if [[ $GOPATH == "/go" ]]; then
   GOPATH=$PWD/gopath

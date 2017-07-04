@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -e -u
 
 function build() {
   local type=$1

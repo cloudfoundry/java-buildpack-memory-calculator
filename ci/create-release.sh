@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -e -u
 
 RELEASE=$1
 SNAPSHOT=$2
