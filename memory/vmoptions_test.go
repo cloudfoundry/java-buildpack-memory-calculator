@@ -24,18 +24,23 @@ import (
 
 var _ = Describe("VmOptions", func() {
 	const (
-		testMemSizeString = "30M"
+		testMemSizeString      = "30M"
+		testMemOtherSizeString = "50M"
 	)
 
 	var (
-		rawOpts     string
-		vmOptions   memory.VmOptions
-		err         error
-		testMemSize memory.MemSize
+		rawOpts          string
+		vmOptions        memory.VmOptions
+		err              error
+		testMemSize      memory.MemSize
+		testMemOtherSize memory.MemSize
 	)
 
 	BeforeEach(func() {
 		testMemSize, err = memory.NewMemSizeFromString(testMemSizeString)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		testMemOtherSize, err = memory.NewMemSizeFromString(testMemOtherSizeString)
 		Ω(err).ShouldNot(HaveOccurred())
 	})
 
@@ -364,6 +369,46 @@ var _ = Describe("VmOptions", func() {
 			vmOptions.SetMemOpt(memory.CompressedClassSpaceSize, testMemSize)
 			Ω(vmOptions.MemOpt(memory.CompressedClassSpaceSize)).Should(Equal(testMemSize))
 			Ω(vmOptions.DeltaString()).Should(ContainSubstring("-XX:CompressedClassSpaceSize=30M"))
+		})
+	})
+
+	Context("when the raw options contain a duplicated option", func() {
+		Context("when the duplicated options are valid", func() {
+			BeforeEach(func() {
+				rawOpts = "-Xmx" + testMemSizeString + " -Xmx" + testMemOtherSizeString
+			})
+
+			It("should not return an error", func() {
+				Ω(err).ShouldNot(HaveOccurred())
+			})
+
+			It("should omit the duplicated options from the delta output", func() {
+				Ω(vmOptions.DeltaString()).Should(BeEmpty())
+			})
+
+			It("should capture the value in the last option", func() {
+				Ω(vmOptions.MemOpt(memory.MaxHeapSize)).Should(Equal(testMemOtherSize))
+			})
+		})
+
+		Context("when an earlier option is invalid", func() {
+			BeforeEach(func() {
+				rawOpts = "-XmxBAD" + " -Xmx" + testMemOtherSizeString
+			})
+
+			It("should return a suitable error", func() {
+				Ω(err).Should(MatchError("invalid memory size string 'BAD'"))
+			})
+		})
+
+		Context("when a later option is invalid", func() {
+			BeforeEach(func() {
+				rawOpts = "-Xmx" + testMemSizeString + " -XmxBAD"
+			})
+
+			It("should return a suitable error", func() {
+				Ω(err).Should(MatchError("invalid memory size string 'BAD'"))
+			})
 		})
 	})
 

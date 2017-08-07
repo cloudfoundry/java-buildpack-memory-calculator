@@ -149,6 +149,7 @@ func (vm *vmOptions) ClearMemOpt(memoryType MemoryType) {
 }
 
 func parseOpt(rawOpts string, sw string) (MemSize, error) {
+	optValue := MEMSIZE_ZERO
 	opts := strings.Split(rawOpts, " ")
 	for _, opt := range opts {
 		if opt == "" {
@@ -156,8 +157,12 @@ func parseOpt(rawOpts string, sw string) (MemSize, error) {
 		}
 		if strings.Index(opt, sw) == 0 {
 			value := opt[len(sw):]
-			return NewMemSizeFromString(value)
+			var err error
+			optValue, err = NewMemSizeFromString(value)
+			if err != nil {
+				return optValue, err
+			}
 		}
 	}
-	return MEMSIZE_ZERO, nil
+	return optValue, nil
 }
