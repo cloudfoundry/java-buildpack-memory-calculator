@@ -12,7 +12,7 @@ The buildpack provides the following inputs to the memory calculator:
 
 The memory calculator prints the JVM memory option settings described below, _excluding_ any the user has specified, which are assumed to be correct.
 
-For Java 8 and later, the memory calculator sets the maximum metaspace size (`-XX:MaxMetaspaceSize`) and compressed class space size (`-XX:CompressedClassSpaceSize`) based on the number of classes that will be loaded and sets the reserved code cache size (`-XX:ReservedCodeCacheSize`) to 240 Mb.
+For Java 8 and later, the memory calculator sets the maximum metaspace size (`-XX:MaxMetaspaceSize`) based on the number of classes that will be loaded and sets the reserved code cache size (`-XX:ReservedCodeCacheSize`) to 240 Mb.
 
 For Java 7, it sets the maximum permanent generation size (`-XX:MaxPermSize`) based on the number of classes that will be loaded and sets the reserved code cache size (`-XX:ReservedCodeCacheSize`) to 48 Mb.
 
@@ -38,6 +38,16 @@ $ cf set-env my-application JBP_CONFIG_OPEN_JDK_JRE '{ memory_calculator: { clas
 Please consult the [Java Buildpack][] documentation for up to date configuration information.
 
 The document [Java Buildpack Memory Calculator v3][] provides some rationale for the memory calculator externals.
+
+### Compressed class space size
+
+According to the [HotSpot GC Tuning Guide][]:
+    
+> The MaxMetaspaceSize applies to the sum of the committed compressed class space and the space for the other class metadata.
+
+so the memory calculator does not set the compressed class space size (`-XX:CompressedClassSpaceSize`) since the memory for the compressed class space is bounded by the maximum metaspace size (`-XX:MaxMetaspaceSize`). 
+
+[HotSpot GC Tuning Guide]: https://docs.oracle.com/javase/8/docs/technotes/guides/vm/gctuning/considerations.html
 
 ### Command line options
 

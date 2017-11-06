@@ -165,8 +165,7 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 					Ω(cmdErr).ShouldNot(HaveOccurred(), "exit status")
 					Ω(strings.Split(string(sOut), " ")).Should(ConsistOf(
 						"-XX:ReservedCodeCacheSize=240M",
-						"-XX:CompressedClassSpaceSize=7880K",
-						"-Xmx3905944K",
+						"-Xmx3913825K",
 						"-XX:MaxMetaspaceSize=14238K",
 						"-XX:MaxDirectMemorySize=10M",
 						"-Xss1M",
@@ -182,8 +181,8 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 				It("fails with an error", func() {
 					Ω(cmdErr).Should(HaveOccurred(), "exit status")
 					Ω(string(sErr)).Should(ContainSubstring("Cannot calculate JVM memory configuration: There is insufficient memory remaining for heap."+
-						" Memory limit 32M is less than allocated memory 288359K (-XX:ReservedCodeCacheSize=240M, -XX:MaxDirectMemorySize=10M,"+
-						" -XX:MaxMetaspaceSize=14238K, -XX:CompressedClassSpaceSize=7880K, -Xss1M * 10 threads)"),
+						" Memory limit 32M is less than allocated memory 280478K (-XX:ReservedCodeCacheSize=240M, -XX:MaxDirectMemorySize=10M,"+
+						" -XX:MaxMetaspaceSize=14238K, -Xss1M * 10 threads)"),
 						"stderr")
 					Ω(string(sOut)).Should(Equal(""), "stdout")
 				})
@@ -257,8 +256,8 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 				It("fails with an error", func() {
 					Ω(cmdErr).Should(HaveOccurred(), "exit status")
 					Ω(string(sErr)).Should(ContainSubstring("Cannot calculate JVM memory configuration: There is insufficient memory remaining for heap."+
-						" Memory limit 32M is less than allocated memory 298599K (-XX:ReservedCodeCacheSize=240M, -XX:MaxDirectMemorySize=10M,"+
-						" -XX:MaxMetaspaceSize=14238K, -XX:CompressedClassSpaceSize=7880K, -Xss2M * 10 threads)\n"),
+						" Memory limit 32M is less than allocated memory 290718K (-XX:ReservedCodeCacheSize=240M, -XX:MaxDirectMemorySize=10M,"+
+						" -XX:MaxMetaspaceSize=14238K, -Xss2M * 10 threads)\n"),
 						"stderr")
 					Ω(string(sOut)).Should(Equal(""), "stdout")
 				})

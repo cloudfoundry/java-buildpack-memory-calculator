@@ -58,9 +58,6 @@ var estimators = map[MemoryType]func(int) MemSize{
 	ReservedCodeCacheSize: func(loadedClasses int) MemSize {
 		return NewMemSize(DEFAULT_CODE_CACHE_JAVA_8)
 	},
-	CompressedClassSpaceSize: func(loadedClasses int) MemSize {
-		return NewMemSize(700).Scale(float64(loadedClasses)).Add(NewMemSize(8000000))
-	},
 }
 
 const DEFAULT_CODE_CACHE_JAVA_7 int64 = 48 * 1024 * 1024

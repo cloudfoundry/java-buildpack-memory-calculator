@@ -72,9 +72,9 @@ var _ = Describe("VmOptions", func() {
 		})
 
 		It("should record any value set", func() {
-			vmOptions.SetMemOpt(memory.CompressedClassSpaceSize, testMemSize)
-			Ω(vmOptions.MemOpt(memory.CompressedClassSpaceSize)).Should(Equal(testMemSize))
-			Ω(vmOptions.DeltaString()).Should(Equal("-XX:CompressedClassSpaceSize=30M"))
+			vmOptions.SetMemOpt(memory.MaxPermSize, testMemSize)
+			Ω(vmOptions.MemOpt(memory.MaxPermSize)).Should(Equal(testMemSize))
+			Ω(vmOptions.DeltaString()).Should(Equal("-XX:MaxPermSize=30M"))
 		})
 	})
 
@@ -330,48 +330,6 @@ var _ = Describe("VmOptions", func() {
 		})
 	})
 
-	Context("when the raw options contain compressed class space size", func() {
-		BeforeEach(func() {
-			rawOpts = "-XX:CompressedClassSpaceSize=" + testMemSizeString
-		})
-
-		It("should not return an error", func() {
-			Ω(err).ShouldNot(HaveOccurred())
-		})
-
-		It("should omit the compress class space size from the delta output", func() {
-			Ω(vmOptions.DeltaString()).Should(BeEmpty())
-		})
-
-		It("should capture the value in the correct option", func() {
-			Ω(vmOptions.MemOpt(memory.CompressedClassSpaceSize)).Should(Equal(testMemSize))
-		})
-	})
-
-	Context("when the raw options do not contain compressed class space size", func() {
-		BeforeEach(func() {
-			rawOpts = ""
-		})
-
-		It("should not return an error", func() {
-			Ω(err).ShouldNot(HaveOccurred())
-		})
-
-		It("should initially not reproduce the compressed class space size in the delta output", func() {
-			Ω(vmOptions.DeltaString()).ShouldNot(ContainSubstring("CompressedClassSpaceSize"))
-		})
-
-		It("should capture the value in the correct option", func() {
-			Ω(vmOptions.MemOpt(memory.CompressedClassSpaceSize)).Should(Equal(memory.MEMSIZE_ZERO))
-		})
-
-		It("should record any value set", func() {
-			vmOptions.SetMemOpt(memory.CompressedClassSpaceSize, testMemSize)
-			Ω(vmOptions.MemOpt(memory.CompressedClassSpaceSize)).Should(Equal(testMemSize))
-			Ω(vmOptions.DeltaString()).Should(ContainSubstring("-XX:CompressedClassSpaceSize=30M"))
-		})
-	})
-
 	Context("when the raw options contain a duplicated option", func() {
 		Context("when the duplicated options are valid", func() {
 			BeforeEach(func() {
@@ -414,7 +372,7 @@ var _ = Describe("VmOptions", func() {
 
 	Describe("Copy", func() {
 		BeforeEach(func() {
-			rawOpts = "-XX:CompressedClassSpaceSize=" + testMemSizeString
+			rawOpts = "-XX:ReservedCodeCacheSize=" + testMemSizeString
 		})
 
 		It("should copy raw and set options", func() {
@@ -425,13 +383,13 @@ var _ = Describe("VmOptions", func() {
 			vmOptionsCopy := vmOptions.Copy()
 
 			Ω(vmOptionsCopy.DeltaString()).Should(Equal("-XX:MaxMetaspaceSize=45M"))
-			Ω(vmOptionsCopy.String()).Should(Equal("-XX:MaxMetaspaceSize=45M, -XX:CompressedClassSpaceSize=30M"))
+			Ω(vmOptionsCopy.String()).Should(Equal("-XX:ReservedCodeCacheSize=30M, -XX:MaxMetaspaceSize=45M"))
 		})
 	})
 
 	Describe("ClearMemOpt", func() {
 		BeforeEach(func() {
-			rawOpts = "-XX:CompressedClassSpaceSize=" + testMemSizeString
+			rawOpts = "-XX:ReservedCodeCacheSize=" + testMemSizeString
 		})
 
 		It("should clear options which have been set", func() {
@@ -440,12 +398,12 @@ var _ = Describe("VmOptions", func() {
 			vmOptions.SetMemOpt(memory.MaxMetaspaceSize, metaSpaceSize)
 
 			Ω(vmOptions.DeltaString()).Should(Equal("-XX:MaxMetaspaceSize=45M"))
-			Ω(vmOptions.String()).Should(Equal("-XX:MaxMetaspaceSize=45M, -XX:CompressedClassSpaceSize=30M"))
+			Ω(vmOptions.String()).Should(Equal("-XX:ReservedCodeCacheSize=30M, -XX:MaxMetaspaceSize=45M"))
 
 			vmOptions.ClearMemOpt(memory.MaxMetaspaceSize)
 
 			Ω(vmOptions.DeltaString()).Should(Equal(""))
-			Ω(vmOptions.String()).Should(Equal("-XX:CompressedClassSpaceSize=30M"))
+			Ω(vmOptions.String()).Should(Equal("-XX:ReservedCodeCacheSize=30M"))
 		})
 
 		It("should clear raw options", func() {
@@ -453,9 +411,9 @@ var _ = Describe("VmOptions", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 			vmOptions.SetMemOpt(memory.MaxMetaspaceSize, metaSpaceSize)
 
-			Ω(vmOptions.String()).Should(Equal("-XX:MaxMetaspaceSize=45M, -XX:CompressedClassSpaceSize=30M"))
+			Ω(vmOptions.String()).Should(Equal("-XX:ReservedCodeCacheSize=30M, -XX:MaxMetaspaceSize=45M"))
 
-			vmOptions.ClearMemOpt(memory.CompressedClassSpaceSize)
+			vmOptions.ClearMemOpt(memory.ReservedCodeCacheSize)
 
 			Ω(vmOptions.String()).Should(Equal("-XX:MaxMetaspaceSize=45M"))
 		})
@@ -463,7 +421,7 @@ var _ = Describe("VmOptions", func() {
 
 	Describe("String", func() {
 		BeforeEach(func() {
-			rawOpts = "-XX:CompressedClassSpaceSize=" + testMemSizeString
+			rawOpts = "-XX:ReservedCodeCacheSize=" + testMemSizeString
 		})
 
 		It("should record any value set", func() {
@@ -472,7 +430,7 @@ var _ = Describe("VmOptions", func() {
 			vmOptions.SetMemOpt(memory.MaxMetaspaceSize, metaSpaceSize)
 
 			Ω(vmOptions.DeltaString()).Should(Equal("-XX:MaxMetaspaceSize=45M"))
-			Ω(vmOptions.String()).Should(Equal("-XX:MaxMetaspaceSize=45M, -XX:CompressedClassSpaceSize=30M"))
+			Ω(vmOptions.String()).Should(Equal("-XX:ReservedCodeCacheSize=30M, -XX:MaxMetaspaceSize=45M"))
 		})
 	})
 })

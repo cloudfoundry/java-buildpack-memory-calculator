@@ -82,7 +82,6 @@ var _ = Describe("Allocator", func() {
 			var (
 				stackThreads int
 
-				expectedCompressedClassSpaceSize memory.MemSize
 				expectedMaxMetaspaceSize         memory.MemSize
 				expectedReservedCodeCacheSize    memory.MemSize
 				expectedMaxDirectMemorySize      memory.MemSize
@@ -95,7 +94,6 @@ var _ = Describe("Allocator", func() {
 			BeforeEach(func() {
 				stackThreads = 10
 
-				expectedCompressedClassSpaceSize = memory.NewMemSize(8700000)
 				expectedMaxMetaspaceSize = memory.NewMemSize(19800000)
 				expectedReservedCodeCacheSize = memory.NewMemSize(240 * 1024 * 1024)
 				expectedMaxDirectMemorySize = memory.NewMemSize(10 * 1024 * 1024)
@@ -158,24 +156,6 @@ var _ = Describe("Allocator", func() {
 				})
 			})
 
-			Describe("compressed class space size", func() {
-				It("should produce the correct estimate", func() {
-					Ω(options[memory.CompressedClassSpaceSize]).Should(Equal(expectedCompressedClassSpaceSize))
-					Ω(err).ShouldNot(HaveOccurred())
-				})
-
-				Context("when the value has been set", func() {
-					BeforeEach(func() {
-						options[memory.CompressedClassSpaceSize] = testMemOptionSize
-					})
-
-					It("should preserve the set value", func() {
-						Ω(options[memory.CompressedClassSpaceSize]).Should(Equal(testMemOptionSize))
-						Ω(err).ShouldNot(HaveOccurred())
-					})
-				})
-			})
-
 			Describe("maximum direct memory size", func() {
 				It("should produce the correct estimate", func() {
 					Ω(options[memory.MaxDirectMemorySize]).Should(Equal(expectedMaxDirectMemorySize))
@@ -203,7 +183,7 @@ var _ = Describe("Allocator", func() {
 				BeforeEach(func() {
 					expectedStackSpace = memory.NewMemSize(1024 * 1024).Scale(float64(stackThreads))
 					expectedAllocatedMemory = expectedMaxMetaspaceSize.Add(expectedMaxDirectMemorySize).Add(expectedReservedCodeCacheSize).
-						Add(expectedCompressedClassSpaceSize).Add(expectedStackSpace)
+						Add(expectedStackSpace)
 				})
 
 				It("should produce the correct estimate", func() {
@@ -236,7 +216,7 @@ var _ = Describe("Allocator", func() {
 					})
 
 					It("should return an error", func() {
-						Ω(err).Should(MatchError("There is insufficient memory remaining for heap. Memory limit 500M is less than allocated memory 795832K (vmoptions-copy-output, -Xss1M * 10 threads)"))
+						Ω(err).Should(MatchError("There is insufficient memory remaining for heap. Memory limit 500M is less than allocated memory 787335K (vmoptions-copy-output, -Xss1M * 10 threads)"))
 					})
 
 				})

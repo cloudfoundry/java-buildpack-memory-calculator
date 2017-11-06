@@ -43,7 +43,6 @@ const (
 	ReservedCodeCacheSize
 	MaxDirectMemorySize
 	MaxMetaspaceSize
-	CompressedClassSpaceSize
 	MaxPermSize
 	MemoryTypeLimit // not an actual memory type, used for enumerating the valid memory types
 )
@@ -54,7 +53,6 @@ var switches = map[MemoryType]string{
 	StackSize:                "-Xss",
 	MaxDirectMemorySize:      "-XX:MaxDirectMemorySize=",
 	ReservedCodeCacheSize:    "-XX:ReservedCodeCacheSize=",
-	CompressedClassSpaceSize: "-XX:CompressedClassSpaceSize=",
 	MaxPermSize:              "-XX:MaxPermSize=",
 }
 
