@@ -99,7 +99,11 @@ func (vm *vmOptions) DeltaString() string {
 	var bb bytes.Buffer
 
 	first := true
-	for k, v := range vm.memOpts {
+	for k := MemoryType(0); k < MemoryTypeLimit; k++ {
+		v, ok := vm.memOpts[k]
+		if !ok {
+			continue
+		}
 		if vm.memOptWasRaw[k] {
 			continue
 		}
