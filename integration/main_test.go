@@ -142,6 +142,26 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 			Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
 			Ω(string(se)).Should(ContainSubstring("Error in -poolType flag: must be 'permgen' or 'metaspace'"), "stderr incorrect for "+badFlags[0])
 		})
+
+		It("executes with error when headRoom is negative", func() {
+			badFlags :=
+				[]string{"-totMemory=2G", "-stackThreads=10", "-loadedClasses=1", "-poolType=" + poolType, "-headRoom=-1"}
+			so, se, err := runOutAndErr(badFlags...)
+			Ω(err).Should(HaveOccurred(), badFlags[0])
+
+			Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
+			Ω(string(se)).Should(ContainSubstring("Head room (-headRoom) is not a valid percentage: -1.000000"), "stderr incorrect for "+badFlags[0])
+		})
+
+		It("executes with error when headRoom is too large", func() {
+			badFlags :=
+				[]string{"-totMemory=2G", "-stackThreads=10", "-loadedClasses=1", "-poolType=" + poolType, "-headRoom=110"}
+			so, se, err := runOutAndErr(badFlags...)
+			Ω(err).Should(HaveOccurred(), badFlags[0])
+
+			Ω(string(so)).Should(BeEmpty(), "stdout not empty for "+badFlags[0])
+			Ω(string(se)).Should(ContainSubstring("Head room (-headRoom) is not a valid percentage: 110.000000"), "stderr incorrect for "+badFlags[0])
+		})
 	})
 
 	Context("with valid parameters", func() {
@@ -181,7 +201,7 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 				It("fails with an error", func() {
 					Ω(cmdErr).Should(HaveOccurred(), "exit status")
 					Ω(string(sErr)).Should(ContainSubstring("Cannot calculate JVM memory configuration: There is insufficient memory remaining for heap."+
-						" Memory limit 32M is less than allocated memory 280478K (-XX:ReservedCodeCacheSize=240M, -XX:MaxDirectMemorySize=10M,"+
+						" Memory available for allocation 32M is less than allocated memory 280478K (-XX:ReservedCodeCacheSize=240M, -XX:MaxDirectMemorySize=10M,"+
 						" -XX:MaxMetaspaceSize=14238K, -Xss1M * 10 threads)"),
 						"stderr")
 					Ω(string(sOut)).Should(Equal(""), "stdout")
@@ -229,7 +249,7 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 				It("fails with an error", func() {
 					Ω(cmdErr).Should(HaveOccurred(), "exit status")
 					Ω(string(sErr)).Should(ContainSubstring("Cannot calculate JVM memory configuration: There is insufficient memory remaining for heap."+
-						" Memory limit 32M is less than allocated memory 77053K (-XX:ReservedCodeCacheSize=48M, -XX:MaxDirectMemorySize=10M,"+
+						" Memory available for allocation 32M is less than allocated memory 77053K (-XX:ReservedCodeCacheSize=48M, -XX:MaxDirectMemorySize=10M,"+
 						" -XX:MaxPermSize=7421K, -Xss1M * 10 threads)\n"),
 						"stderr")
 					Ω(string(sOut)).Should(Equal(""), "stdout")
@@ -256,7 +276,53 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 				It("fails with an error", func() {
 					Ω(cmdErr).Should(HaveOccurred(), "exit status")
 					Ω(string(sErr)).Should(ContainSubstring("Cannot calculate JVM memory configuration: There is insufficient memory remaining for heap."+
-						" Memory limit 32M is less than allocated memory 290718K (-XX:ReservedCodeCacheSize=240M, -XX:MaxDirectMemorySize=10M,"+
+						" Memory available for allocation 32M is less than allocated memory 290718K (-XX:ReservedCodeCacheSize=240M, -XX:MaxDirectMemorySize=10M,"+
+						" -XX:MaxMetaspaceSize=14238K, -Xss2M * 10 threads)\n"),
+						"stderr")
+					Ω(string(sOut)).Should(Equal(""), "stdout")
+				})
+			})
+		})
+
+		Context("when headRoom is specified", func() {
+			var (
+				totMemFlag string
+				headRoom string
+				sOut, sErr []byte
+				cmdErr     error
+			)
+
+			JustBeforeEach(func() {
+				sOut, sErr, cmdErr = runOutAndErr(totMemFlag, "-stackThreads=10", "-loadedClasses=100", "-poolType="+poolType, "-vmOptions=-Xss2M", "-headRoom="+headRoom)
+			})
+
+			Context("when there is sufficient total memory", func() {
+				BeforeEach(func() {
+					totMemFlag = "-totMemory=4g"
+					headRoom= "25"
+				})
+
+				It("reserves head room", func() {
+					Ω(cmdErr).ShouldNot(HaveOccurred(), "exit status")
+					Ω(strings.Split(string(sOut), " ")).Should(ConsistOf(
+						"-XX:ReservedCodeCacheSize=240M",
+						"-Xmx2855009K",
+						"-XX:MaxMetaspaceSize=14238K",
+						"-XX:MaxDirectMemorySize=10M",
+					), "stdout")
+				})
+			})
+
+			Context("when there is insufficient total memory", func() {
+				BeforeEach(func() {
+					totMemFlag = "-totMemory=4g"
+					headRoom= "97"
+				})
+
+				It("fails with an error", func() {
+					Ω(cmdErr).Should(HaveOccurred(), "exit status")
+					Ω(string(sErr)).Should(ContainSubstring("Cannot calculate JVM memory configuration: There is insufficient memory remaining for heap."+
+						" Memory available for allocation 125829K is less than allocated memory 290718K (-XX:ReservedCodeCacheSize=240M, -XX:MaxDirectMemorySize=10M,"+
 						" -XX:MaxMetaspaceSize=14238K, -Xss2M * 10 threads)\n"),
 						"stderr")
 					Ω(string(sOut)).Should(Equal(""), "stdout")

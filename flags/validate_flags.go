@@ -31,6 +31,7 @@ const (
 	loadedClassesFlag = "loadedClasses"
 	vmOptionsFlag     = "vmOptions"
 	poolTypeFlag      = "poolType"
+	headRoomFlag      = "headRoom"
 )
 
 func printHelp() {
@@ -58,10 +59,12 @@ var (
 		"Java VM options, typically the JAVA_OPTS specified by the user")
 	poolType = flag.String(poolTypeFlag, "",
 		"the type of JVM pool used in the calculation. Set this to 'permgen' for Java 7 and to 'metaspace' for Java 8 and later.")
+	headRoom = flag.Float64(headRoomFlag, 0,
+		"percentage of total memory available which will be left unallocated to cover JVM overheads")
 )
 
 // Validate flags passed on command line; exit(1) if invalid; exit(2) if help printed
-func ValidateFlags() (memSize memory.MemSize, numThreads int, numLoadedClasses int, pType string, vmOpts string) {
+func ValidateFlags() (memSize memory.MemSize, numThreads int, numLoadedClasses int, pType string, vmOpts string, hdRoom float64) {
 
 	flag.Parse() // exit on error
 
@@ -77,6 +80,7 @@ func ValidateFlags() (memSize memory.MemSize, numThreads int, numLoadedClasses i
 	numLoadedClasses = validateLoadedClasses(*loadedClasses)
 	pType = validatePoolType(*poolType)
 	vmOpts = *vmOptions
+	hdRoom = validateHeadRoom(*headRoom)
 
 	return
 }
@@ -139,6 +143,14 @@ func validateNumThreads(stackThreads int) int {
 		os.Exit(1)
 	}
 	return stackThreads
+}
+
+func validateHeadRoom(headRoom float64) float64 {
+	if headRoom < 0 || headRoom > 100 {
+		fmt.Fprintf(os.Stderr, "Head room (-%s) is not a valid percentage: %f", headRoomFlag, headRoom)
+		os.Exit(1)
+	}
+	return headRoom
 }
 
 func noArgs(args []string) bool {

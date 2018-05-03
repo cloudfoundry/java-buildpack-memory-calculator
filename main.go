@@ -30,7 +30,10 @@ const (
 
 func main() {
 	// validateFlags() will exit on error
-	memSize, numThreads, numLoadedClasses, poolType, rawVmOptions := flags.ValidateFlags()
+	memSize, numThreads, numLoadedClasses, poolType, rawVmOptions, headRoom := flags.ValidateFlags()
+
+	// Reduce total memory to make head room
+	memSize = memory.MemSize(float64(memSize) * (100-headRoom) / 100)
 
 	// default the number of threads if it was not supplied
 	if numThreads == 0 {

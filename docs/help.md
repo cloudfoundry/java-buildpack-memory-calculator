@@ -13,6 +13,8 @@ Example invocation from a shell:
 $ java-buildpack-memory-calculator -loadedClasses=1000 -stackThreads=10 -totMemory=1g -poolType=metaspace -vmOptions=-XX:MaxDirectMemorySize=100M\ -verbose:gc
 
 Usage of java-buildpack-memory-calculator:
+  -headRoom float
+    	percentage of total memory available which will be left unallocated to cover JVM overheads
   -help
     	prints description and flag help
   -loadedClasses int
