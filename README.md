@@ -5,6 +5,7 @@ The Java buildpack memory calculator determines values for JVM memory options wi
 The buildpack provides the following inputs to the memory calculator:
 
 * the total memory available to the application,
+* an optional head room (a percentage of the total memory available, default 0) which should _not_ be allocated,
 * an estimate of the number of threads that will be used by the application,
 * an estimate of the number of classes that will be loaded,
 * the type of JVM pool used in the calculation ('permgen' for Java 7 and 'metaspace' for Java 8 and later),
@@ -20,9 +21,11 @@ It sets the maximum direct memory size (`-XX:MaxDirectMemorySize`) to 10 Mb.
 
 It sets the stack size (`-Xss`) to a default value (unless the user has specified the stack size) and then calculates the amount of memory that will be consumed by the application's thread stacks.
 
-Finally, it sets the heap size (`-Xmx`) to total memory minus the above values.
+Finally, it sets the heap size (`-Xmx`) to total memory (after any head room has been subtracted) minus the above values.
 
 If the values need to be adjusted, the user can either increase the total memory available or set one or more JVM memory options to suitable values. Unless the user specifies the heap size (`-Xmx`), increasing the total memory available results in the heap size setting increasing by the additional total memory. Similarly, changing the value of other options affects the heap size. For example, if the user increases the maximum direct memory size from its default value of 10 Mb to 20 Mb, then this will reduce the calculated heap size by 10 Mb.
+
+If the application container hits its memory limit, typically resulting in the JVM process being killed, a head room percentage may be specified to leave some unallocated memory for the JVM's own use.
 
 If the estimated number of threads or loaded classes needs to be modified, this can be achieved by configuring the buildpack. For example, when the OpenJDK JRE is used, the number of threads can be modified as in the following example:
 
