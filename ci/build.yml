@@ -16,7 +16,7 @@ run:
 
 params:
   ARTIFACTORY_REPOSITORY: libs-snapshot-local
-  VERSION:                3.13.0.BUILD-SNAPSHOT
+  VERSION:                3.14.0.BUILD-SNAPSHOT
 
   ARTIFACTORY_USERNAME:
   ARTIFACTORY_PASSWORD:
