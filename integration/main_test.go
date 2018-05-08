@@ -287,7 +287,7 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 		Context("when headRoom is specified", func() {
 			var (
 				totMemFlag string
-				headRoom string
+				headRoom   string
 				sOut, sErr []byte
 				cmdErr     error
 			)
@@ -299,7 +299,7 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 			Context("when there is sufficient total memory", func() {
 				BeforeEach(func() {
 					totMemFlag = "-totMemory=4g"
-					headRoom= "25"
+					headRoom = "25"
 				})
 
 				It("reserves head room", func() {
@@ -316,7 +316,7 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 			Context("when there is insufficient total memory", func() {
 				BeforeEach(func() {
 					totMemFlag = "-totMemory=4g"
-					headRoom= "97"
+					headRoom = "97"
 				})
 
 				It("fails with an error", func() {
@@ -327,6 +327,22 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 						"stderr")
 					Ω(string(sOut)).Should(Equal(""), "stdout")
 				})
+			})
+		})
+
+		Context("when values are specified as zero (even though that may cause runtime failures)", func() {
+			var (
+				sOut, sErr []byte
+				cmdErr     error
+			)
+
+			JustBeforeEach(func() {
+				sOut, sErr, cmdErr = runOutAndErr("-totMemory=4g", "-stackThreads=10", "-loadedClasses=100", "-poolType=metaspace", "-vmOptions=-XX:MaxDirectMemorySize=0 -XX:ReservedCodeCacheSize=0 -XX:MaxMetaspaceSize=0 -Xss0M -Xmx0m")
+			})
+
+			It("omits the zero values", func() {
+				Ω(cmdErr).ShouldNot(HaveOccurred(), "exit status")
+				Ω(strings.Split(string(sOut), " ")).Should(ConsistOf(""), "stdout")
 			})
 		})
 	})
@@ -349,7 +365,7 @@ func runOutAndErr(args ...string) ([]byte, []byte, error) {
 func removeNewline(b []byte) string {
 	str := string(b)
 	Ω(len(str)).ShouldNot(Equal(0))
-	front, last := str[0:len(str)-1], str[len(str)-1:]
+	front, last := str[0 : len(str)-1], str[len(str)-1:]
 	Ω(last).Should(Equal("\n"))
 	return front
 }

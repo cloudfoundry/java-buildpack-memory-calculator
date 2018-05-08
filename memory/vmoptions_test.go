@@ -96,6 +96,24 @@ var _ = Describe("VmOptions", func() {
 		})
 	})
 
+	Context("when the raw options contain maximum heap size of 0", func() {
+		BeforeEach(func() {
+			rawOpts = "-Xmx0m"
+		})
+
+		It("should not return an error", func() {
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		It("should omit the maximum heap size from the delta output", func() {
+			Ω(vmOptions.DeltaString()).Should(BeEmpty())
+		})
+
+		It("should capture the value in the correct option", func() {
+			Ω(vmOptions.MemOpt(memory.MaxHeapSize)).Should(Equal(memory.MemSize(0)))
+		})
+	})
+
 	Context("when the raw options do not contain maximum heap size", func() {
 		BeforeEach(func() {
 			rawOpts = ""
@@ -135,6 +153,24 @@ var _ = Describe("VmOptions", func() {
 
 		It("should capture the value in the correct option", func() {
 			Ω(vmOptions.MemOpt(memory.MaxMetaspaceSize)).Should(Equal(testMemSize))
+		})
+	})
+
+	Context("when the raw options contain maximum metaspace size of 0", func() {
+		BeforeEach(func() {
+			rawOpts = "-XX:MaxMetaspaceSize=0"
+		})
+
+		It("should not return an error", func() {
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		It("should omit the maximum metaspace size from the delta output", func() {
+			Ω(vmOptions.DeltaString()).Should(BeEmpty())
+		})
+
+		It("should capture the value in the correct option", func() {
+			Ω(vmOptions.MemOpt(memory.MaxMetaspaceSize)).Should(Equal(memory.MemSize(0)))
 		})
 	})
 
@@ -180,6 +216,24 @@ var _ = Describe("VmOptions", func() {
 		})
 	})
 
+	Context("when the raw options contain maximum permgen size of 0", func() {
+		BeforeEach(func() {
+			rawOpts = "-XX:MaxPermSize=0"
+		})
+
+		It("should not return an error", func() {
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		It("should omit the maximum permgen size from the delta output", func() {
+			Ω(vmOptions.DeltaString()).Should(BeEmpty())
+		})
+
+		It("should capture the value in the correct option", func() {
+			Ω(vmOptions.MemOpt(memory.MaxPermSize)).Should(Equal(memory.MemSize(0)))
+		})
+	})
+
 	Context("when the raw options do not contain maximum permgen size", func() {
 		BeforeEach(func() {
 			rawOpts = ""
@@ -219,6 +273,24 @@ var _ = Describe("VmOptions", func() {
 
 		It("should capture the value in the correct option", func() {
 			Ω(vmOptions.MemOpt(memory.StackSize)).Should(Equal(testMemSize))
+		})
+	})
+
+	Context("when the raw options contain stack size of 0", func() {
+		BeforeEach(func() {
+			rawOpts = "-Xss0m"
+		})
+
+		It("should not return an error", func() {
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		It("should omit the stack size from the delta output", func() {
+			Ω(vmOptions.DeltaString()).Should(BeEmpty())
+		})
+
+		It("should capture the value in the correct option", func() {
+			Ω(vmOptions.MemOpt(memory.StackSize)).Should(Equal(memory.MemSize(0)))
 		})
 	})
 
@@ -264,6 +336,24 @@ var _ = Describe("VmOptions", func() {
 		})
 	})
 
+	Context("when the raw options contain maximum direct memory size of 0", func() {
+		BeforeEach(func() {
+			rawOpts = "-XX:MaxDirectMemorySize=0"
+		})
+
+		It("should not return an error", func() {
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		It("should omit the maximum direct memory size from the delta output", func() {
+			Ω(vmOptions.DeltaString()).Should(BeEmpty())
+		})
+
+		It("should capture the value in the correct option", func() {
+			Ω(vmOptions.MemOpt(memory.MaxDirectMemorySize)).Should(Equal(memory.MemSize(0)))
+		})
+	})
+
 	Context("when the raw options do not contain maximum direct memory size", func() {
 		BeforeEach(func() {
 			rawOpts = ""
@@ -303,6 +393,24 @@ var _ = Describe("VmOptions", func() {
 
 		It("should capture the value in the correct option", func() {
 			Ω(vmOptions.MemOpt(memory.ReservedCodeCacheSize)).Should(Equal(testMemSize))
+		})
+	})
+
+	Context("when the raw options contain reserved code cache size of 0", func() {
+		BeforeEach(func() {
+			rawOpts = "-XX:ReservedCodeCacheSize=0"
+		})
+
+		It("should not return an error", func() {
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		It("should omit the reserved code cache size from the delta output", func() {
+			Ω(vmOptions.DeltaString()).Should(BeEmpty())
+		})
+
+		It("should capture the value in the correct option", func() {
+			Ω(vmOptions.MemOpt(memory.ReservedCodeCacheSize)).Should(Equal(memory.MemSize(0)))
 		})
 	})
 

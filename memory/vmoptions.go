@@ -61,11 +61,11 @@ func NewVmOptions(rawOpts string) (*vmOptions, error) {
 	var mowr map[MemoryType]bool = map[MemoryType]bool{}
 
 	for optMemoryType, sw := range switches {
-		opt, err := parseOpt(rawOpts, sw)
+		opt, raw, err := parseOpt(rawOpts, sw)
 		if err != nil {
 			return nil, err
 		}
-		if opt != MEMSIZE_ZERO {
+		if raw {
 			mo[optMemoryType] = opt
 			mowr[optMemoryType] = true
 		} else {
@@ -150,21 +150,23 @@ func (vm *vmOptions) ClearMemOpt(memoryType MemoryType) {
 	delete(vm.memOptWasRaw, memoryType)
 }
 
-func parseOpt(rawOpts string, sw string) (MemSize, error) {
+func parseOpt(rawOpts string, sw string) (MemSize, bool, error) {
 	optValue := MEMSIZE_ZERO
+	raw := false
 	opts := strings.Split(rawOpts, " ")
 	for _, opt := range opts {
 		if opt == "" {
 			continue
 		}
 		if strings.Index(opt, sw) == 0 {
+			raw = true
 			value := opt[len(sw):]
 			var err error
 			optValue, err = NewMemSizeFromString(value)
 			if err != nil {
-				return optValue, err
+				return optValue, raw, err
 			}
 		}
 	}
-	return optValue, nil
+	return optValue, raw, nil
 }
