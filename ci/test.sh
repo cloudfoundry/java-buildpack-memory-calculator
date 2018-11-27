@@ -7,13 +7,10 @@ if [[ $GOPATH == "/go" ]]; then
 fi
 
 PATH=${GOPATH//://bin:}/bin:$PATH
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+PARENT_SCRIPT_DIR="$( cd "$( dirname "${SCRIPT_DIR}" )" >/dev/null && pwd )"
 
-go get -v github.com/tools/godep
-
-pushd $GOPATH/src/github.com/cloudfoundry/java-buildpack-memory-calculator
-  GOPATH=$(godep path):$GOPATH
-  PATH=${GOPATH//://bin:}/bin:$PATH
-
+pushd ${PARENT_SCRIPT_DIR}
   go install -v github.com/onsi/ginkgo/ginkgo
   ginkgo -r -failOnPending -randomizeAllSpecs -skipMeasurements=true -race "$@"
 popd

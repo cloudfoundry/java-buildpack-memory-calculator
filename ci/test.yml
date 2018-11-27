@@ -9,8 +9,8 @@ image_resource:
 
 inputs:
 - name: java-buildpack-memory-calculator
-  path: gopath/src/github.com/cloudfoundry/java-buildpack-memory-calculator
+  path: gopath/cloudfoundry/java-buildpack-memory-calculator
 
 run:
-  path: gopath/src/github.com/cloudfoundry/java-buildpack-memory-calculator/ci/test.sh
+  path: gopath/cloudfoundry/java-buildpack-memory-calculator/ci/test.sh
 
