@@ -20,8 +20,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/cloudfoundry/java-buildpack-memory-calculator/memory"
+	sysmem "github.com/pbnjay/memory"
 )
 
 const (
@@ -106,8 +108,7 @@ func validateNoArguments() {
 
 func validateTotMemory(mem string) memory.MemSize {
 	if mem == "" {
-		fmt.Fprintf(os.Stderr, "-%s must be specified", totalFlag)
-		os.Exit(1)
+		mem = strconv.FormatUint(sysmem.TotalMemory(),10) + "b"
 	}
 	ms, err := memory.NewMemSizeFromString(mem)
 	if err != nil {
