@@ -119,6 +119,8 @@ var _ = Describe("MemorySize", func() {
 			Ω(oneMeg.LessThan(oneMeg)).To(BeFalse())
 			Ω(twoMeg.LessThan(oneMeg)).To(BeFalse())
 			Ω(twoMeg.LessThan(twoGig)).To(BeTrue())
+			Ω(oneKilo.LessThan(oneMeg)).To(BeTrue())
+			Ω(oneKilo.LessThan(oneKilo)).To(BeFalse())
 			Ω(oneMeg.Equals(oneMeg)).To(BeTrue())
 			Ω(noMeg.Equals(noMeg)).To(BeTrue())
 			Ω(zero).To(Equal(noMeg))

@@ -332,12 +332,12 @@ var _ = Describe("java-buildpack-memory-calculator executable", func() {
 
 		Context("when values are specified as zero (even though that may cause runtime failures)", func() {
 			var (
-				sOut, sErr []byte
-				cmdErr     error
+				sOut   []byte
+				cmdErr error
 			)
 
 			JustBeforeEach(func() {
-				sOut, sErr, cmdErr = runOutAndErr("-totMemory=4g", "-stackThreads=10", "-loadedClasses=100", "-poolType=metaspace", "-vmOptions=-XX:MaxDirectMemorySize=0 -XX:ReservedCodeCacheSize=0 -XX:MaxMetaspaceSize=0 -Xss0M -Xmx0m")
+				sOut, _, cmdErr = runOutAndErr("-totMemory=4g", "-stackThreads=10", "-loadedClasses=100", "-poolType=metaspace", "-vmOptions=-XX:MaxDirectMemorySize=0 -XX:ReservedCodeCacheSize=0 -XX:MaxMetaspaceSize=0 -Xss0M -Xmx0m")
 			})
 
 			It("omits the zero values", func() {
@@ -365,7 +365,7 @@ func runOutAndErr(args ...string) ([]byte, []byte, error) {
 func removeNewline(b []byte) string {
 	str := string(b)
 	Ω(len(str)).ShouldNot(Equal(0))
-	front, last := str[0 : len(str)-1], str[len(str)-1:]
+	front, last := str[0:len(str)-1], str[len(str)-1:]
 	Ω(last).Should(Equal("\n"))
 	return front
 }

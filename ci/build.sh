@@ -27,7 +27,10 @@ if [[ $GOPATH == "/go" ]]; then
   GOPATH=$PWD/gopath
 fi
 
-pushd $GOPATH/src/github.com/cloudfoundry/java-buildpack-memory-calculator
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+PARENT_SCRIPT_DIR="$( cd "$( dirname "${SCRIPT_DIR}" )" >/dev/null && pwd )"
+
+pushd ${PARENT_SCRIPT_DIR}
   build darwin
   build linux
 

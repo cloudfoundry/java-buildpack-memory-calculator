@@ -65,18 +65,15 @@ The generated docs may be viewed [here](docs/help.md).
 
 
 ### Getting started
-[Install Go][] and then `get` the memory calculator (in the Go source tree).
+[Install Go][] and then use `git` to checkout the memory calculator.
 
-We run our tests with [Ginkgo][]/[Gomega][] and manage dependencies with [Godep][]. Ginkgo is one of the dependencies we manage, so get Godep before starting work:
+We run our tests with [Ginkgo][]/[Gomega][] and manage dependencies with [Go Modules][]. To :
 
 ```shell
-go get -v github.com/cloudfoundry/java-buildpack-memory-calculator
-cd src/github.com/cloudfoundry/java-buildpack-memory-calculator
-
-go get -v github.com/tools/godep
+mkdir $GOPATH/cloudfoundry
+cd $GOPATH/cloudfoundry
+git checkout https://github.com/cloudfoundry/java-buildpack-memory-calculator.git
 ```
-
-(The `-v` options on `go get` are there so you can see what packages are compiled under the covers.)
 
 The (bash) script `ci/test.sh` uses (the correct version of) Ginkgo to run the tests (using the correct versions of the dependencies). `test.sh` will recompile Ginkgo if necessary.
 
@@ -94,28 +91,28 @@ The current Go environment is not modified by `test.sh`.
 To develop against the code, you should issue:
 
 ```shell
-godep restore
+go mod tidy
 ```
 
 in the project directory before building or running tests directly from the command line.
 
-If you wish to develop against a particular tagged *version* then, in the project directory, you need to checkout this version (using `git checkout <tag>`) and re-issue `godep restore` before proceeding.
+If you wish to develop against a particular tagged *version* then, in the project directory, you need to checkout this version (using `git checkout <tag>`) and re-issue `go mod tidy` before proceeding.
 
-If `godep restore` fails, it is because one of the dependencies cannot be obtained, or else it cannot be (re)set to the version this project depends on. Normally `go get -u <project>` for the dependency in error will then allow `godep restore` to complete normally.
+If `go mod tidy` fails, please report it as a github issue.
 
 ### Release binaries
 The executables are built for more than one platform, so the Go compiler must exist for the target platforms we need (currently linux and darwin). The shell script (`ci/build.sh`) will use the Go compiler with the `GOOS` environment variable to generate the executables.
 
-This will not work if the Go installation doesn't support all these platforms, so you may have to ensure Go is installed with cross-compiler support.
+This will not work if the Go installation does not support all these platforms, so you may have to ensure Go is installed with cross-compiler support.
 
 ## License
 The Java Buildpack Memory Calculator is Open Source software released under the [Apache 2.0 license][].
 
 [Apache 2.0 license]: http://www.apache.org/licenses/LICENSE-2.0.html
-[Ginkgo]: http://github.com/onsi/ginkgo
-[Godep]: http://github.com/tools/godep
-[Gomega]: http://github.com/onsi/gomega
 [Install Go]: http://golang.org/doc/install
+[Go Modules]: https://github.com/golang/go/wiki/Modules
+[Ginkgo]: http://github.com/onsi/ginkgo
+[Gomega]: http://github.com/onsi/gomega
 [Java Buildpack Memory Calculator v3]: https://docs.google.com/document/d/1vlXBiwRIjwiVcbvUGYMrxx2Aw1RVAtxq3iuZ3UK2vXA/edit?usp=sharing
 [Java Buildpack]: https://github.com/cloudfoundry/java-buildpack
 
