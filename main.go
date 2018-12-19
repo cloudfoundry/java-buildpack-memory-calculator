@@ -36,7 +36,7 @@ func main() {
 	c := calculator.Calculator{HeadRoom: &h, JvmOptions: &j, LoadedClassCount: &l, ThreadCount: &t, TotalMemory: &m}
 
 	flag.Var(c.HeadRoom, flags.FlagHeadRoom, "percentage of total memory available which will be left unallocated to cover JVM overhead")
-	flag.Var(c.JvmOptions, flags.FlagJVMOptions, "JVM Options, typically JAVA_OPTS")
+	flag.Var(c.JvmOptions, flags.FlagJVMOptions, "JVM options, typically JAVA_OPTS")
 	flag.Var(c.LoadedClassCount, flags.FlagLoadedClassCount, "the number of classes that will be loaded when the application is running")
 	flag.Var(c.ThreadCount, flags.FlagThreadCount, "the number of user threads")
 	flag.Var(c.TotalMemory, "total-memory", "total memory available to the application, typically expressed with size classification (B, K, M, G, T)")
