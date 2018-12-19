@@ -1,0 +1,17 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: golang
+    tag: latest
+
+inputs:
+  - name: java-buildpack-memory-calculator
+
+caches:
+  - path: go-module-cache
+
+run:
+  path: java-buildpack-memory-calculator/ci/unit-test.sh

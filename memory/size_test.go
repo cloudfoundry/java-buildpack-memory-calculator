@@ -1,173 +1,126 @@
-// Encoding: utf-8
-// Cloud Foundry Java Buildpack
-// Copyright (c) 2015-2018 the original author or authors.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*
+ * Copyright 2015-2018 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package memory_test
 
 import (
+	"testing"
+
 	"github.com/cloudfoundry/java-buildpack-memory-calculator/memory"
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/sclevine/spec"
 )
 
-var _ = Describe("MemorySize", func() {
+func TestMemorySize(t *testing.T) {
+	spec.Run(t, "Size", func(t *testing.T, when spec.G, it spec.S) {
 
-	Context("basic constructors", func() {
+		g := NewGomegaWithT(t)
 
-		var (
-			testItWorks func(string, int64)
-			testItFails func(string)
-		)
+		when("format", func() {
 
-		BeforeEach(func() {
-			testItWorks = func(memStr string, memVal int64) {
-				ms, err := memory.NewMemSizeFromString(memStr)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(ms.Bytes()).Should(Equal(memVal))
-			}
-
-			testItFails = func(memStr string) {
-				ms, err := memory.NewMemSizeFromString(memStr)
-				Ω(ms).Should(BeZero())
-				Ω(err).Should(HaveOccurred())
-			}
-		})
-
-		Context("succeeds", func() {
-			It("accepts memory sizes in bytes, kilobytes, megabytes, or gigabytes", func() {
-				testItWorks("1024b", kILO)
-				testItWorks("1024B", kILO)
-				testItWorks("2048B", 2*kILO)
-				testItWorks("1m", mEGA)
-				testItWorks("1M", mEGA)
-				testItWorks("2M", 2*mEGA)
-				testItWorks("1g", gIGA)
-				testItWorks("1G", gIGA)
-				testItWorks("2G", 2*gIGA)
+			it("formats bytes", func() {
+				g.Expect(memory.Size(1023).String()).To(Equal("0"))
 			})
 
-			It("accepts zero (0) as a valid memory size", func() {
-				testItWorks("0", 0)
+			it("formats Kibi", func() {
+				g.Expect(memory.Size(memory.Kibi + 1023).String()).To(Equal("1K"))
 			})
 
-			It("accepts a negative value as a valid memory size", func() {
-				testItWorks("-3M", -3*mEGA)
+			it("formats Mibi", func() {
+				g.Expect(memory.Size(memory.Mibi + 1023).String()).To(Equal("1M"))
 			})
 
-			It("accepts whitespace either side of a valid memory size", func() {
-				testItWorks("  1024b\r", kILO)
-				testItWorks(" \t\r0  ", 0)
-				testItWorks("\t1M    ", mEGA)
+			it("formats Gibi", func() {
+				g.Expect(memory.Size(memory.Gibi + 1023).String()).To(Equal("1G"))
+			})
+
+			it("formats Tibi", func() {
+				g.Expect(memory.Size(memory.Tibi + 1023).String()).To(Equal("1T"))
+			})
+
+			it("formats larger than Tibi", func() {
+				g.Expect(memory.Size((memory.Tibi * 1024) + 1023).String()).To(Equal("1024T"))
 			})
 		})
 
-		Context("fails", func() {
-			It("does not accept 'empty' strings", func() {
-				testItFails("")
-				testItFails("  ")
-				testItFails("\t \r ")
+		when("parse", func() {
+
+			it("parses bytes", func() {
+				g.Expect(memory.ParseSize("1")).To(Equal(memory.Size(1)))
+				g.Expect(memory.ParseSize("1b")).To(Equal(memory.Size(1)))
 			})
 
-			It("does not accept absent numeric value", func() {
-				testItFails("M")
+			it("parses Kibi", func() {
+				g.Expect(memory.ParseSize("1k")).To(Equal(memory.Size(memory.Kibi)))
+				g.Expect(memory.ParseSize("1K")).To(Equal(memory.Size(memory.Kibi)))
 			})
 
-			It("does not accept unqualified non-zero memory sizes", func() {
-				testItFails("512")
+			it("parses Mibi", func() {
+				g.Expect(memory.ParseSize("1m")).To(Equal(memory.Size(memory.Mibi)))
+				g.Expect(memory.ParseSize("1M")).To(Equal(memory.Size(memory.Mibi)))
 			})
 
-			It("does not accept unknown units", func() {
-				testItFails("512A")
+			it("parses Gibi", func() {
+				g.Expect(memory.ParseSize("1g")).To(Equal(memory.Size(memory.Gibi)))
+				g.Expect(memory.ParseSize("1G")).To(Equal(memory.Size(memory.Gibi)))
 			})
 
-			It("does not accept non-decimal integer values", func() {
-				testItFails("0x24b")
+			it("parses Tibi", func() {
+				g.Expect(memory.ParseSize("1t")).To(Equal(memory.Size(memory.Tibi)))
+				g.Expect(memory.ParseSize("1T")).To(Equal(memory.Size(memory.Tibi)))
 			})
 
-			It("does not accept non-integral values", func() {
-				testItFails("10.24G")
+			it("parses zero", func() {
+				g.Expect(memory.ParseSize("0")).To(Equal(memory.Size(0)))
 			})
 
-			It("does not accept embedded whitespace", func() {
-				testItFails("10 24G")
+			it("trims whitespace", func() {
+				g.Expect(memory.ParseSize("\t\r\n 1")).To(Equal(memory.Size(1)))
+				g.Expect(memory.ParseSize("1 \t\r\n")).To(Equal(memory.Size(1)))
+			})
+
+			it("does not parse empty value", func() {
+				_, err := memory.ParseSize("")
+				g.Expect(err).To(HaveOccurred())
+			})
+
+			it("does not parse negative value", func() {
+				_, err := memory.ParseSize("-1")
+				g.Expect(err).To(HaveOccurred())
+			})
+
+			it("does not parse unknown units", func() {
+				_, err := memory.ParseSize("1A")
+				g.Expect(err).To(HaveOccurred())
+			})
+
+			it("does not parse non-decimal value", func() {
+				_, err := memory.ParseSize("0x1")
+				g.Expect(err).To(HaveOccurred())
+			})
+
+			it("does not parse non-integral value", func() {
+				_, err := memory.ParseSize("1.0")
+				g.Expect(err).To(HaveOccurred())
+			})
+
+			it("does not parse embedded whitespace", func() {
+				_, err := memory.ParseSize("1 0")
+				g.Expect(err).To(HaveOccurred())
 			})
 		})
 	})
-
-	Context("operations", func() {
-		var zero, noMeg, oneMeg, twoMeg, oneKilo, twoGig memory.MemSize
-
-		BeforeEach(func() {
-			zero = memory.MEMSIZE_ZERO
-			noMeg, oneMeg, twoMeg, oneKilo, twoGig = getMs(0), getMs(mEGA), getMs(2*mEGA), getMs(kILO), getMs(2*gIGA)
-		})
-
-		It("compares values correctly", func() {
-			Ω(oneMeg.LessThan(twoMeg)).To(BeTrue())
-			Ω(oneMeg.LessThan(oneMeg)).To(BeFalse())
-			Ω(twoMeg.LessThan(oneMeg)).To(BeFalse())
-			Ω(twoMeg.LessThan(twoGig)).To(BeTrue())
-			Ω(oneKilo.LessThan(oneMeg)).To(BeTrue())
-			Ω(oneKilo.LessThan(oneKilo)).To(BeFalse())
-			Ω(oneMeg.Equals(oneMeg)).To(BeTrue())
-			Ω(noMeg.Equals(noMeg)).To(BeTrue())
-			Ω(zero).To(Equal(noMeg))
-		})
-
-		It("correctly detects empty cases", func() {
-			Ω(oneMeg.Empty()).To(BeFalse())
-			Ω(noMeg.Empty()).To(BeTrue())
-		})
-
-		It("correctly adds memory sizes", func() {
-			Ω(oneMeg.Add(oneMeg)).To(Equal(twoMeg))
-			Ω(noMeg.Add(twoGig)).To(Equal(twoGig))
-		})
-
-		It("correctly scales negative memory sizes", func() {
-			Ω(getMs(-3).Scale(0.5)).To(Equal(getMs(-1)))
-		})
-
-		It("correctly scales positive memory sizes", func() {
-			Ω(oneMeg.Scale(2.0)).To(Equal(twoMeg))
-			Ω(twoGig.Scale(1.0 / 1024)).To(Equal(twoMeg))
-			Ω(getMs(3).Scale(0.5)).To(Equal(getMs(2)))
-			Ω(getMs(0).Scale(1e8)).To(Equal(memory.MEMSIZE_ZERO))
-		})
-
-		It("correctly derives proportion between two memory sizes", func() {
-			Ω(twoMeg.DividedBy(oneMeg)).Should(BeNumerically("~", 2.0))
-			Ω(oneMeg.DividedBy(twoMeg)).Should(BeNumerically("~", 0.5))
-		})
-
-		It("converts a memory size to a string correctly", func() {
-			Ω(memory.MEMSIZE_ZERO.String()).Should(Equal("0"))
-			Ω(oneMeg.String()).Should(Equal("1M"))
-			Ω(oneMeg.Scale(0.75).String()).Should(Equal("768K"))
-			Ω(twoMeg.Scale(3.0).Scale(1.5).String()).Should(Equal("9M"))
-			Ω(twoMeg.Scale(300.0).Scale(25.6).String()).Should(Equal("15G"))
-			Ω(twoGig.Scale(1.0001).Scale(1.0 / 1.0001).String()).Should(Equal("2G"))
-		})
-
-		It("converts a memory size to a string by rounding DOWN kilobytes", func() {
-			Ω(getMs(1*kILO - 1).String()).Should(Equal("0"))
-			Ω(getMs(2*kILO - 1).String()).Should(Equal("1K"))
-			Ω(getMs(1*mEGA - 1).String()).Should(Equal("1023K"))
-			Ω(getMs(2*mEGA - 1).String()).Should(Equal("2047K"))
-			Ω(getMs(1*gIGA - 1).String()).Should(Equal("1048575K"))
-			Ω(getMs(2*gIGA + 1023).String()).Should(Equal("2G"))
-		})
-	})
-})
+}

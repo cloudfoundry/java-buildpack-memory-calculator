@@ -1,0 +1,23 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: golang
+    tag: latest
+
+inputs:
+  - name: java-buildpack-memory-calculator
+
+outputs:
+  - name: artifactory
+
+caches:
+  - path: go-module-cache
+
+run:
+  path: java-buildpack-memory-calculator/ci/package.sh
+
+params:
+  VERSION: 4.0.0-BUILD-SNAPSHOT
