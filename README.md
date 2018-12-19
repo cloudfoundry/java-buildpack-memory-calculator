@@ -1,129 +1,44 @@
 # Java Buildpack Memory Calculator
 
-The Java buildpack memory calculator determines values for JVM memory options with the goal of enabling an application to perform well while not exceeding the total memory available in a container (which results in the application being killed).
+The Java Buildpack Memory Calculator calculates a holistic JVM memory configuration with the goal of ensuring that applications perform well while not exceeding a container's memory limit and being recycled.
 
-The buildpack provides the following inputs to the memory calculator:
+In order to perform this calculation, the Memory Calculator requires the following input:
+* `--total-memory`: total memory available to the application, typically expressed with size classification (`B`, `K`, `M`, `G`, `T`)
+* `--loaded-class-count`: the number of classes that will be loaded when the application is running
+* `--thread-count`: the number of user threads
+* `--jvm-options`: JVM Options, typically `JAVA_OPTS`
+* `--head-room`: percentage of total memory available which will be left unallocated to cover JVM overhead
 
-* the total memory available to the application,
-* an optional head room (a percentage of the total memory available, default 0) which should _not_ be allocated,
-* an estimate of the number of threads that will be used by the application,
-* an estimate of the number of classes that will be loaded,
-* the type of JVM pool used in the calculation ('permgen' for Java 7 and 'metaspace' for Java 8 and later),
-* any JVM options specified by the user.
+The Memory Calculator prints the calculated JVM configuration flags (_excluding_ any that the user has specified in `--jvm-options`).  If a valid configuration cannot be calculated (e.g. more memory must be allocated than is available), an error is printed and a non-zero exit code is returned.  In order to **override** a calculated value, users should pass any of the standard JVM configuration flags into `--jvm-options`.  The calculation will take these as fixed values and adjust the non-fixed values accordingly.
 
-The memory calculator prints the JVM memory option settings described below, _excluding_ any the user has specified, which are assumed to be correct.
+## Algorithm
 
-For Java 8 and later, the memory calculator sets the maximum metaspace size (`-XX:MaxMetaspaceSize`) based on the number of classes that will be loaded and sets the reserved code cache size (`-XX:ReservedCodeCacheSize`) to 240 Mb.
+The following algorithm is used to generate the holistic JVM memory configuration:
 
-For Java 7, it sets the maximum permanent generation size (`-XX:MaxPermSize`) based on the number of classes that will be loaded and sets the reserved code cache size (`-XX:ReservedCodeCacheSize`) to 48 Mb.
+1. Headroom is calculated as `total memory * (head room / 100)`
+1. If `-XX:MaxDirectMemorySize` is configured it is used for the amount of direct memory.  If not configured `10M` (in the absence of any reasonable heuristic) is used.
+1. If `-XX:MaxMetaspaceSize` is configured it is used for the amount of metaspace.  If not configured then the value is calculated as `(5800B * loaded class count) + 14000000b`.
+1. If `-XX:ReservedCodeCacheSize` is configured it is used for the amount of reserved code cache.  If not configured `240M` (the JVM default) is used.
+1. If `-Xss` is configured it is used for the size of each thread stack.  If not configured `1M` (the JVM default) is used.
+1. If `-Xmx` is configured it is used for the size of the heap.  If not configured then the value is calculated as `total memory - (headroom + direct memory + metaspace + reserved code cache + (thread stack * thread count))`.
 
-It sets the maximum direct memory size (`-XX:MaxDirectMemorySize`) to 10 Mb.
+Broadly, this means that for a constant application (same number of classes), the non-heap overhead is a fixed value.  Any changes to the total memory will be directly reflected in the size of the heap.  Adjustments to the non-heap memory configuration (e.g. stack size, reserved code cache) _can_ result in larger heap sizes but can also have negative runtime side-effects that must be taken into account.
 
-It sets the stack size (`-Xss`) to a default value (unless the user has specified the stack size) and then calculates the amount of memory that will be consumed by the application's thread stacks.
+The document [Java Buildpack Memory Calculator v3][v3] provides some rationale for the memory calculator externals.
 
-Finally, it sets the heap size (`-Xmx`) to total memory (after any head room has been subtracted) minus the above values.
-
-If the values need to be adjusted, the user can either increase the total memory available or set one or more JVM memory options to suitable values. Unless the user specifies the heap size (`-Xmx`), increasing the total memory available results in the heap size setting increasing by the additional total memory. Similarly, changing the value of other options affects the heap size. For example, if the user increases the maximum direct memory size from its default value of 10 Mb to 20 Mb, then this will reduce the calculated heap size by 10 Mb.
-
-If the application container hits its memory limit, typically resulting in the JVM process being killed, a head room percentage may be specified to leave some unallocated memory for the JVM's own use.
-
-If the estimated number of threads or loaded classes needs to be modified, this can be achieved by configuring the buildpack. For example, when the OpenJDK JRE is used, the number of threads can be modified as in the following example:
-
-```bash
-$ cf set-env my-application JBP_CONFIG_OPEN_JDK_JRE '{ memory_calculator: { stack_threads: 200 } }'
-```
-
-and the number of loaded classes can be modified as in the following example:
-```bash
-$ cf set-env my-application JBP_CONFIG_OPEN_JDK_JRE '{ memory_calculator: { class_count: 1000 } }'
-```
-
-Please consult the [Java Buildpack][] documentation for up to date configuration information.
-
-The document [Java Buildpack Memory Calculator v3][] provides some rationale for the memory calculator externals.
+[v3]: https://docs.google.com/document/d/1vlXBiwRIjwiVcbvUGYMrxx2Aw1RVAtxq3iuZ3UK2vXA/edit?usp=sharing
 
 ### Compressed class space size
 
-According to the [HotSpot GC Tuning Guide][]:
-    
+According to the [HotSpot GC Tuning Guide][h]:
+
 > The MaxMetaspaceSize applies to the sum of the committed compressed class space and the space for the other class metadata.
 
-so the memory calculator does not set the compressed class space size (`-XX:CompressedClassSpaceSize`) since the memory for the compressed class space is bounded by the maximum metaspace size (`-XX:MaxMetaspaceSize`). 
+Therefore the memory calculator does not set the compressed class space size (`-XX:CompressedClassSpaceSize`) since the memory for the compressed class space is bounded by the maximum metaspace size (`-XX:MaxMetaspaceSize`).
 
-[HotSpot GC Tuning Guide]: https://docs.oracle.com/javase/8/docs/technotes/guides/vm/gctuning/considerations.html
-
-### Command line options
-
-The Java buildpack memory calculator documentation can be generated by running the following command:
-
-```
-$ cd docs
-$ ./generate-docs-from-help.sh
-```
-
-The generated docs may be viewed [here](docs/help.md).
-
-
-### Getting started
-[Install Go][] and then use `git` to checkout the memory calculator.
-
-We run our tests with [Ginkgo][]/[Gomega][] and manage dependencies with [Go Modules][]. To :
-
-```shell
-mkdir $GOPATH/cloudfoundry
-cd $GOPATH/cloudfoundry
-git checkout https://github.com/cloudfoundry/java-buildpack-memory-calculator.git
-```
-
-The (bash) script `ci/test.sh` uses (the correct version of) Ginkgo to run the tests (using the correct versions of the dependencies). `test.sh` will recompile Ginkgo if necessary.
-
-The parameters to `runTests` are passed directly to Ginkgo.  For example:
-
-```shell
-ci/test.sh -r=false memory
-```
-
-will run the tests in the memory subdirectory *without* recursion into lower subdirectories (which is the default).
-
-The current Go environment is not modified by `test.sh`.
-
-### Development
-To develop against the code, you should issue:
-
-```shell
-go mod tidy
-```
-
-in the project directory before building or running tests directly from the command line.
-
-If you wish to develop against a particular tagged *version* then, in the project directory, you need to checkout this version (using `git checkout <tag>`) and re-issue `go mod tidy` before proceeding.
-
-If `go mod tidy` fails, please report it as a github issue.
-
-### Release binaries
-The executables are built for more than one platform, so the Go compiler must exist for the target platforms we need (currently linux and darwin). The shell script (`ci/build.sh`) will use the Go compiler with the `GOOS` environment variable to generate the executables.
-
-This will not work if the Go installation does not support all these platforms, so you may have to ensure Go is installed with cross-compiler support.
+[h]: https://docs.oracle.com/javase/8/docs/technotes/guides/vm/gctuning/considerations.html
 
 ## License
-The Java Buildpack Memory Calculator is Open Source software released under the [Apache 2.0 license][].
+The Java Buildpack Memory Calculator is Open Source software released under the [Apache 2.0 license][a].
 
-[Apache 2.0 license]: http://www.apache.org/licenses/LICENSE-2.0.html
-[Install Go]: http://golang.org/doc/install
-[Go Modules]: https://github.com/golang/go/wiki/Modules
-[Ginkgo]: http://github.com/onsi/ginkgo
-[Gomega]: http://github.com/onsi/gomega
-[Java Buildpack Memory Calculator v3]: https://docs.google.com/document/d/1vlXBiwRIjwiVcbvUGYMrxx2Aw1RVAtxq3iuZ3UK2vXA/edit?usp=sharing
-[Java Buildpack]: https://github.com/cloudfoundry/java-buildpack
-
-## Contributing
-
-Please refer to the [Contributors' Guide][].
-
-[Contributors' Guide]: CONTRIBUTING.md
-
-## Community
-
-Others involved in Java buildpack memory calculator development use the `#java-buildpack` channel of the  [Cloud Foundry slack organisation][] for discussion.
-
-[Cloud Foundry slack organisation]: https://cloudfoundry.slack.com
+[a]: http://www.apache.org/licenses/LICENSE-2.0.html
