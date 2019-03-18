@@ -4,6 +4,7 @@ require (
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/onsi/ginkgo v1.7.0 // indirect
 	github.com/onsi/gomega v1.4.3
+	github.com/pbnjay/memory v0.0.0-20190104145345-974d429e7ae4
 	github.com/sclevine/spec v1.2.0
 	github.com/spf13/pflag v1.0.3
 	golang.org/x/net v0.0.0-20181217023233-e147a9138326 // indirect

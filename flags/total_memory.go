@@ -23,8 +23,7 @@ import (
 )
 
 const (
-	DefaultTotalMemory = TotalMemory(0)
-	FlagTotalMemory    = "total-memory"
+	FlagTotalMemory = "total-memory"
 )
 
 const min = memory.Size(1024)

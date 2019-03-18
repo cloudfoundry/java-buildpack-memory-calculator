@@ -3,7 +3,7 @@
 The Java Buildpack Memory Calculator calculates a holistic JVM memory configuration with the goal of ensuring that applications perform well while not exceeding a container's memory limit and being recycled.
 
 In order to perform this calculation, the Memory Calculator requires the following input:
-* `--total-memory`: total memory available to the application, typically expressed with size classification (`B`, `K`, `M`, `G`, `T`)
+* `--total-memory`: (optional) total memory available to the application, typically expressed with size classification (`B`, `K`, `M`, `G`, `T`). By default we use the total installed physical memory size minus reserved areas for the kernel and hardware, if such reservations are reported by the operating system.
 * `--loaded-class-count`: the number of classes that will be loaded when the application is running
 * `--thread-count`: the number of user threads
 * `--jvm-options`: JVM Options, typically `JAVA_OPTS`

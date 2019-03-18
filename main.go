@@ -23,6 +23,7 @@ import (
 
 	"github.com/cloudfoundry/java-buildpack-memory-calculator/calculator"
 	"github.com/cloudfoundry/java-buildpack-memory-calculator/flags"
+	sysmem "github.com/pbnjay/memory"
 	flag "github.com/spf13/pflag"
 )
 
@@ -31,7 +32,7 @@ func main() {
 	j := flags.DefaultJVMOptions
 	l := flags.DefaultLoadedClassCount
 	t := flags.DefaultThreadCount
-	m := flags.DefaultTotalMemory
+	m := flags.TotalMemory(sysmem.TotalMemory())
 
 	c := calculator.Calculator{HeadRoom: &h, JvmOptions: &j, LoadedClassCount: &l, ThreadCount: &t, TotalMemory: &m}
 
