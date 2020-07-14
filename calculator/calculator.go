@@ -73,8 +73,8 @@ func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 	available := memory.Size(*c.TotalMemory)
 
 	if overhead > available {
-		return nil, fmt.Errorf("allocated memory is greater than %s available for allocation: %s, %s, %s, %s x %d threads",
-			available, directMemory, metaspace, reservedCodeCache, stack, *c.ThreadCount)
+		return nil, fmt.Errorf("required memory %s is greater than %s available for allocation: %s, %s, %s, %s x %d threads",
+			overhead, available, directMemory, metaspace, reservedCodeCache, stack, *c.ThreadCount)
 	}
 
 	heap := j.MaxHeap
@@ -85,8 +85,8 @@ func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 	}
 
 	if overhead+memory.Size(*heap) > available {
-		return nil, fmt.Errorf("allocated memory is greater than %s available for allocation: %s, %s, %s, %s, %s x %d threads",
-			available, directMemory, heap, metaspace, reservedCodeCache, stack, *c.ThreadCount)
+		return nil, fmt.Errorf("required memory %s is greater than %s available for allocation: %s, %s, %s, %s, %s x %d threads",
+			overhead+memory.Size(*heap), available, directMemory, heap, metaspace, reservedCodeCache, stack, *c.ThreadCount)
 	}
 
 	return options, nil
