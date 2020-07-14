@@ -20,4 +20,4 @@ run:
   path: java-buildpack-memory-calculator/ci/package.sh
 
 params:
-  VERSION: 4.1.0-BUILD-SNAPSHOT
+  VERSION: 4.2.0-SNAPSHOT
