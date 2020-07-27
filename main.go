@@ -21,8 +21,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/cloudfoundry/java-buildpack-memory-calculator/calculator"
-	"github.com/cloudfoundry/java-buildpack-memory-calculator/flags"
+	"github.com/cloudfoundry/java-buildpack-memory-calculator/v4/calculator"
+	"github.com/cloudfoundry/java-buildpack-memory-calculator/v4/flags"
 	flag "github.com/spf13/pflag"
 )
 

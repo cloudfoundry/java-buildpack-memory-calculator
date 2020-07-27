@@ -19,7 +19,7 @@ package flags
 import (
 	"fmt"
 
-	"github.com/cloudfoundry/java-buildpack-memory-calculator/memory"
+	"github.com/cloudfoundry/java-buildpack-memory-calculator/v4/memory"
 )
 
 const (

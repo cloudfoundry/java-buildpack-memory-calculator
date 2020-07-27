@@ -19,9 +19,9 @@ package calculator_test
 import (
 	"testing"
 
-	"github.com/cloudfoundry/java-buildpack-memory-calculator/calculator"
-	"github.com/cloudfoundry/java-buildpack-memory-calculator/flags"
-	"github.com/cloudfoundry/java-buildpack-memory-calculator/memory"
+	"github.com/cloudfoundry/java-buildpack-memory-calculator/v4/calculator"
+	"github.com/cloudfoundry/java-buildpack-memory-calculator/v4/flags"
+	"github.com/cloudfoundry/java-buildpack-memory-calculator/v4/memory"
 	. "github.com/onsi/gomega"
 	"github.com/sclevine/spec"
 )
