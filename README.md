@@ -12,7 +12,10 @@ In order to perform this calculation, the Memory Calculator requires the followi
 The Memory Calculator prints the calculated JVM configuration flags (_excluding_ any that the user has specified in `--jvm-options`).  If a valid configuration cannot be calculated (e.g. more memory must be allocated than is available), an error is printed and a non-zero exit code is returned.  In order to **override** a calculated value, users should pass any of the standard JVM configuration flags into `--jvm-options`.  The calculation will take these as fixed values and adjust the non-fixed values accordingly.
 
 ## Install  
-go get -v github.com/cloudfoundry/java-buildpack-memory-calculator/v4  
+
+```sh
+$ go get -v github.com/cloudfoundry/java-buildpack-memory-calculator
+```
 
 ## Algorithm
 
