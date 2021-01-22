@@ -2,16 +2,20 @@
 
 set -euo pipefail
 
-if [[ -d $PWD/go-module-cache && ! -d ${GOPATH}/pkg/mod ]]; then
-  mkdir -p ${GOPATH}/pkg
-  ln -s $PWD/go-module-cache ${GOPATH}/pkg/mod
+cd "${SOURCE_DIR}"
+
+if [[ -d "${PWD}/go-module-cache" && ! -d "${GOPATH}/pkg/mod" ]]; then
+  mkdir -p "${GOPATH}/pkg"
+  ln -s "${PWD}/go-module-cache" "${GOPATH}/pkg/mod"
 fi
 
-TARGET="${PWD}/artifactory/org/cloudfoundry/java-buildpack-memory-calculator/${VERSION}/java-buildpack-memory-calculator-$(echo ${VERSION} | sed "s|SNAPSHOT|$(date '+%Y%m%d.%H%M%S')-1|").tgz"
+declare -a ARCHITECTURES_LINUX=("amd64" "arm64" "s390x")
 
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
-go build -ldflags='-s -w' -o bin/java-buildpack-memory-calculator main.go
+for arch in "${ARCHITECTURES_LINUX[@]}"
+do
+  GOOS=linux GOARCH=${arch} go build -ldflags='-s -w' -o "${TARGET_DIR}/memory-calculator_linux_${arch}" main.go
+done
 
-cd bin
-mkdir -p $(dirname ${TARGET})
-tar czf ${TARGET} java-buildpack-memory-calculator
+GOOS=windows GOARCH=amd64 go build -ldflags='-s -w' -o "${TARGET_DIR}/memory-calculator_win_amd64" main.go
+#GOOS=zos GOARCH=s390 go build -ldflags='-s -w' -o "${TARGET_DIR}/memory-calculator_zos_s390x" main.go
+#GOOS=solaris GOARCH=sparc64 go build -ldflags='-s -w' -o "${TARGET_DIR}/memory-calculator_solaris_sparc64" main.go

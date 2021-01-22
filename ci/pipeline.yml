@@ -1,0 +1,122 @@
+---
+
+var:
+  memory-calculator-repository: &memory-calculator-repository-config
+    uri: https://github.com/instana/java-buildpack-memory-calculator.git
+    username: ((project-berlin-gh-token))
+    password: x-oauth-basic
+    branch: &build-branch ((branch))
+    git_config:
+      - name: user.name
+        value: &gh-user Stan
+      - name: user.email
+        value: &gh-email stan@instana.com
+
+resources:
+
+- name: pipeline-source
+  type: git
+  icon: github
+  source:
+    <<: *memory-calculator-repository-config
+    paths:
+    - ci/
+
+- name: java-buildpack-memory-calculator
+  type: git
+  icon: github
+  source:
+    <<: *memory-calculator-repository-config
+    ignore_paths:
+    - ci/
+
+jobs:
+
+- name: self-update
+  max_in_flight: 1
+  plan:
+  - get: pipeline-source
+    trigger: true
+  - set_pipeline: self
+    file: pipeline-source/ci/pipeline.yml
+    vars:
+      branch: ((branch))
+      project-berlin-gh-token: ((project-berlin-gh-token))
+      artifacts-instana-io.username: ((artifacts-instana-io.username))
+      artifacts-instana-io.password: ((artifacts-instana-io.password))
+      mvn-settings-xml: ((mvn-settings-xml))
+
+- name: build
+  max_in_flight: 1
+  plan:
+  - in_parallel:
+    - get: java-buildpack-memory-calculator
+      trigger: true
+    - get: pipeline-source
+  - task: tests
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source:
+          repository: registry.access.redhat.com/ubi8/go-toolset
+      inputs:
+      - name: pipeline-source
+      - name: java-buildpack-memory-calculator
+      run:
+        path: pipeline-source/ci/unit-test.sh
+  - task: build
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source:
+          repository: registry.access.redhat.com/ubi8/ubi-minimal
+      inputs:
+      - name: pipeline-source
+      - name: java-buildpack-memory-calculator
+      outputs:
+      - name: builds
+      params:
+        SOURCE_DIR: java-buildpack-memory-calculator
+        PIPELINE_DIR: pipeline-source
+        TARGET_DIR: builds
+      run:
+        path: /bin/bash
+        args:
+            - -exc
+            - |
+              microdnf install tar gzip wget golang make findutils
+              export SOURCE_DIR="$(pwd)/${SOURCE_DIR}"
+              export TARGET_DIR="$(pwd)/${TARGET_DIR}"
+              bash -x $(pwd)/${PIPELINE_DIR}/ci/package.sh
+  - load_var: version
+    file: java-buildpack-memory-calculator/VERSION
+    reveal: true
+  - task: deploy_to_artifactory
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source:
+          repository: maven
+      inputs:
+      - name: pipeline-source
+      - name: builds
+      params:
+        VERSION: ((.:version))
+      run:
+        path: bash
+        args:
+        - -c
+        - |
+          set -e
+          export MAVEN_OPTS="-Dmaven.repo.local=$(pwd)/maven"
+          mkdir -p /root/.m2/;
+          echo '((mvn-settings-xml))' > /root/.m2/settings.xml;
+
+          regex='memory-calculator_(.+)'
+          for filename in builds/memory-calculator_*; do
+            [[ $(basename "${filename}") =~ ${regex} ]] && \
+              bash -x pipeline-source/ci/deploy_to_artifactory.sh "${filename}" "${BASH_REMATCH[1]}" "${VERSION}"
+          done
