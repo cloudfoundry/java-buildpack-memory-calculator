@@ -12,6 +12,6 @@ mvn deploy:deploy-file \
 	-DrepositoryId=agent-releases \
 	-DgroupId=com.instana \
 	-DartifactId=memory_calculator \
-  -Dclassifier=${architecture}\
+    -Dclassifier=${architecture}\
 	-Dpackaging=bin \
 	-Dversion=${version}

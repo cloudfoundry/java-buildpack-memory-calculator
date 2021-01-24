@@ -19,3 +19,5 @@ done
 GOOS=windows GOARCH=amd64 go build -ldflags='-s -w' -o "${TARGET_DIR}/memory-calculator_win_amd64" main.go
 #GOOS=zos GOARCH=s390 go build -ldflags='-s -w' -o "${TARGET_DIR}/memory-calculator_zos_s390x" main.go
 #GOOS=solaris GOARCH=sparc64 go build -ldflags='-s -w' -o "${TARGET_DIR}/memory-calculator_solaris_sparc64" main.go
+#GOOS=aix GOARCH=ppc64 go build -ldflags='-s -w' -o "${TARGET_DIR}/memory-calculator_solaris_sparc64" main.go
+#GOOS=aix GOARCH=ppc64le go build -ldflags='-s -w' -o "${TARGET_DIR}/memory-calculator_solaris_sparc64" main.go
