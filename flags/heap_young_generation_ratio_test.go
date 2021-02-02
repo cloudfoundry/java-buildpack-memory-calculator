@@ -24,46 +24,46 @@ import (
 	"github.com/sclevine/spec"
 )
 
-func TestDirectMemoryToHeapRatio(t *testing.T) {
-	spec.Run(t, "DirectMemoryToHeapRatio", func(t *testing.T, _ spec.G, it spec.S) {
+func TestHeapYoungGenerationRatio(t *testing.T) {
+	spec.Run(t, "HeapYoungGenerationRatio", func(t *testing.T, _ spec.G, it spec.S) {
 
 		g := NewGomegaWithT(t)
 
 		it("is invalid less than 0", func() {
-			h := flags.DirectMemoryToHeapRatio(-1)
+			h := flags.HeapYoungGenerationRatio(-1)
 
 			g.Expect(h.Validate()).NotTo(Succeed())
 		})
 
 		it("is invalid equal to 0", func() {
-			h := flags.DirectMemoryToHeapRatio(0)
+			h := flags.HeapYoungGenerationRatio(0)
 
 			g.Expect(h.Validate()).NotTo(Succeed())
 		})
 
 		it("is invalid more than 1", func() {
-			h := flags.DirectMemoryToHeapRatio(1.1)
+			h := flags.HeapYoungGenerationRatio(1.1)
 
 			g.Expect(h.Validate()).NotTo(Succeed())
 		})
 
 		it("is invalid equal to 1", func() {
-			h := flags.DirectMemoryToHeapRatio(1)
+			h := flags.HeapYoungGenerationRatio(1)
 
 			g.Expect(h.Validate()).NotTo(Succeed())
 		})
 
 		it("is valid between 0 and 1", func() {
-			h := flags.DirectMemoryToHeapRatio(0.5)
+			h := flags.HeapYoungGenerationRatio(0.5)
 
 			g.Expect(h.Validate()).To(Succeed())
 		})
 
 		it("parses value", func() {
-			var h flags.DirectMemoryToHeapRatio
+			var h flags.HeapYoungGenerationRatio
 
 			g.Expect(h.Set("0.5")).To(Succeed())
-			g.Expect(h).To(Equal(flags.DirectMemoryToHeapRatio(.5)))
+			g.Expect(h).To(Equal(flags.HeapYoungGenerationRatio(.5)))
 		})
 
 	})

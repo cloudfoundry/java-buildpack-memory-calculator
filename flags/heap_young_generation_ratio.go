@@ -22,33 +22,33 @@ import (
 )
 
 const (
-	DefaultDirectMemoryToHeapRatio = DirectMemoryToHeapRatio(.1)
-	FlagDirectMemoryToHeapRatio    = "direct-memory-to-heap-ratio"
+	DefaultHeapYoungGenerationRatio = HeapYoungGenerationRatio(.3)
+	FlagHeapYoungGenerationRatio    = "heap-young-generation-ratio"
 )
 
-type DirectMemoryToHeapRatio float32
+type HeapYoungGenerationRatio float32
 
-func (d *DirectMemoryToHeapRatio) Set(s string) error {
+func (d *HeapYoungGenerationRatio) Set(s string) error {
 	f, err := strconv.ParseFloat(s, 32)
 	if err != nil {
 		return err
 	}
 
-	*d = DirectMemoryToHeapRatio(f)
+	*d = HeapYoungGenerationRatio(f)
 	return nil
 }
 
-func (d *DirectMemoryToHeapRatio) String() string {
+func (d *HeapYoungGenerationRatio) String() string {
 	return strconv.FormatFloat(float64(*d), 'f', 2, 32)
 }
 
-func (d *DirectMemoryToHeapRatio) Type() string {
+func (d *HeapYoungGenerationRatio) Type() string {
 	return "float32"
 }
 
-func (d *DirectMemoryToHeapRatio) Validate() error {
+func (d *HeapYoungGenerationRatio) Validate() error {
 	if *d <= 0 || *d >= 1 {
-		return fmt.Errorf("--%s must be a valid ration between 0 and 1, extremes excluded: %2f", FlagDirectMemoryToHeapRatio, *d)
+		return fmt.Errorf("--%s must be a valid ration between 0 and 1, extremes excluded: %2f", FlagHeapYoungGenerationRatio, *d)
 	}
 
 	return nil

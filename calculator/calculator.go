@@ -24,12 +24,13 @@ import (
 )
 
 type Calculator struct {
-	HeadRoom                *flags.HeadRoom
-	JvmOptions              *flags.JVMOptions
-	LoadedClassCount        *flags.LoadedClassCount
-	ThreadCount             *flags.ThreadCount
-	DirectMemoryToHeapRatio *flags.DirectMemoryToHeapRatio
-	TotalMemory             *flags.TotalMemory
+	HeadRoom                 *flags.HeadRoom
+	JvmOptions               *flags.JVMOptions
+	LoadedClassCount         *flags.LoadedClassCount
+	ThreadCount              *flags.ThreadCount
+	DirectMemoryToHeapRatio  *flags.DirectMemoryToHeapRatio
+	HeapYoungGenerationRatio *flags.HeapYoungGenerationRatio
+	TotalMemory              *flags.TotalMemory
 }
 
 func (c Calculator) Calculate() ([]fmt.Stringer, error) {
@@ -45,17 +46,17 @@ func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 	directMemory := j.MaxDirectMemory
 	directMemoryToHeapRatio := c.DirectMemoryToHeapRatio
 
-	usedirectMemoryToHeapRatio := false
+	useDirectMemoryToHeapRatio := false
 
-	if directMemory == nil {
-		if directMemoryToHeapRatio == nil {
-			d := memory.DefaultMaxDirectMemory
-			directMemory = &d
-			options = append(options, *directMemory)
-		} else if directMemoryToHeapRatio != nil {
-			useDirectMemoryToHeapRatio = true
-		}
+	if directMemory == nil && directMemoryToHeapRatio == nil {
+		d := memory.DefaultMaxDirectMemory
+		directMemory = &d
+		options = append(options, *directMemory)
+	} else if directMemoryToHeapRatio != nil {
+		useDirectMemoryToHeapRatio = true
 	}
+
+	heapYoungGenerationRatio := c.HeapYoungGenerationRatio
 
 	metaspace := j.MaxMetaspace
 	if metaspace == nil {
@@ -91,7 +92,7 @@ func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 	heap := j.MaxHeap
 	if heap != nil {
 		dynamicallyAllocatedMemory = memory.Size(*heap)
-	} else if usedirectMemoryToHeapRatio {
+	} else if useDirectMemoryToHeapRatio {
 		// Split available memory between direct memory and heap
 		availableMemory := memory.Size(*c.TotalMemory) - overhead
 
@@ -115,6 +116,15 @@ func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 		options = append(options, *heap)
 
 		dynamicallyAllocatedMemory = memory.Size(h)
+	}
+
+	heapYoungGeneration := j.MaxHeapYoungGeneration
+	if heapYoungGeneration == nil {
+		youngGenerationSize := (int64)(float32(*heap) * float32(*heapYoungGenerationRatio))
+		y := memory.MaxHeapYoungGeneration(memory.Size(youngGenerationSize))
+		youngGeneration := &y
+
+		options = append(options, *youngGeneration)
 	}
 
 	if overhead+dynamicallyAllocatedMemory > available {

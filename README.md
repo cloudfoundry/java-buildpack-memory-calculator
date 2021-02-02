@@ -11,7 +11,8 @@ In order to perform this calculation, the Memory Calculator requires the followi
 * `--thread-count`: the number of user threads
 * `--jvm-options`: JVM Options, typically `JAVA_OPTS`
 * `--head-room`: percentage of total memory available which will be left unallocated to cover JVM overhead
-* `--direct-memory-to-heap-ratio`: (optional) how to split the available memory between heap and direct memory, when neither is hard-coded to a particular value
+* `--direct-memory-to-heap-ratio`: how to split the available memory between heap and direct memory, when neither is hard-coded to a particular value; default is `.1`, that is, 10% of available allocated to direct memory
+* `--heap-young-generation-ratio`: how much of the heap to reserve for young generation; default is `.3`, that is, 30% of the heap reserved for the young generation
 
 The Memory Calculator prints the calculated JVM configuration flags (_excluding_ any that the user has specified in `--jvm-options`).  If a valid configuration cannot be calculated (e.g. more memory must be allocated than is available), an error is printed and a non-zero exit code is returned.  In order to **override** a calculated value, users should pass any of the standard JVM configuration flags into `--jvm-options`.  The calculation will take these as fixed values and adjust the non-fixed values accordingly.
 

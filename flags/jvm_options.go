@@ -27,11 +27,12 @@ var DefaultJVMOptions = JVMOptions{}
 const FlagJVMOptions = "jvm-options"
 
 type JVMOptions struct {
-	MaxDirectMemory   *memory.MaxDirectMemory
-	MaxHeap           *memory.MaxHeap
-	MaxMetaspace      *memory.MaxMetaspace
-	ReservedCodeCache *memory.ReservedCodeCache
-	Stack             *memory.Stack
+	MaxDirectMemory        *memory.MaxDirectMemory
+	MaxHeap                *memory.MaxHeap
+	MaxHeapYoungGeneration *memory.MaxHeapYoungGeneration
+	MaxMetaspace           *memory.MaxMetaspace
+	ReservedCodeCache      *memory.ReservedCodeCache
+	Stack                  *memory.Stack
 }
 
 func (j *JVMOptions) Set(s string) error {
@@ -50,6 +51,13 @@ func (j *JVMOptions) Set(s string) error {
 			}
 
 			j.MaxHeap = &m
+		} else if memory.IsMaxHeapYoungGeneration(c) {
+			y, err := memory.ParseMaxHeapYoungGeneration(c)
+			if err != nil {
+				return err
+			}
+
+			j.MaxHeapYoungGeneration = &y
 		} else if memory.IsMaxMetaspace(c) {
 			m, err := memory.ParseMaxMetaspace(c)
 			if err != nil {

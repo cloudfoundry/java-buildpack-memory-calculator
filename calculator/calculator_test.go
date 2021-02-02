@@ -69,6 +69,23 @@ func TestCalculator(t *testing.T) {
 			))
 		})
 
+		it("allocates heap memory to young generation according to the specified ratio", func() {
+			d := flags.DirectMemoryToHeapRatio(0.1)
+			c.DirectMemoryToHeapRatio = &d
+
+			y := flags.HeapYoungGenerationRatio(0.5)
+			c.HeapYoungGenerationRatio = &y
+
+			g.Expect(c.Calculate()).To(ConsistOf(
+				memory.MaxMetaspace(19800000),
+				memory.DefaultReservedCodeCache,
+				memory.DefaultStack,
+				memory.MaxDirectMemory(24234400),
+				memory.MaxHeap(218109600),
+				memory.MaxHeapYoungGeneration(109054800),
+			))
+		})
+
 		it("uses default and calculated values", func() {
 			g.Expect(c.Calculate()).To(ConsistOf(
 				memory.DefaultMaxDirectMemory,
