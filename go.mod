@@ -1,4 +1,4 @@
-module github.com/cloudfoundry/java-buildpack-memory-calculator/v4
+module github.com/instana/java-buildpack-memory-calculator/v4
 
 go 1.14
 

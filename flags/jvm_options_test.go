@@ -19,8 +19,8 @@ package flags_test
 import (
 	"testing"
 
-	"github.com/cloudfoundry/java-buildpack-memory-calculator/v4/flags"
-	"github.com/cloudfoundry/java-buildpack-memory-calculator/v4/memory"
+	"github.com/instana/java-buildpack-memory-calculator/v4/flags"
+	"github.com/instana/java-buildpack-memory-calculator/v4/memory"
 	. "github.com/onsi/gomega"
 	"github.com/sclevine/spec"
 )

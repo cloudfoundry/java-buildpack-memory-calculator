@@ -19,9 +19,9 @@ package calculator_test
 import (
 	"testing"
 
-	"github.com/cloudfoundry/java-buildpack-memory-calculator/v4/calculator"
-	"github.com/cloudfoundry/java-buildpack-memory-calculator/v4/flags"
-	"github.com/cloudfoundry/java-buildpack-memory-calculator/v4/memory"
+	"github.com/instana/java-buildpack-memory-calculator/v4/calculator"
+	"github.com/instana/java-buildpack-memory-calculator/v4/flags"
+	"github.com/instana/java-buildpack-memory-calculator/v4/memory"
 	. "github.com/onsi/gomega"
 	"github.com/sclevine/spec"
 )
@@ -41,6 +41,32 @@ func TestCalculator(t *testing.T) {
 			m := flags.TotalMemory(500 * memory.Mibi)
 
 			c = calculator.Calculator{HeadRoom: &h, JvmOptions: &j, LoadedClassCount: &l, ThreadCount: &t, TotalMemory: &m}
+		})
+
+		it("splits evenly available memory between heap and direct memory according to the specified ratio", func() {
+			d := flags.DirectMemoryToHeapRatio(0.5)
+			c.DirectMemoryToHeapRatio = &d
+
+			g.Expect(c.Calculate()).To(ConsistOf(
+				memory.MaxMetaspace(19800000),
+				memory.DefaultReservedCodeCache,
+				memory.DefaultStack,
+				memory.MaxDirectMemory(121172000),
+				memory.MaxHeap(121172000),
+			))
+		})
+
+		it("splits unevently available memory between heap and direct memory according to the specified ratio", func() {
+			d := flags.DirectMemoryToHeapRatio(0.1)
+			c.DirectMemoryToHeapRatio = &d
+
+			g.Expect(c.Calculate()).To(ConsistOf(
+				memory.MaxMetaspace(19800000),
+				memory.DefaultReservedCodeCache,
+				memory.DefaultStack,
+				memory.MaxDirectMemory(24234400),
+				memory.MaxHeap(218109600),
+			))
 		})
 
 		it("uses default and calculated values", func() {

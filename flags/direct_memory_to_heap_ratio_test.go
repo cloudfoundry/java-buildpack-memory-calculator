@@ -24,34 +24,47 @@ import (
 	"github.com/sclevine/spec"
 )
 
-func TestThreadCount(t *testing.T) {
-	spec.Run(t, "ThreadCount", func(t *testing.T, _ spec.G, it spec.S) {
+func TestDirectMemoryToHeapRatio(t *testing.T) {
+	spec.Run(t, "DirectMemoryToHeapRatio", func(t *testing.T, _ spec.G, it spec.S) {
 
 		g := NewGomegaWithT(t)
 
 		it("is invalid less than 0", func() {
-			t := flags.ThreadCount(-1)
+			h := flags.DirectMemoryToHeapRatio(-1)
 
-			g.Expect(t.Validate()).NotTo(Succeed())
+			g.Expect(h.Validate()).NotTo(Succeed())
 		})
 
-		it("is invalid at 0", func() {
-			t := flags.ThreadCount(0)
+		it("is invalid equal to 0", func() {
+			h := flags.DirectMemoryToHeapRatio(0)
 
-			g.Expect(t.Validate()).NotTo(Succeed())
+			g.Expect(h.Validate()).NotTo(Succeed())
 		})
 
-		it("is valid more than 0", func() {
-			t := flags.ThreadCount(1)
+		it("is invalid more than 1", func() {
+			h := flags.DirectMemoryToHeapRatio(1.1)
 
-			g.Expect(t.Validate()).To(Succeed())
+			g.Expect(h.Validate()).NotTo(Succeed())
+		})
+
+		it("is invalid equal to 1", func() {
+			h := flags.DirectMemoryToHeapRatio(1)
+
+			g.Expect(h.Validate()).NotTo(Succeed())
+		})
+
+		it("is valid between 0 and 1", func() {
+			h := flags.DirectMemoryToHeapRatio(0.5)
+
+			g.Expect(h.Validate()).To(Succeed())
 		})
 
 		it("parses value", func() {
-			var t flags.ThreadCount
+			var h flags.DirectMemoryToHeapRatio
 
-			g.Expect(t.Set("1")).To(Succeed())
-			g.Expect(t).To(Equal(flags.ThreadCount(1)))
+			g.Expect(h.Set("0.5")).To(Succeed())
+			g.Expect(h).To(Equal(flags.DirectMemoryToHeapRatio(.5)))
 		})
+
 	})
 }

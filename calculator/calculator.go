@@ -19,16 +19,17 @@ package calculator
 import (
 	"fmt"
 
-	"github.com/cloudfoundry/java-buildpack-memory-calculator/v4/flags"
-	"github.com/cloudfoundry/java-buildpack-memory-calculator/v4/memory"
+	"github.com/instana/java-buildpack-memory-calculator/v4/flags"
+	"github.com/instana/java-buildpack-memory-calculator/v4/memory"
 )
 
 type Calculator struct {
-	HeadRoom         *flags.HeadRoom
-	JvmOptions       *flags.JVMOptions
-	LoadedClassCount *flags.LoadedClassCount
-	ThreadCount      *flags.ThreadCount
-	TotalMemory      *flags.TotalMemory
+	HeadRoom                *flags.HeadRoom
+	JvmOptions              *flags.JVMOptions
+	LoadedClassCount        *flags.LoadedClassCount
+	ThreadCount             *flags.ThreadCount
+	DirectMemoryToHeapRatio *flags.DirectMemoryToHeapRatio
+	TotalMemory             *flags.TotalMemory
 }
 
 func (c Calculator) Calculate() ([]fmt.Stringer, error) {
@@ -42,10 +43,16 @@ func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 	headRoom := c.headRoom()
 
 	directMemory := j.MaxDirectMemory
-	if directMemory == nil {
+	directMemoryToHeapRatio := c.DirectMemoryToHeapRatio
+
+	usedirectMemoryToHeapRatio := false
+
+	if directMemory == nil && directMemoryToHeapRatio == nil {
 		d := memory.DefaultMaxDirectMemory
 		directMemory = &d
 		options = append(options, *directMemory)
+	} else if directMemoryToHeapRatio != nil {
+		usedirectMemoryToHeapRatio = true
 	}
 
 	metaspace := j.MaxMetaspace
@@ -77,16 +84,40 @@ func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 			overhead, available, directMemory, metaspace, reservedCodeCache, stack, *c.ThreadCount)
 	}
 
+	var dynamicallyAllocatedMemory memory.Size
+
 	heap := j.MaxHeap
-	if heap == nil {
+	if heap != nil {
+		dynamicallyAllocatedMemory = memory.Size(*heap)
+	} else if usedirectMemoryToHeapRatio {
+		// Split available memory between direct memory and heap
+		availableMemory := memory.Size(*c.TotalMemory) - overhead
+
+		directMemorySize := (int64)(float64(availableMemory) * float64(*c.DirectMemoryToHeapRatio))
+		heapMemorySize := availableMemory - memory.Size(directMemorySize)
+
+		m := memory.MaxDirectMemory(memory.Size(directMemorySize))
+		directMemory = &m
+
+		h := memory.MaxHeap(memory.Size(heapMemorySize))
+		heap = &h
+
+		options = append(options, *heap)
+		options = append(options, *directMemory)
+
+		dynamicallyAllocatedMemory = memory.Size(directMemorySize) + memory.Size(heapMemorySize)
+	} else {
+		// Give all the available memory to the heap
 		h := c.heap(overhead)
 		heap = &h
 		options = append(options, *heap)
+
+		dynamicallyAllocatedMemory = memory.Size(h)
 	}
 
-	if overhead+memory.Size(*heap) > available {
+	if overhead+dynamicallyAllocatedMemory > available {
 		return nil, fmt.Errorf("required memory %s is greater than %s available for allocation: %s, %s, %s, %s, %s x %d threads",
-			overhead+memory.Size(*heap), available, directMemory, heap, metaspace, reservedCodeCache, stack, *c.ThreadCount)
+			overhead+dynamicallyAllocatedMemory, available, directMemory, heap, metaspace, reservedCodeCache, stack, *c.ThreadCount)
 	}
 
 	return options, nil
@@ -105,9 +136,14 @@ func (c Calculator) metaspace() memory.MaxMetaspace {
 }
 
 func (c Calculator) overhead(headRoom memory.Size, directMemory *memory.MaxDirectMemory, metaspace *memory.MaxMetaspace, reservedCodeCache *memory.ReservedCodeCache, stack *memory.Stack) memory.Size {
-	return headRoom +
-		memory.Size(*directMemory) +
+	overhead := headRoom +
 		memory.Size(*metaspace) +
 		memory.Size(*reservedCodeCache) +
 		memory.Size(int64(*stack)*int64(*c.ThreadCount))
+
+	if directMemory != nil {
+		overhead = overhead + memory.Size(*directMemory)
+	}
+
+	return overhead
 }
