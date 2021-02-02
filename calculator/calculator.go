@@ -47,12 +47,14 @@ func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 
 	usedirectMemoryToHeapRatio := false
 
-	if directMemory == nil && directMemoryToHeapRatio == nil {
-		d := memory.DefaultMaxDirectMemory
-		directMemory = &d
-		options = append(options, *directMemory)
-	} else if directMemoryToHeapRatio != nil {
-		usedirectMemoryToHeapRatio = true
+	if directMemory == nil {
+		if directMemoryToHeapRatio == nil {
+			d := memory.DefaultMaxDirectMemory
+			directMemory = &d
+			options = append(options, *directMemory)
+		} else if directMemoryToHeapRatio != nil {
+			useDirectMemoryToHeapRatio = true
+		}
 	}
 
 	metaspace := j.MaxMetaspace
