@@ -47,12 +47,8 @@ func (l *LoadedClassCount) Type() string {
 }
 
 func (l *LoadedClassCount) Validate() error {
-	if *l == 0 {
-		return fmt.Errorf("--%s must be specified", FlagLoadedClassCount)
-	}
-
 	if *l < 0 {
-		return fmt.Errorf("--%s must be positive: %d", FlagLoadedClassCount, *l)
+		return fmt.Errorf("--%s must be non-negative: %d", FlagLoadedClassCount, *l)
 	}
 
 	return nil

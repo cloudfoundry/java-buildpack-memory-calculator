@@ -7,7 +7,7 @@ The Instana Memory Calculator calculates a holistic JVM memory configuration wit
 In order to perform this calculation, the Memory Calculator requires the following input:
 
 * `--total-memory`: total memory available to the application, typically expressed with size classification (`B`, `K`, `M`, `G`, `T`)
-* `--loaded-class-count`: the number of classes that will be loaded when the application is running
+* `--loaded-class-count`: the number of classes that will be loaded when the application is running; optional as long as `-XX:MaxMetaspaceSize` is provided via `--jvm-options`
 * `--thread-count`: the number of user threads
 * `--jvm-options`: JVM Options, typically `JAVA_OPTS`
 * `--head-room`: percentage of total memory available which will be left unallocated to cover JVM overhead

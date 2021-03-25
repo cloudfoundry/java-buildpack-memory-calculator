@@ -60,6 +60,10 @@ func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 
 	metaspace := j.MaxMetaspace
 	if metaspace == nil {
+		if *c.LoadedClassCount < 1 {
+			return nil, fmt.Errorf("neither the '%s' argument nor the '%s' JVM option are specified; cannot calculate the Metaspace sizing", flags.FlagLoadedClassCount, "-XX:MaxMetaspaceSize")
+		}
+
 		m := c.metaspace()
 		metaspace = &m
 		options = append(options, *metaspace)
@@ -119,8 +123,8 @@ func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 	}
 
 	heapYoungGeneration := j.MaxHeapYoungGeneration
-	if heapYoungGeneration == nil {
-		youngGenerationSize := (int64)(float32(*heap) * float32(*heapYoungGenerationRatio))
+	if heapYoungGeneration == nil && heapYoungGenerationRatio != nil {
+		youngGenerationSize := float32(*heap) * float32(*heapYoungGenerationRatio)
 		y := memory.MaxHeapYoungGeneration(memory.Size(youngGenerationSize))
 		youngGeneration := &y
 

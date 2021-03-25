@@ -35,10 +35,10 @@ func TestLoadedClassCount(t *testing.T) {
 			g.Expect(l.Validate()).NotTo(Succeed())
 		})
 
-		it("is invalid at 0", func() {
+		it("is vvalid at 0", func() {
 			l := flags.LoadedClassCount(0)
 
-			g.Expect(l.Validate()).NotTo(Succeed())
+			g.Expect(l.Validate()).To(Succeed())
 		})
 
 		it("is valid more than 0", func() {

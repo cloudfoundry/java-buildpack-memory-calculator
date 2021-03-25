@@ -111,6 +111,7 @@ func TestCalculator(t *testing.T) {
 		it("uses configured metaspace", func() {
 			m := memory.MaxMetaspace(memory.Mibi)
 			c.JvmOptions.MaxMetaspace = &m
+			c.LoadedClassCount = nil // Check we do not need the LoadedClassCount anymore in this case
 
 			g.Expect(c.Calculate()).To(ConsistOf(
 				memory.DefaultMaxDirectMemory,
