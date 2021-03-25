@@ -39,8 +39,17 @@ func TestCalculator(t *testing.T) {
 			l := flags.LoadedClassCount(1000)
 			t := flags.ThreadCount(10)
 			m := flags.TotalMemory(500 * memory.Mibi)
+			d := flags.DetectMemoryLimits(false)
 
-			c = calculator.Calculator{HeadRoom: &h, JvmOptions: &j, LoadedClassCount: &l, ThreadCount: &t, TotalMemory: &m}
+			c = calculator.Calculator{HeadRoom: &h, JvmOptions: &j, LoadedClassCount: &l, ThreadCount: &t, TotalMemory: &m, DetectMemoryLimits: &d}
+		})
+
+		it("returns error if neither total memory nor detect memory limits are set", func() {
+			t := flags.TotalMemory(0)
+			c.TotalMemory = &t
+
+			_, err := c.Calculate()
+			g.Expect(err).To(HaveOccurred())
 		})
 
 		it("splits evenly available memory between heap and direct memory according to the specified ratio", func() {

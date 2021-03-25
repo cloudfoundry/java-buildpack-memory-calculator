@@ -27,6 +27,7 @@ import (
 )
 
 func main() {
+	d := flags.DefaultDetectMemoryLimits
 	h := flags.DefaultHeadRoom
 	j := flags.DefaultJVMOptions
 	l := flags.DefaultLoadedClassCount
@@ -35,7 +36,7 @@ func main() {
 	r := flags.DefaultDirectMemoryToHeapRatio
 	y := flags.DefaultHeapYoungGenerationRatio
 
-	c := calculator.Calculator{HeadRoom: &h, JvmOptions: &j, LoadedClassCount: &l, ThreadCount: &t, TotalMemory: &m, DirectMemoryToHeapRatio: &r, HeapYoungGenerationRatio: &y}
+	c := calculator.Calculator{HeadRoom: &h, JvmOptions: &j, LoadedClassCount: &l, ThreadCount: &t, DetectMemoryLimits: &d, TotalMemory: &m, DirectMemoryToHeapRatio: &r, HeapYoungGenerationRatio: &y}
 
 	flag.Var(c.HeadRoom, flags.FlagHeadRoom, "percentage of total memory available which will be left unallocated to cover JVM overhead")
 	flag.Var(c.JvmOptions, flags.FlagJVMOptions, "JVM options, typically JAVA_OPTS")
@@ -43,7 +44,8 @@ func main() {
 	flag.Var(c.ThreadCount, flags.FlagThreadCount, "the number of user threads")
 	flag.Var(c.DirectMemoryToHeapRatio, flags.FlagDirectMemoryToHeapRatio, "ratio of direct memory to heap, expressed as a float between 0 and 1, e.g., 0.3")
 	flag.Var(c.HeapYoungGenerationRatio, flags.FlagHeapYoungGenerationRatio, "ratio of heap memory to reserve to the young generation, expressed as a float between 0 and 1, e.g., 0.3")
-	flag.Var(c.TotalMemory, "total-memory", "total memory available to the application, typically expressed with size classification (B, K, M, G, T)")
+	flag.Var(c.TotalMemory, flags.FlagTotalMemory, "total memory available to the application, typically expressed with size classification (B, K, M, G, T); optional if '--detect-memory-limits=true' is used")
+	flag.BoolVar((*bool)(c.DetectMemoryLimits), flags.FlagDetectMemoryLimits, false, "[Experimental; Linux only] automatically detect total memory available to the application based on cgroups; this flag is incompatible with '--total-memory'")
 	flag.Parse()
 
 	if !validate(c.HeadRoom, c.JvmOptions, c.LoadedClassCount, c.ThreadCount, c.TotalMemory) {

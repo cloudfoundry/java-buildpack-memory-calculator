@@ -18,6 +18,9 @@ package calculator
 
 import (
 	"fmt"
+	"io/ioutil"
+	"runtime"
+	"strings"
 
 	"github.com/instana/java-buildpack-memory-calculator/v4/flags"
 	"github.com/instana/java-buildpack-memory-calculator/v4/memory"
@@ -31,7 +34,13 @@ type Calculator struct {
 	DirectMemoryToHeapRatio  *flags.DirectMemoryToHeapRatio
 	HeapYoungGenerationRatio *flags.HeapYoungGenerationRatio
 	TotalMemory              *flags.TotalMemory
+	DetectMemoryLimits       *flags.DetectMemoryLimits
 }
+
+const (
+	LinuxMemoryLimitsPath        = "/sys/fs/cgroup/memory/memory.limit_in_bytes"
+	LinuxUnspecifiedMemoryLimits = "9223372036854771712"
+)
 
 func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 	var options []fmt.Stringer
@@ -41,7 +50,28 @@ func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 		j = &flags.JVMOptions{}
 	}
 
-	headRoom := c.headRoom()
+	var available memory.Size
+
+	if *c.TotalMemory == 0 && *c.DetectMemoryLimits == false {
+		return nil, fmt.Errorf("neither '--%s' nor '--%s' are specified; cannot perform memory calculations without the total memory available",
+			flags.FlagDetectMemoryLimits, flags.FlagTotalMemory)
+	}
+
+	if *c.DetectMemoryLimits == true {
+		if *c.TotalMemory != 0 {
+			return nil, fmt.Errorf("both '--%s' nor '--%s' are specified", flags.FlagDetectMemoryLimits, flags.FlagTotalMemory)
+		}
+
+		var err error
+		available, err = c.detectMemoryLimits()
+		if err != nil {
+			return nil, fmt.Errorf("retrieving the memory limits automatically failed: %v", err)
+		}
+	} else {
+		available = memory.Size(*c.TotalMemory)
+	}
+
+	headRoom := c.headRoom(available)
 
 	directMemory := j.MaxDirectMemory
 	directMemoryToHeapRatio := c.DirectMemoryToHeapRatio
@@ -84,7 +114,6 @@ func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 	}
 
 	overhead := c.overhead(headRoom, directMemory, metaspace, reservedCodeCache, stack)
-	available := memory.Size(*c.TotalMemory)
 
 	if overhead > available {
 		return nil, fmt.Errorf("required memory %s is greater than %s available for allocation: %s, %s, %s, %s x %d threads",
@@ -98,7 +127,7 @@ func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 		dynamicallyAllocatedMemory = memory.Size(*heap)
 	} else if useDirectMemoryToHeapRatio {
 		// Split available memory between direct memory and heap
-		availableMemory := memory.Size(*c.TotalMemory) - overhead
+		availableMemory := available - overhead
 
 		directMemorySize := (int64)(float64(availableMemory) * float64(*c.DirectMemoryToHeapRatio))
 		heapMemorySize := availableMemory - memory.Size(directMemorySize)
@@ -115,7 +144,7 @@ func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 		dynamicallyAllocatedMemory = memory.Size(directMemorySize) + memory.Size(heapMemorySize)
 	} else {
 		// Give all the available memory to the heap
-		h := c.heap(overhead)
+		h := c.heap(available, overhead)
 		heap = &h
 		options = append(options, *heap)
 
@@ -139,12 +168,12 @@ func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 	return options, nil
 }
 
-func (c Calculator) headRoom() memory.Size {
-	return memory.Size(float64(*c.TotalMemory) * (float64(*c.HeadRoom) / 100))
+func (c Calculator) headRoom(available memory.Size) memory.Size {
+	return memory.Size(float64(available) * (float64(*c.HeadRoom) / 100))
 }
 
-func (c Calculator) heap(overhead memory.Size) memory.MaxHeap {
-	return memory.MaxHeap(memory.Size(*c.TotalMemory) - overhead)
+func (c Calculator) heap(available memory.Size, overhead memory.Size) memory.MaxHeap {
+	return memory.MaxHeap(memory.Size(available) - overhead)
 }
 
 func (c Calculator) metaspace() memory.MaxMetaspace {
@@ -162,4 +191,27 @@ func (c Calculator) overhead(headRoom memory.Size, directMemory *memory.MaxDirec
 	}
 
 	return overhead
+}
+
+func (c Calculator) detectMemoryLimits() (memory.Size, error) {
+	if runtime.GOOS != "linux" {
+		return 0, fmt.Errorf("the '--%s' option is supported only on Linux", flags.FlagDetectMemoryLimits)
+	}
+
+	bs, err := ioutil.ReadFile(LinuxMemoryLimitsPath)
+	if err != nil {
+		return 0, fmt.Errorf("cannot detect memory limit automatically from '%s': %v", LinuxMemoryLimitsPath, err)
+	}
+
+	v := strings.TrimSpace(string(bs))
+	if v == LinuxUnspecifiedMemoryLimits {
+		return 0, fmt.Errorf("no memory limits specified, '%s' contains '%s'", LinuxMemoryLimitsPath, LinuxUnspecifiedMemoryLimits)
+	}
+
+	s, err := memory.ParseSize(v + "b")
+	if err != nil {
+		return 0, fmt.Errorf("cannot parse as memory the '%s' output of '%s': %v", v, LinuxMemoryLimitsPath, err)
+	}
+
+	return s, nil
 }

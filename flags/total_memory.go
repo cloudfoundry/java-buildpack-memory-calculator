@@ -51,7 +51,7 @@ func (t *TotalMemory) Type() string {
 
 func (t *TotalMemory) Validate() error {
 	if *t == 0 {
-		return fmt.Errorf("--%s must be specified", FlagTotalMemory)
+		return nil // Disabled, the `--detect-memory-limits` must be set instead
 	}
 
 	if *t < 0 {

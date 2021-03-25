@@ -35,10 +35,10 @@ func TestTotalMemory(t *testing.T) {
 			g.Expect(t.Validate()).NotTo(Succeed())
 		})
 
-		it("is invalid at 0", func() {
+		it("is valid at 0", func() {
 			t := flags.TotalMemory(0)
 
-			g.Expect(t.Validate()).NotTo(Succeed())
+			g.Expect(t.Validate()).To(Succeed())
 		})
 
 		it("is invalid less than 1K", func() {
