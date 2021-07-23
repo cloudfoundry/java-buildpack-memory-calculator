@@ -30,10 +30,6 @@ The following algorithm is used to generate the holistic JVM memory configuratio
 
 Broadly, this means that for a constant application (same number of classes), the non-heap overhead is a fixed value.  Any changes to the total memory will be directly reflected in the size of the heap.  Adjustments to the non-heap memory configuration (e.g. stack size, reserved code cache) _can_ result in larger heap sizes but can also have negative runtime side-effects that must be taken into account.
 
-The document [Java Buildpack Memory Calculator v3][v3] provides some rationale for the memory calculator externals.
-
-[v3]: https://docs.google.com/document/d/1vlXBiwRIjwiVcbvUGYMrxx2Aw1RVAtxq3iuZ3UK2vXA/edit?usp=sharing
-
 ### Compressed class space size
 
 According to the [HotSpot GC Tuning Guide][h]:
