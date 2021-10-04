@@ -5,7 +5,7 @@ var:
     uri: https://github.com/instana/java-buildpack-memory-calculator.git
     username: ((project-berlin-gh-token))
     password: x-oauth-basic
-    branch: &build-branch ((branch))
+    branch: main
     git_config:
       - name: user.name
         value: &gh-user Stan
@@ -40,7 +40,7 @@ jobs:
   - set_pipeline: self
     file: pipeline-source/ci/pipeline.yml
     vars:
-      branch: ((branch))
+      branch: main
       project-berlin-gh-token: ((project-berlin-gh-token))
       artifacts-instana-io.username: ((artifacts-instana-io.username))
       artifacts-instana-io.password: ((artifacts-instana-io.password))

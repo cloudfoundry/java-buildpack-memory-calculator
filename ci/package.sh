@@ -9,7 +9,7 @@ if [[ -d "${PWD}/go-module-cache" && ! -d "${GOPATH}/pkg/mod" ]]; then
   ln -s "${PWD}/go-module-cache" "${GOPATH}/pkg/mod"
 fi
 
-declare -a ARCHITECTURES_LINUX=("amd64" "arm64" "s390x")
+declare -a ARCHITECTURES_LINUX=("amd64" "arm64" "s390x" "ppc64" "ppc64le")
 
 for arch in "${ARCHITECTURES_LINUX[@]}"
 do
