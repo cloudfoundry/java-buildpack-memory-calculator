@@ -97,10 +97,7 @@ jobs:
               gunzip "${GO_BINARY}"
               tar xf "${GO_BINARY//.gz/}"
               mv go /usr/local/bin
-              mkdir -p $(pwd)/go
-              export GOPATH=$(pwd)/go
-              export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
-  
+              export PATH=$PATH:/usr/local/bin/go/bin/
               export SOURCE_DIR="$(pwd)/${SOURCE_DIR}"
               export TARGET_DIR="$(pwd)/${TARGET_DIR}"
               bash -x $(pwd)/${PIPELINE_DIR}/ci/package.sh
