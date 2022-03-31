@@ -86,7 +86,21 @@ jobs:
         args:
             - -exc
             - |
-              microdnf install tar gzip wget golang make findutils
+              microdnf -y install tar gzip wget make findutils
+              
+              # install newest go version
+              export GO_VERSION="1.18"
+              export GO_SHAR256="e85278e98f57cdb150fe8409e6e5df5343ecb13cebf03a5d5ff12bd55a80264f go${GO_VERSION}.linux-amd64.tar.gz"
+              export GO_BINARY="go${GO_VERSION}.linux-amd64.tar.gz"
+              wget "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz"
+              echo "${GO_SHAR256}" | sha256sum --check
+              gunzip "${GO_BINARY}"
+              tar xf "${GO_BINARY//.gz/}"
+              mv go /usr/local/bin
+              mkdir -p $(pwd)/go
+              export GOPATH=$(pwd)/go
+              export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+  
               export SOURCE_DIR="$(pwd)/${SOURCE_DIR}"
               export TARGET_DIR="$(pwd)/${TARGET_DIR}"
               bash -x $(pwd)/${PIPELINE_DIR}/ci/package.sh
