@@ -8,9 +8,9 @@ var:
     branch: main
     git_config:
       - name: user.name
-        value: &gh-user Stan
+        value: Stan
       - name: user.email
-        value: &gh-email stan@instana.com
+        value: stan@instana.com
 
 resources:
 
@@ -42,8 +42,7 @@ jobs:
     vars:
       branch: main
       project-berlin-gh-token: ((project-berlin-gh-token))
-      artifacts-instana-io.username: ((artifacts-instana-io.username))
-      artifacts-instana-io.password: ((artifacts-instana-io.password))
+      delivery-instana-io-release-project-artifact-read-writer-creds: ((delivery-instana-io-release-project-artifact-read-writer-creds))
       mvn-settings-xml: ((mvn-settings-xml))
 
 - name: build
@@ -116,6 +115,8 @@ jobs:
       - name: builds
       params:
         VERSION: ((.:version))
+        DELIVERY_ARTIFACTORY_USERNAME: ((delivery-instana-io-release-project-artifact-read-writer-creds.username))
+        DELIVERY_ARTIFACTORY_PASSWORD: ((delivery-instana-io-release-project-artifact-read-writer-creds.password))
       run:
         path: bash
         args:

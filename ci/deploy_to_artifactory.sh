@@ -15,3 +15,15 @@ mvn deploy:deploy-file \
     -Dclassifier=${architecture}\
 	-Dpackaging=bin \
 	-Dversion=${version}
+
+mvn deploy:deploy-file \
+	-Durl=https://delivery.instana.io/rel-generic-agent-local  \
+	-Dfile=${filename} \
+	-DrepositoryId=agent-releases \
+	-DgroupId=com.instana \
+	-DartifactId=memory_calculator \
+    -Dclassifier=${architecture}\
+	-Dpackaging=bin \
+	-Dversion=${version} \
+	-Dusername=${DELIVERY_ARTIFACTORY_USERNAME} \
+	-Dpassword=${DELIVERY_ARTIFACTORY_PASSWORD}
