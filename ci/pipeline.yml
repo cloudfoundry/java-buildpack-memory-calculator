@@ -8,126 +8,113 @@ var:
     branch: main
     git_config:
       - name: user.name
-        value: &gh-user Stan
+        value: Stan
       - name: user.email
-        value: &gh-email stan@instana.com
+        value: stan@instana.com
 
 resources:
-
-- name: pipeline-source
-  type: git
-  icon: github
-  source:
-    <<: *memory-calculator-repository-config
-    paths:
-    - ci/
-
-- name: java-buildpack-memory-calculator
-  type: git
-  icon: github
-  source:
-    <<: *memory-calculator-repository-config
-    ignore_paths:
-    - ci/
+  - name: java-buildpack-memory-calculator
+    type: git
+    icon: github
+    source:
+      <<: *memory-calculator-repository-config
 
 jobs:
+  - name: self-update
+    max_in_flight: 1
+    plan:
+      - get: java-buildpack-memory-calculator
+        trigger: true
+      - set_pipeline: self
+        file: java-buildpack-memory-calculator/ci/pipeline.yml
+        vars:
+          branch: main
+          project-berlin-gh-token: ((project-berlin-gh-token))
+          delivery-instana-io-release-project-artifact-read-writer-creds: ((delivery-instana-io-release-project-artifact-read-writer-creds))
+          mvn-settings-xml: ((mvn-settings-xml))
 
-- name: self-update
-  max_in_flight: 1
-  plan:
-  - get: pipeline-source
-    trigger: true
-  - set_pipeline: self
-    file: pipeline-source/ci/pipeline.yml
-    vars:
-      branch: main
-      project-berlin-gh-token: ((project-berlin-gh-token))
-      artifacts-instana-io.username: ((artifacts-instana-io.username))
-      artifacts-instana-io.password: ((artifacts-instana-io.password))
-      mvn-settings-xml: ((mvn-settings-xml))
-
-- name: build
-  max_in_flight: 1
-  plan:
-  - in_parallel:
-    - get: java-buildpack-memory-calculator
-      trigger: true
-    - get: pipeline-source
-  - task: tests
-    config:
-      platform: linux
-      image_resource:
-        type: registry-image
-        source:
-          repository: registry.access.redhat.com/ubi8/go-toolset
-      inputs:
-      - name: pipeline-source
-      - name: java-buildpack-memory-calculator
-      run:
-        path: pipeline-source/ci/unit-test.sh
-  - task: build
-    config:
-      platform: linux
-      image_resource:
-        type: registry-image
-        source:
-          repository: registry.access.redhat.com/ubi8/ubi-minimal
-      inputs:
-      - name: pipeline-source
-      - name: java-buildpack-memory-calculator
-      outputs:
-      - name: builds
-      params:
-        SOURCE_DIR: java-buildpack-memory-calculator
-        PIPELINE_DIR: pipeline-source
-        TARGET_DIR: builds
-      run:
-        path: /bin/bash
-        args:
-            - -exc
-            - |
-              microdnf -y install tar gzip wget make findutils
-              
-              # install newest go version
-              export GO_VERSION="1.18"
-              export GO_SHAR256="e85278e98f57cdb150fe8409e6e5df5343ecb13cebf03a5d5ff12bd55a80264f go${GO_VERSION}.linux-amd64.tar.gz"
-              export GO_BINARY="go${GO_VERSION}.linux-amd64.tar.gz"
-              wget "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz"
-              echo "${GO_SHAR256}" | sha256sum --check
-              gunzip "${GO_BINARY}"
-              tar xf "${GO_BINARY//.gz/}"
-              mv go /usr/local/bin
-              export PATH=$PATH:/usr/local/bin/go/bin/
-              export SOURCE_DIR="$(pwd)/${SOURCE_DIR}"
-              export TARGET_DIR="$(pwd)/${TARGET_DIR}"
-              bash -x $(pwd)/${PIPELINE_DIR}/ci/package.sh
-  - load_var: version
-    file: java-buildpack-memory-calculator/VERSION
-    reveal: true
-  - task: deploy_to_artifactory
-    config:
-      platform: linux
-      image_resource:
-        type: registry-image
-        source:
-          repository: maven
-      inputs:
-      - name: pipeline-source
-      - name: builds
-      params:
-        VERSION: ((.:version))
-      run:
-        path: bash
-        args:
-        - -c
-        - |
-          set -e
-          export MAVEN_OPTS="-Dmaven.repo.local=$(pwd)/maven"
-          mkdir -p /root/.m2/;
-          echo '((mvn-settings-xml))' > /root/.m2/settings.xml;
-
-          regex='memory-calculator_(.+)'
-          for filename in builds/memory-calculator_*; do
-            [[ $(basename "${filename}") =~ ${regex} ]] && \
-              bash -x pipeline-source/ci/deploy_to_artifactory.sh "${filename}" "${BASH_REMATCH[1]}" "${VERSION}"
-          done
+  - name: build
+    max_in_flight: 1
+    plan:
+      - get: java-buildpack-memory-calculator
+        trigger: true
+        passed: [ self-update ]
+      - task: tests
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: registry.access.redhat.com/ubi8/go-toolset
+              tag: 1.17
+          inputs:
+            - name: java-buildpack-memory-calculator
+          run:
+            path: java-buildpack-memory-calculator/ci/unit-test.sh
+      - task: build
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: registry.access.redhat.com/ubi8/ubi-minimal
+          inputs:
+            - name: java-buildpack-memory-calculator
+          outputs:
+            - name: builds
+          params:
+            SOURCE_DIR: java-buildpack-memory-calculator
+            TARGET_DIR: builds
+          run:
+            path: /bin/bash
+            args:
+              - -exc
+              - |
+                microdnf -y install tar gzip wget make findutils
+                
+                # install newest go version
+                export GO_VERSION="1.18"
+                export GO_SHAR256="e85278e98f57cdb150fe8409e6e5df5343ecb13cebf03a5d5ff12bd55a80264f go${GO_VERSION}.linux-amd64.tar.gz"
+                export GO_BINARY="go${GO_VERSION}.linux-amd64.tar.gz"
+                wget "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz"
+                echo "${GO_SHAR256}" | sha256sum --check
+                gunzip "${GO_BINARY}"
+                tar xf "${GO_BINARY//.gz/}"
+                mv go /usr/local/bin
+                export PATH=$PATH:/usr/local/bin/go/bin/
+                export SOURCE_DIR="$(pwd)/${SOURCE_DIR}"
+                export TARGET_DIR="$(pwd)/${TARGET_DIR}"
+                bash -x ${SOURCE_DIR}/ci/package.sh
+      - load_var: version
+        file: java-buildpack-memory-calculator/VERSION
+        reveal: true
+      - task: deploy_to_artifactory
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: maven
+          inputs:
+            - name: java-buildpack-memory-calculator
+            - name: builds
+          params:
+            VERSION: ((.:version))
+            DELIVERY_ARTIFACTORY_GENERIC_BASE_URL: ((delivery-artifactory-generic-agent-release-url))
+            DELIVERY_ARTIFACTORY_USERNAME: ((delivery-instana-io-release-project-artifact-read-writer-creds.username))
+            DELIVERY_ARTIFACTORY_PASSWORD: ((delivery-instana-io-release-project-artifact-read-writer-creds.password))
+          run:
+            path: bash
+            args:
+              - -c
+              - |
+                set -e
+                export MAVEN_OPTS="-Dmaven.repo.local=$(pwd)/maven"
+                mkdir -p /root/.m2/;
+                echo '((mvn-settings-xml))' > /root/.m2/settings.xml;
+                
+                regex='memory-calculator_(.+)'
+                for filename in builds/memory-calculator_*; do
+                  [[ $(basename "${filename}") =~ ${regex} ]] && \
+                    bash -x java-buildpack-memory-calculator/ci/deploy_to_artifactory.sh "${filename}" "${BASH_REMATCH[1]}" "${VERSION}"
+                done
