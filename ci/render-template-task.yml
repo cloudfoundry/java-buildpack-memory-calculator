@@ -1,0 +1,33 @@
+# todo This task is copied pasted into the examples repo temporarily. The plan is to publish this task to artifactory and have
+# pipelines consume it as a resource in their self-update jobs. This will eliminate the need to copy and paste it into every
+# repo that has a templated pipeline with a self-update job.
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: containers.instana.io/instana/infra/yaml-extensions
+    tag: latest
+    username: ((containers-instana-io-creds.username))
+    password: ((containers-instana-io-creds.password))
+
+inputs:
+  - name: repo
+
+outputs:
+  - name: rendered
+
+run:
+  path: sh
+  args:
+    - -ec
+    - |
+      pipeline_file_path="repo/((template))"
+      pipeline_file_name="$(basename $pipeline_file_path)"
+      rendered_pipeline_path="rendered/$pipeline_file_name"
+
+      echo "Rendering template '((template))'"
+      yx "$pipeline_file_path" --var branch=((branch)) > "$rendered_pipeline_path"
+
+      echo "successfully rendered template. See the results below:"
+      cat "$rendered_pipeline_path"

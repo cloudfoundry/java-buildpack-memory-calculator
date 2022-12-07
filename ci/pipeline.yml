@@ -5,7 +5,7 @@ var:
     uri: https://github.com/instana/java-buildpack-memory-calculator.git
     username: ((project-berlin-gh-token))
     password: x-oauth-basic
-    branch: main
+    branch: ((branch))
     git_config:
       - name: user.name
         value: Stan
@@ -25,15 +25,23 @@ jobs:
     plan:
       - get: java-buildpack-memory-calculator
         trigger: true
-      - set_pipeline: self
-        file: java-buildpack-memory-calculator/ci/pipeline.yml
+      - task: render-pipeline-template
+        # see notes in the task file about why we need to copy-paste this task.
+        file: java-buildpack-memory-calculator/ci/render-template-task.yml
+        input_mapping:
+          repo: java-buildpack-memory-calculator
         vars:
-          branch: main
+          template: ci/pipeline.yml  # this path has to be relative to 'repo'
+          branch: ((branch))
+      - set_pipeline: self
+        file: rendered/pipeline.yml
+        vars:
+          branch: ((branch))
           project-berlin-gh-token: ((project-berlin-gh-token))
           delivery-instana-io-release-project-artifact-read-writer-creds: ((delivery-instana-io-release-project-artifact-read-writer-creds))
           mvn-settings-xml: ((mvn-settings-xml))
 
-  - name: build
+  - name: build-and-test
     max_in_flight: 1
     plan:
       - get: java-buildpack-memory-calculator
@@ -85,6 +93,15 @@ jobs:
                 export SOURCE_DIR="$(pwd)/${SOURCE_DIR}"
                 export TARGET_DIR="$(pwd)/${TARGET_DIR}"
                 bash -x ${SOURCE_DIR}/ci/package.sh
+
+  - name: deploy-only-on-main
+    yx_if:
+      - eq: [((branch)), main]
+    max_in_flight: 1
+    plan:
+      - get: java-buildpack-memory-calculator
+        trigger: true
+        passed: [ build-and-test ]
       - load_var: version
         file: java-buildpack-memory-calculator/VERSION
         reveal: true
