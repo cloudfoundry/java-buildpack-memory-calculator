@@ -41,7 +41,7 @@ jobs:
           delivery-instana-io-release-project-artifact-read-writer-creds: ((delivery-instana-io-release-project-artifact-read-writer-creds))
           mvn-settings-xml: ((mvn-settings-xml))
 
-  - name: build-and-test
+  - name: test-and-build-and-deploy-only-on-main
     max_in_flight: 1
     plan:
       - get: java-buildpack-memory-calculator
@@ -93,19 +93,12 @@ jobs:
                 export SOURCE_DIR="$(pwd)/${SOURCE_DIR}"
                 export TARGET_DIR="$(pwd)/${TARGET_DIR}"
                 bash -x ${SOURCE_DIR}/ci/package.sh
-
-  - name: deploy-only-on-main
-    yx_if:
-      - eq: [((branch)), main]
-    max_in_flight: 1
-    plan:
-      - get: java-buildpack-memory-calculator
-        trigger: true
-        passed: [ build-and-test ]
       - load_var: version
         file: java-buildpack-memory-calculator/VERSION
         reveal: true
       - task: deploy_to_artifactory
+        yx_if:
+          - eq: [((branch)), main]
         config:
           platform: linux
           image_resource:
