@@ -21,14 +21,18 @@ $ go get -v github.com/cloudfoundry/java-buildpack-memory-calculator
 
 The following algorithm is used to generate the holistic JVM memory configuration:
 
-1. Headroom is calculated as `total memory * (head room / 100)`
-1. If `-XX:MaxDirectMemorySize` is configured it is used for the amount of direct memory.  If not configured `10M` (in the absence of any reasonable heuristic) is used.
-1. If `-XX:MaxMetaspaceSize` is configured it is used for the amount of metaspace.  If not configured then the value is calculated as `(5800B * loaded class count) + 14000000b`.
-1. If `-XX:ReservedCodeCacheSize` is configured it is used for the amount of reserved code cache.  If not configured `240M` (the JVM default) is used.
-1. If `-Xss` is configured it is used for the size of each thread stack.  If not configured `1M` (the JVM default) is used.
-1. If `-Xmx` is configured it is used for the size of the heap.  If not configured then the value is calculated as `total memory - (headroom + direct memory + metaspace + reserved code cache + (thread stack * thread count))`.
+1. `Headroom amount` is calculated as `total memory * (head room / 100)`.
+1. If `-XX:MaxDirectMemorySize` is configured it is used for the amount of direct memory.  If not configured, `10M` (in the absence of any reasonable heuristic) is used.
+1. If `-XX:MaxMetaspaceSize` is configured it is used for the amount of metaspace.  If not configured, then the value is calculated as `(5800B * loaded class count) + 14000000b`.
+1. If `-XX:ReservedCodeCacheSize` is configured it is used for the amount of reserved code cache.  If not configured, `240M` (the JVM default) is used.
+1. If `-Xss` is configured it is used for the size of each thread stack.  If not configured, `1M` (the JVM default) is used.
+1. If `-Xmx` is configured it is used for the size of the heap.  If not configured, then the value is calculated as
+ 
+   ```
+   total memory - (headroom amount + direct memory + metaspace + reserved code cache + (thread stack * thread count))
+   ```
 
-Broadly, this means that for a constant application (same number of classes), the non-heap overhead is a fixed value.  Any changes to the total memory will be directly reflected in the size of the heap.  Adjustments to the non-heap memory configuration (e.g. stack size, reserved code cache) _can_ result in larger heap sizes but can also have negative runtime side-effects that must be taken into account.
+Broadly, this means that for a constant application (same number of classes), the non-heap overhead is a fixed value.  Any changes to the total memory will be directly reflected in the size of the heap.  Adjustments to the non-heap memory configuration (e.g. stack size, reserved code cache) _can_ result in larger heap sizes, but can also have negative runtime side-effects that must be taken into account.
 
 ### Compressed class space size
 
