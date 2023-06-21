@@ -6,10 +6,10 @@ platform: linux
 image_resource:
   type: registry-image
   source:
-    repository: containers.instana.io/instana/infra/yaml-extensions
+    repository: delivery.instana.io/int-docker-yaml-extensions-local/concourse-dsl-extensions/yaml-extensions
     tag: latest
-    username: ((containers-instana-io-creds.username))
-    password: ((containers-instana-io-creds.password))
+    username: ((delivery-instana-io-internal-project-artifact-read-writer-creds.username))
+    password: ((delivery-instana-io-internal-project-artifact-read-writer-creds.password))
 
 inputs:
   - name: repo
