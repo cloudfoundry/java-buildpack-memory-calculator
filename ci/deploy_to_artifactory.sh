@@ -6,16 +6,6 @@ readonly filepath="${1}"
 readonly architecture="${2}"
 readonly version="${3}"
 
-mvn deploy:deploy-file \
-  -Durl=https://artifact.instana.io/artifactory/agent-releases \
-  -Dfile="${filepath}" \
-  -DrepositoryId=agent-releases \
-  -DgroupId=com.instana \
-  -DartifactId=memory_calculator \
-  -Dclassifier="${architecture}" \
-  -Dpackaging=bin \
-  -Dversion="${version}"
-
 set +x
 readonly base_url="${DELIVERY_ARTIFACTORY_GENERIC_BASE_URL}"
 readonly org_path=com/instana

@@ -39,7 +39,6 @@ jobs:
           branch: ((branch))
           project-berlin-gh-token: ((project-berlin-gh-token))
           delivery-instana-io-release-project-artifact-read-writer-creds: ((delivery-instana-io-release-project-artifact-read-writer-creds))
-          mvn-settings-xml: ((mvn-settings-xml))
 
   - name: test-and-build-and-deploy-only-on-main
     max_in_flight: 1
@@ -119,9 +118,6 @@ jobs:
               - -c
               - |
                 set -e
-                export MAVEN_OPTS="-Dmaven.repo.local=$(pwd)/maven"
-                mkdir -p /root/.m2/;
-                echo '((mvn-settings-xml))' > /root/.m2/settings.xml;
                 
                 regex='memory-calculator_(.+)'
                 for filename in builds/memory-calculator_*; do
