@@ -42,9 +42,7 @@ func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 	headRoom := c.headRoom()
 
 	directMemory := j.MaxDirectMemory
-	if directMemory == nil {
-		d := memory.DefaultMaxDirectMemory
-		directMemory = &d
+	if directMemory != nil {
 		options = append(options, *directMemory)
 	}
 
@@ -69,12 +67,12 @@ func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 		options = append(options, *stack)
 	}
 
-	overhead := c.overhead(headRoom, directMemory, metaspace, reservedCodeCache, stack)
+	overhead := c.overhead(headRoom, metaspace, reservedCodeCache, stack)
 	available := memory.Size(*c.TotalMemory)
 
 	if overhead > available {
-		return nil, fmt.Errorf("required memory %s is greater than %s available for allocation: %s, %s, %s, %s x %d threads",
-			overhead, available, directMemory, metaspace, reservedCodeCache, stack, *c.ThreadCount)
+		return nil, fmt.Errorf("required memory %s is greater than %s available for allocation: %s, %s, %s x %d threads",
+			overhead, available, metaspace, reservedCodeCache, stack, *c.ThreadCount)
 	}
 
 	heap := j.MaxHeap
@@ -85,8 +83,8 @@ func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 	}
 
 	if overhead+memory.Size(*heap) > available {
-		return nil, fmt.Errorf("required memory %s is greater than %s available for allocation: %s, %s, %s, %s, %s x %d threads",
-			overhead+memory.Size(*heap), available, directMemory, heap, metaspace, reservedCodeCache, stack, *c.ThreadCount)
+		return nil, fmt.Errorf("required memory %s is greater than %s available for allocation: %s, %s, %s, %s x %d threads",
+			overhead+memory.Size(*heap), available, heap, metaspace, reservedCodeCache, stack, *c.ThreadCount)
 	}
 
 	return options, nil
@@ -104,9 +102,8 @@ func (c Calculator) metaspace() memory.MaxMetaspace {
 	return memory.MaxMetaspace((*c.LoadedClassCount * 5800) + 14000000)
 }
 
-func (c Calculator) overhead(headRoom memory.Size, directMemory *memory.MaxDirectMemory, metaspace *memory.MaxMetaspace, reservedCodeCache *memory.ReservedCodeCache, stack *memory.Stack) memory.Size {
+func (c Calculator) overhead(headRoom memory.Size, metaspace *memory.MaxMetaspace, reservedCodeCache *memory.ReservedCodeCache, stack *memory.Stack) memory.Size {
 	return headRoom +
-		memory.Size(*directMemory) +
 		memory.Size(*metaspace) +
 		memory.Size(*reservedCodeCache) +
 		memory.Size(int64(*stack)*int64(*c.ThreadCount))
