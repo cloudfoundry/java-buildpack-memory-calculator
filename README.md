@@ -32,7 +32,11 @@ The following algorithm is used to generate the holistic JVM memory configuratio
    total memory - (headroom amount + direct memory + metaspace + reserved code cache + (thread stack * thread count))
    ```
 
-Broadly, this means that for a constant application (same number of classes), the non-heap overhead is a fixed value.  Any changes to the total memory will be directly reflected in the size of the heap.  Adjustments to the non-heap memory configuration (e.g. stack size, reserved code cache) _can_ result in larger heap sizes, but can also have negative runtime side-effects that must be taken into account.
+Broadly, this means that for a constant application (same number of classes), the non-heap overhead is a fixed value.  Any changes to the total memory will be directly reflected in the size of the heap.  Adjustments to the non-heap memory configuration (e.g. stack size, reserved code cache) _can_ result in larger heap sizes, but can also have negative runtime side effects that must be taken into account.
+
+For example, with a 1G memory limit, you have a heap size of `1G - (0 headroom + 10M direct + X metaspace + 240M + 250 threads * 1M thread memory)` which means you have `heap space = 524M - X metaspace`. Metaspace is often around 100M for a typical Spring Boot app, so in that situation it leaves us with around 424M of heap space. If you shift your memory limit to 768M then you end up with `heap space = 268M - X metaspace` or 168M with a typical Spring Boot app (100M metaspace). As you can see, when the memory limit goes below 1G, the formula used by the memory calculator prioritizes the non-heap space and heap space suffers. 
+
+Every application is different, but for best results, it is recommended that when running with a memory limit below 1G the user apply some manual adjustments to the memory limits. For example, you can lower the thread stack size, the number of threads, or the reserved code cache size. This will allow you to save more room for the heap. Just be aware that each of these tunings has a trade-off for your application in terms of scalability (threads) or performance (code cache), and this is why the memory calculator prioritizes these settings over the heap. As a human, you need to test/evaluate the trade-offs for a given application and decide what works best for the application.
 
 ### Compressed class space size
 
