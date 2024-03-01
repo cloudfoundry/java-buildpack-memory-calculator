@@ -14,7 +14,7 @@ The Memory Calculator prints the calculated JVM configuration flags (_excluding_
 ## Install  
 
 ```sh
-$ go get -v github.com/cloudfoundry/java-buildpack-memory-calculator
+$ go install github.com/cloudfoundry/java-buildpack-memory-calculator@latest
 ```
 
 ## Algorithm
