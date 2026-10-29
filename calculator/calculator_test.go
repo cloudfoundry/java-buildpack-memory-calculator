@@ -113,6 +113,53 @@ func TestCalculator(t *testing.T) {
 			))
 		})
 
+		it("sets initial heap equal to calculated maximum heap when enabled", func() {
+			c.XmsEqualsXmx = true
+
+			g.Expect(c.Calculate()).To(ConsistOf(
+				memory.DefaultMaxDirectMemory,
+				memory.MaxMetaspace(19800000),
+				memory.DefaultReservedCodeCache,
+				memory.DefaultStack,
+				memory.MaxHeap(231858240),
+				memory.InitialHeap(231858240),
+			))
+		})
+
+		it("sets initial heap equal to configured maximum heap when enabled", func() {
+			c.XmsEqualsXmx = true
+			g.Expect(c.JvmOptions.Set("-Xmx128M")).To(Succeed())
+
+			g.Expect(c.Calculate()).To(ConsistOf(
+				memory.DefaultMaxDirectMemory,
+				memory.MaxMetaspace(19800000),
+				memory.DefaultReservedCodeCache,
+				memory.DefaultStack,
+				memory.InitialHeap(128*memory.Mibi),
+			))
+		})
+
+		it("preserves explicitly configured initial heap when enabled", func() {
+			c.XmsEqualsXmx = true
+			g.Expect(c.JvmOptions.Set("-Xms64M")).To(Succeed())
+
+			g.Expect(c.Calculate()).To(ConsistOf(
+				memory.DefaultMaxDirectMemory,
+				memory.MaxMetaspace(19800000),
+				memory.DefaultReservedCodeCache,
+				memory.DefaultStack,
+				memory.MaxHeap(231858240),
+			))
+		})
+
+		it("rejects initial heap exceeding maximum heap when enabled", func() {
+			c.XmsEqualsXmx = true
+			g.Expect(c.JvmOptions.Set("-Xms256M")).To(Succeed())
+
+			_, err := c.Calculate()
+			g.Expect(err).To(MatchError("initial heap -Xms256M is greater than maximum heap -Xmx226424K"))
+		})
+
 		it("returns error if overhead is too large", func() {
 			m := memory.MaxMetaspace(500 * memory.Mibi)
 			c.JvmOptions.MaxMetaspace = &m

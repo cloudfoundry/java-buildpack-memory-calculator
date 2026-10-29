@@ -29,6 +29,7 @@ type Calculator struct {
 	LoadedClassCount *flags.LoadedClassCount
 	ThreadCount      *flags.ThreadCount
 	TotalMemory      *flags.TotalMemory
+	XmsEqualsXmx     bool
 }
 
 func (c Calculator) Calculate() ([]fmt.Stringer, error) {
@@ -87,6 +88,14 @@ func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 	if overhead+memory.Size(*heap) > available {
 		return nil, fmt.Errorf("required memory %s is greater than %s available for allocation: %s, %s, %s, %s, %s x %d threads",
 			overhead+memory.Size(*heap), available, directMemory, heap, metaspace, reservedCodeCache, stack, *c.ThreadCount)
+	}
+
+	if c.XmsEqualsXmx {
+		if j.InitialHeap == nil {
+			options = append(options, memory.InitialHeap(*heap))
+		} else if memory.Size(*j.InitialHeap) > memory.Size(*heap) {
+			return nil, fmt.Errorf("initial heap %s is greater than maximum heap %s", j.InitialHeap, heap)
+		}
 	}
 
 	return options, nil
