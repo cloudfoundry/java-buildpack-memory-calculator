@@ -177,3 +177,45 @@ func TestCalculator(t *testing.T) {
 		})
 	})
 }
+
+func TestInitialHeapBoundary(t *testing.T) {
+	tests := []struct {
+		name      string
+		options   string
+		enabled   bool
+		wantError bool
+	}{
+		{"calculated limit", "-Xms231858176", true, false},
+		{"above calculated limit", "-Xms231858177", true, true},
+		{"unrounded calculated limit", "-Xms231858240", true, true},
+		{"explicit byte limit", "-Xmx231858240 -Xms231858240", true, false},
+		{"above explicit byte limit", "-Xmx231858240 -Xms231858241", true, true},
+		{"disabled preserves behavior", "-Xms231858240", false, false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			headRoom := flags.HeadRoom(0)
+			options := flags.JVMOptions{}
+			loadedClassCount := flags.LoadedClassCount(1000)
+			threadCount := flags.ThreadCount(10)
+			totalMemory := flags.TotalMemory(500 * memory.Mibi)
+			if err := options.Set(test.options); err != nil {
+				t.Fatal(err)
+			}
+			c := calculator.Calculator{
+				HeadRoom:         &headRoom,
+				JvmOptions:       &options,
+				LoadedClassCount: &loadedClassCount,
+				ThreadCount:      &threadCount,
+				TotalMemory:      &totalMemory,
+				XmsEqualsXmx:     test.enabled,
+			}
+
+			_, err := c.Calculate()
+			if (err != nil) != test.wantError {
+				t.Fatalf("Calculate() error = %v, want error = %t", err, test.wantError)
+			}
+		})
+	}
+}

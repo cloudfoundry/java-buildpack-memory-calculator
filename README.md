@@ -9,7 +9,7 @@ In order to perform this calculation, the Memory Calculator requires the followi
 * `--jvm-options`: JVM Options, typically `JAVA_OPTS`
 * `--head-room`: percentage of total memory available which will be left unallocated to cover JVM overhead
 
-The experimental, optional `--xms-equals-xmx` flag sets the initial heap size (`-Xms`) equal to the effective maximum heap size (`-Xmx`), whether calculated or explicitly configured. It defaults to `false`, preserving existing behavior. An explicit `-Xms` in `--jvm-options` takes precedence and is not included in the output. When enabled, an initial heap greater than the maximum heap produces an error. This experimental option may change or be removed based on feedback.
+The experimental, optional `--xms-equals-xmx` flag sets the initial heap size (`-Xms`) equal to the effective maximum heap size (`-Xmx`), whether calculated or explicitly configured. It defaults to `false`, preserving existing behavior. An explicit `-Xms` in `--jvm-options` takes precedence and is not included in the output. JVM options may be separated by spaces, tabs, or newlines. When enabled, an initial heap greater than the emitted maximum heap produces an error; calculated maximum heaps are truncated to whole KiB, while explicitly configured maximum heaps retain their exact byte values. This experimental option may change or be removed based on feedback.
 
 ```sh
 java-buildpack-memory-calculator --total-memory=1G --loaded-class-count=10000 --thread-count=250 --xms-equals-xmx

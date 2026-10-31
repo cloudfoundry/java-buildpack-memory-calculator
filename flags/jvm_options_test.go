@@ -67,3 +67,18 @@ func TestJVMOptions(t *testing.T) {
 
 	})
 }
+
+func TestJVMOptionsWhitespace(t *testing.T) {
+	for _, separator := range []string{" ", "\t", "\n", "\r\n"} {
+		t.Run(separator, func(t *testing.T) {
+			var options flags.JVMOptions
+			value := "-Xms32M" + separator + "-Dfoo=bar" + separator + "-Xms64M" + separator + "-Xmx128M"
+			if err := options.Set(value); err != nil {
+				t.Fatal(err)
+			}
+			if got := options.String(); got != "-Xmx128M -Xms64M" {
+				t.Fatalf("String() = %q, want %q", got, "-Xmx128M -Xms64M")
+			}
+		})
+	}
+}

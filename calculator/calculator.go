@@ -91,9 +91,15 @@ func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 	}
 
 	if c.XmsEqualsXmx {
+		maxHeapSize := memory.Size(*heap)
+		if j.MaxHeap == nil {
+			// Generated heap options are truncated to whole KiB by Size.String().
+			maxHeapSize = maxHeapSize / memory.Kibi * memory.Kibi
+		}
+
 		if j.InitialHeap == nil {
 			options = append(options, memory.InitialHeap(*heap))
-		} else if memory.Size(*j.InitialHeap) > memory.Size(*heap) {
+		} else if memory.Size(*j.InitialHeap) > maxHeapSize {
 			return nil, fmt.Errorf("initial heap %s is greater than maximum heap %s", j.InitialHeap, heap)
 		}
 	}

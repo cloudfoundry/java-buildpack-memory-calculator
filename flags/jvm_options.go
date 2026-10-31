@@ -36,7 +36,7 @@ type JVMOptions struct {
 }
 
 func (j *JVMOptions) Set(s string) error {
-	for _, c := range strings.Split(s, " ") {
+	for _, c := range strings.Fields(s) {
 		if memory.IsMaxDirectMemory(c) {
 			m, err := memory.ParseMaxDirectMemory(c)
 			if err != nil {
