@@ -9,6 +9,14 @@ In order to perform this calculation, the Memory Calculator requires the followi
 * `--jvm-options`: JVM Options, typically `JAVA_OPTS`
 * `--head-room`: percentage of total memory available which will be left unallocated to cover JVM overhead
 
+The experimental, optional `--xms-equals-xmx` flag sets the initial heap size (`-Xms`) equal to the effective maximum heap size (`-Xmx`), whether calculated or explicitly configured. It defaults to `false`, preserving existing behavior. An explicit `-Xms` in `--jvm-options` takes precedence and is not included in the output. JVM options may be separated by spaces, tabs, or newlines. When enabled, an initial heap greater than the emitted maximum heap produces an error; calculated maximum heaps are truncated to whole KiB, while explicitly configured maximum heaps retain their exact byte values. This experimental option may change or be removed based on feedback.
+
+```sh
+java-buildpack-memory-calculator --total-memory=1G --loaded-class-count=10000 --thread-count=250 --xms-equals-xmx
+```
+
+Setting the initial heap equal to the maximum heap avoids heap growth but can increase initial committed memory, reduce opportunities for platform memory overcommit, and affect memory-based autoscaling. It also prevents collectors such as ZGC from returning unused heap memory below that minimum. Compare latency, GC pauses, CPU, and container memory under representative workloads before enabling it in production. It does not add to the calculated memory budget: the initial heap is part of the maximum heap. For use through the Java buildpack, the buildpack must forward this option to the calculator.
+
 The Memory Calculator prints the calculated JVM configuration flags (_excluding_ any that the user has specified in `--jvm-options`).  If a valid configuration cannot be calculated (e.g. more memory must be allocated than is available), an error is printed and a non-zero exit code is returned.  In order to **override** a calculated value, users should pass any of the standard JVM configuration flags into `--jvm-options`.  The calculation will take these as fixed values and adjust the non-fixed values accordingly.
 
 ## Install  

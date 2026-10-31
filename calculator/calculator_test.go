@@ -113,6 +113,53 @@ func TestCalculator(t *testing.T) {
 			))
 		})
 
+		it("sets initial heap equal to calculated maximum heap when enabled", func() {
+			c.XmsEqualsXmx = true
+
+			g.Expect(c.Calculate()).To(ConsistOf(
+				memory.DefaultMaxDirectMemory,
+				memory.MaxMetaspace(19800000),
+				memory.DefaultReservedCodeCache,
+				memory.DefaultStack,
+				memory.MaxHeap(231858240),
+				memory.InitialHeap(231858240),
+			))
+		})
+
+		it("sets initial heap equal to configured maximum heap when enabled", func() {
+			c.XmsEqualsXmx = true
+			g.Expect(c.JvmOptions.Set("-Xmx128M")).To(Succeed())
+
+			g.Expect(c.Calculate()).To(ConsistOf(
+				memory.DefaultMaxDirectMemory,
+				memory.MaxMetaspace(19800000),
+				memory.DefaultReservedCodeCache,
+				memory.DefaultStack,
+				memory.InitialHeap(128*memory.Mibi),
+			))
+		})
+
+		it("preserves explicitly configured initial heap when enabled", func() {
+			c.XmsEqualsXmx = true
+			g.Expect(c.JvmOptions.Set("-Xms64M")).To(Succeed())
+
+			g.Expect(c.Calculate()).To(ConsistOf(
+				memory.DefaultMaxDirectMemory,
+				memory.MaxMetaspace(19800000),
+				memory.DefaultReservedCodeCache,
+				memory.DefaultStack,
+				memory.MaxHeap(231858240),
+			))
+		})
+
+		it("rejects initial heap exceeding maximum heap when enabled", func() {
+			c.XmsEqualsXmx = true
+			g.Expect(c.JvmOptions.Set("-Xms256M")).To(Succeed())
+
+			_, err := c.Calculate()
+			g.Expect(err).To(MatchError("initial heap -Xms256M is greater than maximum heap -Xmx226424K"))
+		})
+
 		it("returns error if overhead is too large", func() {
 			m := memory.MaxMetaspace(500 * memory.Mibi)
 			c.JvmOptions.MaxMetaspace = &m
@@ -129,4 +176,46 @@ func TestCalculator(t *testing.T) {
 			g.Expect(err).To(HaveOccurred())
 		})
 	})
+}
+
+func TestInitialHeapBoundary(t *testing.T) {
+	tests := []struct {
+		name      string
+		options   string
+		enabled   bool
+		wantError bool
+	}{
+		{"calculated limit", "-Xms231858176", true, false},
+		{"above calculated limit", "-Xms231858177", true, true},
+		{"unrounded calculated limit", "-Xms231858240", true, true},
+		{"explicit byte limit", "-Xmx231858240 -Xms231858240", true, false},
+		{"above explicit byte limit", "-Xmx231858240 -Xms231858241", true, true},
+		{"disabled preserves behavior", "-Xms231858240", false, false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			headRoom := flags.HeadRoom(0)
+			options := flags.JVMOptions{}
+			loadedClassCount := flags.LoadedClassCount(1000)
+			threadCount := flags.ThreadCount(10)
+			totalMemory := flags.TotalMemory(500 * memory.Mibi)
+			if err := options.Set(test.options); err != nil {
+				t.Fatal(err)
+			}
+			c := calculator.Calculator{
+				HeadRoom:         &headRoom,
+				JvmOptions:       &options,
+				LoadedClassCount: &loadedClassCount,
+				ThreadCount:      &threadCount,
+				TotalMemory:      &totalMemory,
+				XmsEqualsXmx:     test.enabled,
+			}
+
+			_, err := c.Calculate()
+			if (err != nil) != test.wantError {
+				t.Fatalf("Calculate() error = %v, want error = %t", err, test.wantError)
+			}
+		})
+	}
 }

@@ -39,29 +39,46 @@ func TestJVMOptions(t *testing.T) {
 		it("creates string", func() {
 			d := memory.MaxDirectMemory(memory.Kibi)
 			h := memory.MaxHeap(memory.Kibi)
+			i := memory.InitialHeap(memory.Kibi)
 			m := memory.MaxMetaspace(memory.Kibi)
 			r := memory.ReservedCodeCache(memory.Kibi)
 			s := memory.Stack(memory.Kibi)
 
-			j := flags.JVMOptions{MaxDirectMemory: &d, MaxHeap: &h, MaxMetaspace: &m, ReservedCodeCache: &r, Stack: &s}
+			j := flags.JVMOptions{MaxDirectMemory: &d, MaxHeap: &h, InitialHeap: &i, MaxMetaspace: &m, ReservedCodeCache: &r, Stack: &s}
 
-			g.Expect(j.String()).To(Equal("-XX:MaxDirectMemorySize=1K -Xmx1K -XX:MaxMetaspaceSize=1K -XX:ReservedCodeCacheSize=1K -Xss1K"))
+			g.Expect(j.String()).To(Equal("-XX:MaxDirectMemorySize=1K -Xmx1K -Xms1K -XX:MaxMetaspaceSize=1K -XX:ReservedCodeCacheSize=1K -Xss1K"))
 		})
 
 		it("parses value", func() {
 			d := memory.MaxDirectMemory(memory.Kibi)
 			h := memory.MaxHeap(memory.Kibi)
+			i := memory.InitialHeap(memory.Kibi)
 			m := memory.MaxMetaspace(memory.Kibi)
 			r := memory.ReservedCodeCache(memory.Kibi)
 			s := memory.Stack(memory.Kibi)
 
-			e := flags.JVMOptions{MaxDirectMemory: &d, MaxHeap: &h, MaxMetaspace: &m, ReservedCodeCache: &r, Stack: &s}
+			e := flags.JVMOptions{MaxDirectMemory: &d, MaxHeap: &h, InitialHeap: &i, MaxMetaspace: &m, ReservedCodeCache: &r, Stack: &s}
 
 			var j flags.JVMOptions
 
-			g.Expect(j.Set("-XX:MaxDirectMemorySize=1K -Xmx1K -XX:MaxMetaspaceSize=1K -XX:ReservedCodeCacheSize=1K -Xss1K")).To(Succeed())
+			g.Expect(j.Set("-XX:MaxDirectMemorySize=1K -Xmx1K -Xms1K -XX:MaxMetaspaceSize=1K -XX:ReservedCodeCacheSize=1K -Xss1K")).To(Succeed())
 			g.Expect(j).To(Equal(e))
 		})
 
 	})
+}
+
+func TestJVMOptionsWhitespace(t *testing.T) {
+	for _, separator := range []string{" ", "\t", "\n", "\r\n"} {
+		t.Run(separator, func(t *testing.T) {
+			var options flags.JVMOptions
+			value := "-Xms32M" + separator + "-Dfoo=bar" + separator + "-Xms64M" + separator + "-Xmx128M"
+			if err := options.Set(value); err != nil {
+				t.Fatal(err)
+			}
+			if got := options.String(); got != "-Xmx128M -Xms64M" {
+				t.Fatalf("String() = %q, want %q", got, "-Xmx128M -Xms64M")
+			}
+		})
+	}
 }
