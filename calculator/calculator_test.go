@@ -122,8 +122,18 @@ func TestCalculator(t *testing.T) {
 				memory.DefaultReservedCodeCache,
 				memory.DefaultStack,
 				memory.MaxHeap(231858240),
-				memory.InitialHeap(231858240),
+				memory.InitialHeap(231858176),
 			))
+		})
+
+		it("sets initial heap to the exact bytes of an unaligned configured maximum heap when enabled", func() {
+			c.XmsEqualsXmx = true
+			g.Expect(c.JvmOptions.Set("-Xmx231858240")).To(Succeed())
+
+			options, err := c.Calculate()
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(options).To(ContainElement(memory.InitialHeap(231858240)))
+			g.Expect(options[len(options)-1].String()).To(Equal("-Xms231858240"))
 		})
 
 		it("sets initial heap equal to configured maximum heap when enabled", func() {
@@ -157,7 +167,23 @@ func TestCalculator(t *testing.T) {
 			g.Expect(c.JvmOptions.Set("-Xms256M")).To(Succeed())
 
 			_, err := c.Calculate()
-			g.Expect(err).To(MatchError("initial heap -Xms256M is greater than maximum heap -Xmx226424K"))
+			g.Expect(err).To(MatchError("initial heap -Xms256M is greater than calculated maximum heap -Xmx226424K by about 35M"))
+		})
+
+		it("reports the excess over a configured maximum heap in M", func() {
+			c.XmsEqualsXmx = true
+			g.Expect(c.JvmOptions.Set("-Xmx128M -Xms256M")).To(Succeed())
+
+			_, err := c.Calculate()
+			g.Expect(err).To(MatchError("initial heap -Xms256M is greater than configured maximum heap -Xmx128M by 128M"))
+		})
+
+		it("reports a small excess over an unaligned configured maximum heap in bytes", func() {
+			c.XmsEqualsXmx = true
+			g.Expect(c.JvmOptions.Set("-Xmx231858240 -Xms231858241")).To(Succeed())
+
+			_, err := c.Calculate()
+			g.Expect(err).To(MatchError("initial heap -Xms231858241 is greater than configured maximum heap -Xmx231858240 by 1 B"))
 		})
 
 		it("returns error if overhead is too large", func() {

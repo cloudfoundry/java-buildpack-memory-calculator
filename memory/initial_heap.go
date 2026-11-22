@@ -47,5 +47,9 @@ func ParseInitialHeap(s string) (InitialHeap, error) {
 }
 
 func (i InitialHeap) String() string {
+	if int64(i)%Kibi != 0 {
+		return fmt.Sprintf("-Xms%d", int64(i))
+	}
+
 	return fmt.Sprintf("-Xms%s", Size(i))
 }

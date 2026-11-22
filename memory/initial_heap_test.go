@@ -27,6 +27,8 @@ func TestInitialHeap(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	g.Expect(memory.InitialHeap(memory.Kibi).String()).To(Equal("-Xms1K"))
+	g.Expect(memory.InitialHeap(memory.Kibi + 1).String()).To(Equal("-Xms1025"))
+	g.Expect(memory.InitialHeap(231858240).String()).To(Equal("-Xms231858240"))
 	g.Expect(memory.IsInitialHeap(" -Xms1K ")).To(BeTrue())
 	g.Expect(memory.IsInitialHeap("-Xmx1K")).To(BeFalse())
 	g.Expect(memory.ParseInitialHeap(" -Xms1K ")).To(Equal(memory.InitialHeap(memory.Kibi)))

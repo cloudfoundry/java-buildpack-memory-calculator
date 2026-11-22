@@ -18,6 +18,7 @@ package calculator
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/cloudfoundry/java-buildpack-memory-calculator/v4/flags"
 	"github.com/cloudfoundry/java-buildpack-memory-calculator/v4/memory"
@@ -98,13 +99,39 @@ func (c Calculator) Calculate() ([]fmt.Stringer, error) {
 		}
 
 		if j.InitialHeap == nil {
-			options = append(options, memory.InitialHeap(*heap))
+			options = append(options, memory.InitialHeap(maxHeapSize))
 		} else if memory.Size(*j.InitialHeap) > maxHeapSize {
-			return nil, fmt.Errorf("initial heap %s is greater than maximum heap %s", j.InitialHeap, heap)
+			return nil, fmt.Errorf("initial heap %s is greater than %s by %s",
+				j.InitialHeap, describeMaxHeap(maxHeapSize, j.MaxHeap != nil), formatExcess(memory.Size(*j.InitialHeap)-maxHeapSize))
 		}
 	}
 
 	return options, nil
+}
+
+func describeMaxHeap(size memory.Size, configured bool) string {
+	origin := "calculated"
+	if configured {
+		origin = "configured"
+	}
+
+	if int64(size)%memory.Kibi != 0 {
+		return fmt.Sprintf("%s maximum heap -Xmx%d", origin, int64(size))
+	}
+
+	return fmt.Sprintf("%s maximum heap %s", origin, memory.MaxHeap(size))
+}
+
+func formatExcess(excess memory.Size) string {
+	if excess < memory.Mibi {
+		return fmt.Sprintf("%d B", int64(excess))
+	}
+
+	if excess%memory.Mibi == 0 {
+		return fmt.Sprintf("%dM", int64(excess)/memory.Mibi)
+	}
+
+	return fmt.Sprintf("about %dM", int64(math.Round(float64(excess)/memory.Mibi)))
 }
 
 func (c Calculator) headRoom() memory.Size {
