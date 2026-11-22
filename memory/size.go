@@ -18,6 +18,7 @@ package memory
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -49,16 +50,23 @@ func ParseSize(s string) (Size, error) {
 		return Size(0), fmt.Errorf("memory size is not an integer: %s", groups[1])
 	}
 
+	unit := int64(1)
 	switch strings.ToLower(groups[2]) {
 	case "k":
-		size *= Kibi
+		unit = Kibi
 	case "m":
-		size *= Mibi
+		unit = Mibi
 	case "g":
-		size *= Gibi
+		unit = Gibi
 	case "t":
-		size *= Tibi
+		unit = Tibi
 	}
+
+	if size > math.MaxInt64/unit {
+		return Size(0), fmt.Errorf("memory size overflows: %s", t)
+	}
+
+	size *= unit
 
 	return Size(size), nil
 }
