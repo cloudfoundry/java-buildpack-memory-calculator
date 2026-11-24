@@ -40,6 +40,7 @@ func main() {
 	flag.Var(c.LoadedClassCount, flags.FlagLoadedClassCount, "the number of classes that will be loaded when the application is running")
 	flag.Var(c.ThreadCount, flags.FlagThreadCount, "the number of user threads")
 	flag.Var(c.TotalMemory, "total-memory", "total memory available to the application, typically expressed with size classification (B, K, M, G, T)")
+	flag.BoolVar(&c.XmsEqualsXmx, "xms-equals-xmx", false, "experimental: set initial heap size equal to maximum heap size")
 	flag.Parse()
 
 	if !validate(c.HeadRoom, c.JvmOptions, c.LoadedClassCount, c.ThreadCount, c.TotalMemory) {

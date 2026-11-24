@@ -29,13 +29,14 @@ const FlagJVMOptions = "jvm-options"
 type JVMOptions struct {
 	MaxDirectMemory   *memory.MaxDirectMemory
 	MaxHeap           *memory.MaxHeap
+	InitialHeap       *memory.InitialHeap
 	MaxMetaspace      *memory.MaxMetaspace
 	ReservedCodeCache *memory.ReservedCodeCache
 	Stack             *memory.Stack
 }
 
 func (j *JVMOptions) Set(s string) error {
-	for _, c := range strings.Split(s, " ") {
+	for _, c := range strings.Fields(s) {
 		if memory.IsMaxDirectMemory(c) {
 			m, err := memory.ParseMaxDirectMemory(c)
 			if err != nil {
@@ -50,6 +51,13 @@ func (j *JVMOptions) Set(s string) error {
 			}
 
 			j.MaxHeap = &m
+		} else if memory.IsInitialHeap(c) {
+			i, err := memory.ParseInitialHeap(c)
+			if err != nil {
+				return err
+			}
+
+			j.InitialHeap = &i
 		} else if memory.IsMaxMetaspace(c) {
 			m, err := memory.ParseMaxMetaspace(c)
 			if err != nil {
@@ -86,6 +94,10 @@ func (j *JVMOptions) String() string {
 
 	if j.MaxHeap != nil {
 		values = append(values, j.MaxHeap.String())
+	}
+
+	if j.InitialHeap != nil {
+		values = append(values, j.InitialHeap.String())
 	}
 
 	if j.MaxMetaspace != nil {

@@ -92,6 +92,23 @@ func TestMemorySize(t *testing.T) {
 				g.Expect(memory.ParseSize("1 \t\r\n")).To(Equal(memory.Size(1)))
 			})
 
+			it("parses the largest value for each unit", func() {
+				g.Expect(memory.ParseSize("9007199254740991K")).To(Equal(memory.Size(9007199254740991 * memory.Kibi)))
+				g.Expect(memory.ParseSize("8796093022207M")).To(Equal(memory.Size(8796093022207 * memory.Mibi)))
+				g.Expect(memory.ParseSize("8589934591G")).To(Equal(memory.Size(8589934591 * memory.Gibi)))
+				g.Expect(memory.ParseSize("8388607T")).To(Equal(memory.Size(8388607 * memory.Tibi)))
+			})
+
+			it("does not parse a value that overflows to a negative size", func() {
+				_, err := memory.ParseSize("8388608T")
+				g.Expect(err).To(MatchError("memory size overflows: 8388608T"))
+			})
+
+			it("does not parse a value that overflows to a positive size", func() {
+				_, err := memory.ParseSize("18014398509481985K")
+				g.Expect(err).To(MatchError("memory size overflows: 18014398509481985K"))
+			})
+
 			it("does not parse empty value", func() {
 				_, err := memory.ParseSize("")
 				g.Expect(err).To(HaveOccurred())
