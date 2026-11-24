@@ -51,13 +51,8 @@ func main() {
 
 	o, err := c.Calculate()
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, err.Error())
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
-	}
-
-	s := make([]string, len(o))
-	for i, t := range o {
-		s[i] = t.String()
 	}
 
 	fmt.Println(output(o))
