@@ -74,9 +74,17 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           REVISION="${{ steps.package.outputs.revision }}"
-          # The release may not exist yet; moving the tag must succeed, so the release never
-          # ends up on a stale commit.
-          gh release delete snapshot --yes 2>/dev/null || true
+          # The release may not exist yet, which is fine. Any other lookup or deletion failure stops
+          # the job before the tag moves, so the old archives never stay attached to a different commit.
+          if gh release view snapshot > /dev/null 2> view.err; then
+            gh release delete snapshot --yes
+          elif grep -q "release not found" view.err; then
+            echo "No snapshot release yet."
+          else
+            cat view.err >&2
+            exit 1
+          fi
+          rm -f view.err
           git tag -f snapshot "${{ github.sha }}"
           git push -f origin refs/tags/snapshot
           gh release create snapshot \

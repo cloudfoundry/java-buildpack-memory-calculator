@@ -14,7 +14,8 @@ cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 mkdir -p "${OUT}"
 OUT=$(cd "${OUT}" && pwd)
 
-# Fixed timestamps and ordering keep the archives identical for the same commit.
+# Fixed timestamps and ordering keep the archives identical for the same commit. -buildvcs=false keeps the
+# checkout state (such as an untracked dist/ directory) out of the binary.
 SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)
 WORK=$(mktemp -d)
 trap 'rm -rf "${WORK}"' EXIT
@@ -27,7 +28,7 @@ for arch in amd64 arm64; do
 
   mkdir -p "${WORK}/${arch}"
   CGO_ENABLED=0 GOOS=linux GOARCH="${arch}" \
-    go build -trimpath -ldflags='-s -w' -o "${WORK}/${arch}/java-buildpack-memory-calculator" .
+    go build -trimpath -buildvcs=false -ldflags='-s -w' -o "${WORK}/${arch}/java-buildpack-memory-calculator" .
 
   tar --sort=name --mtime="@${SOURCE_DATE_EPOCH}" --owner=0 --group=0 --numeric-owner \
     -cf - -C "${WORK}/${arch}" java-buildpack-memory-calculator | gzip -n > "${OUT}/${name}"
