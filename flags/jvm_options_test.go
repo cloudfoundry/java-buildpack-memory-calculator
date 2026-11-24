@@ -49,6 +49,28 @@ func TestJVMOptions(t *testing.T) {
 			g.Expect(j.String()).To(Equal("-XX:MaxDirectMemorySize=1K -Xmx1K -Xms1K -XX:MaxMetaspaceSize=1K -XX:ReservedCodeCacheSize=1K -Xss1K"))
 		})
 
+		it("creates string with exact bytes for an unaligned initial heap", func() {
+			i := memory.InitialHeap(231858240)
+
+			j := flags.JVMOptions{InitialHeap: &i}
+
+			g.Expect(j.String()).To(Equal("-Xms231858240"))
+		})
+
+		it("does not parse an overflowing initial heap", func() {
+			j := flags.JVMOptions{}
+
+			g.Expect(j.Set("-Xms8388608T")).To(MatchError("memory size overflows: 8388608T"))
+			g.Expect(j.InitialHeap).To(BeNil())
+		})
+
+		it("does not parse an overflowing maximum heap", func() {
+			j := flags.JVMOptions{}
+
+			g.Expect(j.Set("-Xmx18014398509481985K")).To(MatchError("memory size overflows: 18014398509481985K"))
+			g.Expect(j.MaxHeap).To(BeNil())
+		})
+
 		it("parses value", func() {
 			d := memory.MaxDirectMemory(memory.Kibi)
 			h := memory.MaxHeap(memory.Kibi)
