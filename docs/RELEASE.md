@@ -34,10 +34,12 @@ Pre-releases are ignored by the workflow, because the rolling snapshot is a pre-
 
 ### When the workflow fails
 
-Nothing is attached. Fix the cause, then either:
+If the tag check, vet, tests or packaging fail, nothing is attached. If the upload step itself fails, the release can hold some of the three assets and not others, because they are uploaded one by one and the upload is not transactional. Open the release and check that all three assets are there before using it, and do not use a release that is missing the `SHA256SUMS` file or an archive.
+
+Fix the cause, then either:
 
 - delete the release **and** its tag (Releases -> the release -> Delete; Tags -> the tag -> Delete) and publish again, or
-- if the tag is right and only the build failed for an unrelated reason, re-run it: **Actions -> Release -> Run workflow** with the tag (e.g. `v4.3.0`). This rebuilds the tag and replaces the attached artifacts.
+- if the tag is right and only the build or upload failed for an unrelated reason, re-run it: **Actions -> Release -> Run workflow** with the tag (e.g. `v4.3.0`). This rebuilds the tag and replaces all attached artifacts, so a partial upload is completed.
 
 ## Snapshots
 
