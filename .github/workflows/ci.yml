@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - 'NOTICE'
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - 'NOTICE'
+  workflow_dispatch:
+
+# Push and pull_request runs deliberately stay in separate groups: a push run builds the branch
+# head, a pull_request run builds the merge with the base branch, and letting either cancel the
+# other could leave the merge untested. Never cancel on main: a cancelled snapshot job could leave
+# the rolling release deleted.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@v7.1.0
+        with:
+          go-version: stable
+
+      - name: Vet
+        run: go vet ./...
+
+      # -count=1 because the tests may run a binary built at test time, which the test cache does not track.
+      - name: Test
+        run: go test -count=1 ./...
+
+      - name: Cross-build
+        run: |
+          for arch in amd64 arm64; do
+            CGO_ENABLED=0 GOOS=linux GOARCH="${arch}" go build -trimpath -o /dev/null .
+          done
+
+  snapshot:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@v7.1.0
+        with:
+          go-version: stable
+
+      - name: Package
+        id: package
+        run: |
+          REVISION="snapshot-$(git rev-parse --short HEAD)"
+          echo "revision=${REVISION}" >> "$GITHUB_OUTPUT"
+          ./.github/scripts/package.sh "${REVISION}" dist
+
+      - name: Recreate rolling snapshot release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REVISION="${{ steps.package.outputs.revision }}"
+          # The release may not exist yet, which is fine. Any other lookup or deletion failure stops
+          # the job before the tag moves, so the old archives never stay attached to a different commit.
+          if gh release view snapshot > /dev/null 2> view.err; then
+            gh release delete snapshot --yes
+          elif grep -q "release not found" view.err; then
+            echo "No snapshot release yet."
+          else
+            cat view.err >&2
+            exit 1
+          fi
+          rm -f view.err
+          git tag -f snapshot "${{ github.sha }}"
+          git push -f origin refs/tags/snapshot
+          gh release create snapshot \
+            --verify-tag \
+            --prerelease \
+            --title "Latest snapshot (${REVISION})" \
+            --notes "Automatically published on every push to \`main\`. Always reflects the latest build, from commit ${{ github.sha }}." \
+            dist/*

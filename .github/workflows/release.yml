@@ -1,0 +1,67 @@
+name: Release
+
+# Publishing a GitHub release with a new tag vX.Y.Z builds that tag as version X.Y.Z and attaches the
+# linux binaries. The version comes from the tag, so no version-bump commit is needed beforehand.
+
+on:
+  release:
+    types: [ published ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to rebuild and re-attach artifacts for (e.g. v4.3.0)'
+        required: true
+
+permissions:
+  contents: write
+
+# A second run for the same tag (publish plus a manual re-run) waits instead of racing the upload.
+concurrency:
+  group: release-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # Pre-releases, such as the rolling snapshot, are not versioned releases.
+    if: github.event_name == 'workflow_dispatch' || !github.event.release.prerelease
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - name: Validate tag
+        run: |
+          if [[ ! "${TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "ERROR: release tag '${TAG}' must look like vX.Y.Z (e.g. v4.3.0)." >&2
+            echo "Delete this release and its tag, then publish a new release with a vX.Y.Z tag." >&2
+            exit 1
+          fi
+          echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: refs/tags/${{ env.TAG }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v7.1.0
+        with:
+          go-version: stable
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test -count=1 ./...
+
+      - name: Package
+        run: ./.github/scripts/package.sh "${VERSION}" dist
+
+      # Naming each archive by version also fails the upload if the build produced a different version.
+      - name: Attach artifacts to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${TAG}" --clobber \
+            "dist/memory-calculator-${VERSION}.tgz" \
+            "dist/memory-calculator-${VERSION}-linux-arm64.tgz" \
+            dist/SHA256SUMS
