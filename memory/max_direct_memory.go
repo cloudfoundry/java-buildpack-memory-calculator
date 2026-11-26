@@ -22,8 +22,6 @@ import (
 	"strings"
 )
 
-const DefaultMaxDirectMemory = MaxDirectMemory(10 * Mibi)
-
 var maxDirectMemoryRE = regexp.MustCompile(fmt.Sprintf("^-XX:MaxDirectMemorySize=(%s)$", sizePattern))
 
 type MaxDirectMemory Size

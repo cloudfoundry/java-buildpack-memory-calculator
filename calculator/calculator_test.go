@@ -45,11 +45,10 @@ func TestCalculator(t *testing.T) {
 
 		it("uses default and calculated values", func() {
 			g.Expect(c.Calculate()).To(ConsistOf(
-				memory.DefaultMaxDirectMemory,
 				memory.MaxMetaspace(19800000),
 				memory.DefaultReservedCodeCache,
 				memory.DefaultStack,
-				memory.MaxHeap(231858240),
+				memory.MaxHeap(242344000),
 			))
 		})
 
@@ -58,10 +57,11 @@ func TestCalculator(t *testing.T) {
 			c.JvmOptions.MaxDirectMemory = &d
 
 			g.Expect(c.Calculate()).To(ConsistOf(
+				memory.MaxDirectMemory(1048576),
 				memory.MaxMetaspace(19800000),
 				memory.DefaultReservedCodeCache,
 				memory.DefaultStack,
-				memory.MaxHeap(241295424),
+				memory.MaxHeap(242344000),
 			))
 		})
 
@@ -70,10 +70,9 @@ func TestCalculator(t *testing.T) {
 			c.JvmOptions.MaxMetaspace = &m
 
 			g.Expect(c.Calculate()).To(ConsistOf(
-				memory.DefaultMaxDirectMemory,
 				memory.DefaultReservedCodeCache,
 				memory.DefaultStack,
-				memory.MaxHeap(250609664),
+				memory.MaxHeap(261095424),
 			))
 		})
 
@@ -82,10 +81,9 @@ func TestCalculator(t *testing.T) {
 			c.JvmOptions.ReservedCodeCache = &r
 
 			g.Expect(c.Calculate()).To(ConsistOf(
-				memory.DefaultMaxDirectMemory,
 				memory.MaxMetaspace(19800000),
 				memory.DefaultStack,
-				memory.MaxHeap(482467904),
+				memory.MaxHeap(492953664),
 			))
 		})
 
@@ -94,10 +92,9 @@ func TestCalculator(t *testing.T) {
 			c.JvmOptions.Stack = &s
 
 			g.Expect(c.Calculate()).To(ConsistOf(
-				memory.DefaultMaxDirectMemory,
 				memory.MaxMetaspace(19800000),
 				memory.DefaultReservedCodeCache,
-				memory.MaxHeap(231858240),
+				memory.MaxHeap(242344000),
 			))
 		})
 
@@ -106,7 +103,6 @@ func TestCalculator(t *testing.T) {
 			c.JvmOptions.MaxHeap = &h
 
 			g.Expect(c.Calculate()).To(ConsistOf(
-				memory.DefaultMaxDirectMemory,
 				memory.MaxMetaspace(19800000),
 				memory.DefaultReservedCodeCache,
 				memory.DefaultStack,
