@@ -88,14 +88,17 @@ func TestVersion(t *testing.T) {
 		g.Expect(string(out)).To(Equal("1.2.3\n"))
 	})
 
-	t.Run("prints a fallback when no version is stamped", func(t *testing.T) {
+	t.Run("prints dev when no version is stamped and no VCS information is embedded", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 
-		stdout, stderr, code := run("--version")
+		path := filepath.Join(t.TempDir(), "java-buildpack-memory-calculator")
+		out, err := exec.Command("go", "build", "-buildvcs=false", "-o", path, ".").CombinedOutput()
+		g.Expect(err).NotTo(HaveOccurred(), string(out))
 
-		g.Expect(code).To(Equal(0))
-		g.Expect(stderr).To(BeEmpty())
-		g.Expect(stdout).To(MatchRegexp(`^\S+\n$`))
+		stdout, err := exec.Command(path, "--version").Output()
+
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(string(stdout)).To(Equal("dev\n"))
 	})
 
 	t.Run("is listed in the usage", func(t *testing.T) {

@@ -69,11 +69,17 @@ func main() {
 }
 
 func buildVersion() string {
-	if version != "" {
-		return version
+	info, _ := debug.ReadBuildInfo()
+
+	return resolveVersion(version, info)
+}
+
+func resolveVersion(stamped string, info *debug.BuildInfo) string {
+	if stamped != "" {
+		return stamped
 	}
 
-	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
+	if info != nil && info.Main.Version != "" && info.Main.Version != "(devel)" {
 		return info.Main.Version
 	}
 
