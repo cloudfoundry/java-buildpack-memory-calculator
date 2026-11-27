@@ -9,6 +9,8 @@ In order to perform this calculation, the Memory Calculator requires the followi
 * `--jvm-options`: JVM Options, typically `JAVA_OPTS`
 * `--head-room`: percentage of total memory available which will be left unallocated to cover JVM overhead
 
+`--version` prints the version and exits. Release binaries report the release version, for example `4.3.0`, and a build from source reports its module version or `dev`.
+
 The experimental, optional `--xms-equals-xmx` flag sets the initial heap size (`-Xms`) equal to the effective maximum heap size (`-Xmx`), whether calculated or explicitly configured. It defaults to `false`, preserving existing behavior. An explicit `-Xms` in `--jvm-options` takes precedence and is not included in the output. JVM options may be separated by spaces, tabs, or newlines. When enabled, an initial heap greater than the emitted maximum heap produces an error; calculated maximum heaps are truncated to whole KiB, while explicitly configured maximum heaps retain their exact byte values. This experimental option may change or be removed based on feedback.
 
 ```sh
@@ -57,7 +59,7 @@ Therefore the memory calculator does not set the compressed class space size (`-
 [h]: https://docs.oracle.com/javase/8/docs/technotes/guides/vm/gctuning/considerations.html
 
 ## Releasing
-See [docs/RELEASE.md](docs/RELEASE.md) for how to cut a release and what it contains.
+See [RELEASE_NOTES.md](RELEASE_NOTES.md) for what changed in each release and [docs/RELEASE.md](docs/RELEASE.md) for how to cut a release.
 
 ## License
 The Java Buildpack Memory Calculator is Open Source software released under the [Apache 2.0 license][a].

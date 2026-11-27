@@ -1,58 +1,40 @@
 # Releasing
 
-A release is made from the GitHub UI: publish a release with a new `vX.Y.Z` tag, and the **Release** workflow builds that tag as version `X.Y.Z` and attaches the Linux binaries. No version-bump commit or pull request is needed first.
-
-## Versions
-
-The version lives only in the tag. `go.mod` carries no release version and the binary does not report one, so the files at a release tag look the same as on `main`.
-
-Earlier releases used `vX.Y.Z` tags too (the 3.x line used `vX.Y.Z.RELEASE`). The workflow accepts plain `vX.Y.Z` only.
+A release is made from the GitHub UI: publish a release with a new `vX.Y.Z` tag, and the **Release** workflow builds that tag and attaches the Linux binaries. The version lives only in the tag, so no version-bump commit is needed.
 
 ## Making a release
 
-1. GitHub -> **Releases** -> **Draft a new release**.
-2. **Choose a tag**: type a new tag `vX.Y.Z` (e.g. `v4.3.0`) and select **Create new tag on publish**, with target `main`.
-3. **Generate release notes**, edit as needed.
-4. **Publish release**.
+1. Add a `## vX.Y.Z` section at the top of [RELEASE_NOTES.md](../RELEASE_NOTES.md) in a normal pull request and merge it. Write each paragraph and list item on one line, because GitHub keeps single line breaks.
+2. GitHub -> **Releases** -> **Draft a new release**.
+3. **Choose a tag**: type a new tag `vX.Y.Z` (e.g. `v4.3.0`) and select **Create new tag on publish**, with target `main`. The notes must be on `main` before this, because the workflow reads them from the tag.
+4. Leave the description empty. The workflow replaces it with the notes section.
+5. **Publish release**.
 
-The **Release** workflow then:
-
-1. checks the tag has the form `vX.Y.Z`;
-2. checks out the tag and runs `go vet ./...` and `go test -count=1 ./...`;
-3. builds static binaries (`CGO_ENABLED=0`, `-trimpath`) for linux/amd64 and linux/arm64 with `.github/scripts/package.sh`;
-4. attaches the archives and a `SHA256SUMS` file to the release.
+The workflow checks the tag format, extracts the notes (failing early if the section is missing or empty), runs `go vet` and `go test`, builds static binaries, attaches them, and sets the release text. Pre-releases are ignored.
 
 | Asset | Contents |
 | ----- | -------- |
-| `memory-calculator-X.Y.Z.tgz` | linux/amd64 binary. Keeps the name the Java buildpack manifest has used since 4.1.0. |
-| `memory-calculator-X.Y.Z-linux-arm64.tgz` | linux/arm64 binary. |
-| `SHA256SUMS` | SHA-256 of both archives, for the buildpack manifest `sha256` field. |
+| `memory-calculator-X.Y.Z-linux-amd64.tgz` | linux/amd64 binary |
+| `memory-calculator-X.Y.Z-linux-arm64.tgz` | linux/arm64 binary |
+| `SHA256SUMS` | SHA-256 of both archives, for the `sha256` field in the Java buildpack `manifest.yml` |
 
-Each archive holds one file, `java-buildpack-memory-calculator`. The archives are reproducible: building the same commit with the same Go version gives the same bytes.
+Each archive holds one file, `java-buildpack-memory-calculator`. The binary is static (`CGO_ENABLED=0`) and runs on cflinuxfs4 and cflinuxfs5, so there is one archive per CPU architecture and none per stack. Releases up to 4.1.0 used the name `memory-calculator-X.Y.Z.tgz`, without a platform. Tooling that picks up the assets, such as the buildpacks-ci dependency-build, must use the platform names.
 
-Pre-releases are ignored by the workflow, because the rolling snapshot is a pre-release.
+## When the workflow fails
 
-### When the workflow fails
-
-If the tag check, vet, tests or packaging fail, nothing is attached. If the upload step itself fails, the release can hold some of the three assets and not others, because they are uploaded one by one and the upload is not transactional. Open the release and check that all three assets are there before using it, and do not use a release that is missing the `SHA256SUMS` file or an archive.
+If the tag check, notes extraction, vet, tests or packaging fail, nothing is attached. If the upload itself fails, the release can hold some of the three assets and not others, because the upload is not transactional. Check that all three assets are there before using a release.
 
 Fix the cause, then either:
 
-- delete the release **and** its tag (Releases -> the release -> Delete; Tags -> the tag -> Delete) and publish again, or
-- if the tag is right and only the build or upload failed for an unrelated reason, re-run it: **Actions -> Release -> Run workflow** with the tag (e.g. `v4.3.0`). This rebuilds the tag and replaces all attached artifacts, so a partial upload is completed.
+- delete the release **and** its tag (Releases -> the release -> Delete; Tags -> the tag -> Delete) and publish again. This is also the fix for a missing notes section: merge it to `main` first, because the workflow reads the file from the tag, or
+- if the tag is right and only the build or upload failed for an unrelated reason, re-run it: **Actions -> Release -> Run workflow** with the tag (e.g. `v4.3.0`). This rebuilds the tag, replaces all attached artifacts and sets the release text again.
+
+The Concourse scripts in `ci/` are superseded, see `ci/README.md`.
 
 ## Snapshots
 
-Every push to `main` that passes the **CI** workflow recreates the pre-release `snapshot` with the same two archives, named `memory-calculator-snapshot-<short sha>.tgz` and `...-linux-arm64.tgz`. It is for testing and not a version to depend on.
-
-## Using a release in the Java buildpack
-
-Set `uri` in the buildpack `manifest.yml` to the release asset (`https://github.com/cloudfoundry/java-buildpack-memory-calculator/releases/download/vX.Y.Z/memory-calculator-X.Y.Z.tgz`) and `sha256` to the matching line in `SHA256SUMS`.
+Every push to `main` that passes the **CI** workflow recreates the pre-release `snapshot` with the two archives, named `memory-calculator-snapshot-<short sha>-linux-amd64.tgz` and `...-linux-arm64.tgz`, and `--version` prints `snapshot-<short sha>`. It is a convenience for trying out the latest `main`, not a version to depend on.
 
 ## Dependency updates
 
-Dependabot (`.github/dependabot.yml`) opens weekly pull requests for the Go modules and for the GitHub Actions used by the workflows. The **Dependency Review** workflow fails a pull request that adds a dependency with a known high or critical vulnerability.
-
-## Previous process
-
-The Concourse scripts in `ci/` are superseded by these workflows; see `ci/README.md`.
+Dependabot (`.github/dependabot.yml`) opens weekly pull requests for the Go modules and the GitHub Actions. The **Dependency Review** workflow fails a pull request that adds a dependency with a known high or critical vulnerability.

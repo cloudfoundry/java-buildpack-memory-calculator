@@ -66,6 +66,47 @@ func run(args ...string) (string, string, int) {
 	return stdout.String(), stderr.String(), exitError.ExitCode()
 }
 
+func buildWithVersion(t *testing.T, version string) string {
+	t.Helper()
+
+	path := filepath.Join(t.TempDir(), "java-buildpack-memory-calculator")
+	out, err := exec.Command("go", "build", "-ldflags", "-X main.version="+version, "-o", path, ".").CombinedOutput()
+	if err != nil {
+		t.Fatalf("go build: %s", out)
+	}
+
+	return path
+}
+
+func TestVersion(t *testing.T) {
+	t.Run("prints the stamped version without other flags", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
+		out, err := exec.Command(buildWithVersion(t, "1.2.3"), "--version").Output()
+
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(string(out)).To(Equal("1.2.3\n"))
+	})
+
+	t.Run("prints a fallback when no version is stamped", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
+		stdout, stderr, code := run("--version")
+
+		g.Expect(code).To(Equal(0))
+		g.Expect(stderr).To(BeEmpty())
+		g.Expect(stdout).To(MatchRegexp(`^\S+\n$`))
+	})
+
+	t.Run("is listed in the usage", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
+		_, stderr, _ := run("--help")
+
+		g.Expect(stderr).To(ContainSubstring("--version"))
+	})
+}
+
 func TestCLI(t *testing.T) {
 	spec.Run(t, "CLI", func(t *testing.T, _ spec.G, it spec.S) {
 

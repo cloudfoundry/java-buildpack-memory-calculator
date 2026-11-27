@@ -19,12 +19,16 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime/debug"
 	"strings"
 
 	"github.com/cloudfoundry/java-buildpack-memory-calculator/v4/calculator"
 	"github.com/cloudfoundry/java-buildpack-memory-calculator/v4/flags"
 	flag "github.com/spf13/pflag"
 )
+
+// version is set at build time with -ldflags "-X main.version=<version>".
+var version string
 
 func main() {
 	h := flags.DefaultHeadRoom
@@ -41,7 +45,13 @@ func main() {
 	flag.Var(c.ThreadCount, flags.FlagThreadCount, "the number of user threads")
 	flag.Var(c.TotalMemory, "total-memory", "total memory available to the application, typically expressed with size classification (B, K, M, G, T)")
 	flag.BoolVar(&c.XmsEqualsXmx, "xms-equals-xmx", false, "experimental: set initial heap size equal to maximum heap size")
+	showVersion := flag.Bool("version", false, "print the version and exit")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Println(buildVersion())
+		return
+	}
 
 	if !validate(c.HeadRoom, c.JvmOptions, c.LoadedClassCount, c.ThreadCount, c.TotalMemory) {
 		_, _ = fmt.Fprintln(os.Stderr, "")
@@ -56,6 +66,18 @@ func main() {
 	}
 
 	fmt.Println(output(o))
+}
+
+func buildVersion() string {
+	if version != "" {
+		return version
+	}
+
+	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
+		return info.Main.Version
+	}
+
+	return "dev"
 }
 
 func output(o []fmt.Stringer) string {
