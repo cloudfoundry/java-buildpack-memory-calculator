@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   release:
-    # Pre-releases, such as the rolling snapshot, are not versioned releases.
+    # Pre-releases are not versioned releases.
     if: github.event_name == 'workflow_dispatch' || !github.event.release.prerelease
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -42,10 +42,14 @@ jobs:
         with:
           ref: refs/tags/${{ env.TAG }}
 
+      # Fail before building when the release has no notes, so a release cannot go out without them.
+      - name: Extract release notes
+        run: ./.github/scripts/release-notes.sh "${VERSION}" > "${RUNNER_TEMP}/release-notes.md"
+
       - name: Set up Go
         uses: actions/setup-go@v7.1.0
         with:
-          go-version: stable
+          go-version-file: go.mod
 
       - name: Vet
         run: go vet ./...
@@ -62,6 +66,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "${TAG}" --clobber \
-            "dist/memory-calculator-${VERSION}.tgz" \
+            "dist/memory-calculator-${VERSION}-linux-amd64.tgz" \
             "dist/memory-calculator-${VERSION}-linux-arm64.tgz" \
             dist/SHA256SUMS
+
+      # Copies the RELEASE_NOTES.md section of this tag into the release text, replacing what was typed when
+      # publishing. A re-run keeps the text in sync with the file.
+      - name: Update release notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "${TAG}" --notes-file "${RUNNER_TEMP}/release-notes.md"

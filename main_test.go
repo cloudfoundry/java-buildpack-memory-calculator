@@ -66,6 +66,50 @@ func run(args ...string) (string, string, int) {
 	return stdout.String(), stderr.String(), exitError.ExitCode()
 }
 
+func buildWithVersion(t *testing.T, version string) string {
+	t.Helper()
+
+	path := filepath.Join(t.TempDir(), "java-buildpack-memory-calculator")
+	out, err := exec.Command("go", "build", "-ldflags", "-X main.version="+version, "-o", path, ".").CombinedOutput()
+	if err != nil {
+		t.Fatalf("go build: %s", out)
+	}
+
+	return path
+}
+
+func TestVersion(t *testing.T) {
+	t.Run("prints the stamped version without other flags", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
+		out, err := exec.Command(buildWithVersion(t, "1.2.3"), "--version").Output()
+
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(string(out)).To(Equal("1.2.3\n"))
+	})
+
+	t.Run("prints dev when no version is stamped and no VCS information is embedded", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
+		path := filepath.Join(t.TempDir(), "java-buildpack-memory-calculator")
+		out, err := exec.Command("go", "build", "-buildvcs=false", "-o", path, ".").CombinedOutput()
+		g.Expect(err).NotTo(HaveOccurred(), string(out))
+
+		stdout, err := exec.Command(path, "--version").Output()
+
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(string(stdout)).To(Equal("dev\n"))
+	})
+
+	t.Run("is listed in the usage", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
+		_, stderr, _ := run("--help")
+
+		g.Expect(stderr).To(ContainSubstring("--version"))
+	})
+}
+
 func TestCLI(t *testing.T) {
 	spec.Run(t, "CLI", func(t *testing.T, _ spec.G, it spec.S) {
 
